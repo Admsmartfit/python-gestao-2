@@ -168,7 +168,7 @@ def responder_manual(id):
     """
     chamado = ChamadoExterno.query.get_or_404(id)
     mensagem = request.form.get('mensagem')
-    
+
     if not mensagem:
         return jsonify({'success': False, 'msg': 'Mensagem vazia.'}), 400
 
@@ -184,14 +184,201 @@ def responder_manual(id):
         )
         db.session.add(notif)
         db.session.commit()
-        
+
         enviar_whatsapp_task.delay(notif.id)
-        
+
         return jsonify({
-            'success': True, 
+            'success': True,
             'msg': 'Mensagem enviada!',
             'data': datetime.utcnow().strftime('%H:%M'),
             'texto': mensagem
         })
     except Exception as e:
         return jsonify({'success': False, 'msg': str(e)}), 500
+
+
+# ==================== NOVA CENTRAL DE MENSAGENS (ESTILO WHATSAPP) ====================
+
+@bp.route('/central-mensagens')
+@login_required
+def central_mensagens():
+    """Renderiza a nova interface de Central de Atendimento (estilo WhatsApp Web)"""
+    return render_template('terceirizados/central_mensagens.html')
+
+
+@bp.route('/api/conversas', methods=['GET'])
+@login_required
+def api_listar_conversas():
+    """
+    Retorna lista de chamados com resumo da última mensagem para a sidebar.
+    Usado pela Central de Mensagens para exibir conversas ativas.
+    """
+    # Busca chamados ordenados pela última atualização
+    chamados = ChamadoExterno.query.order_by(ChamadoExterno.updated_at.desc()).all()
+
+    lista = []
+    for c in chamados:
+        # Pega a última notificação para mostrar preview
+        ultima_msg = HistoricoNotificacao.query.filter_by(chamado_id=c.id)\
+            .order_by(HistoricoNotificacao.criado_em.desc()).first()
+
+        # Verifica se há mensagens não lidas (inbound que ainda não foram visualizadas)
+        # Simplificação: considera inbound dos últimos 5 minutos como "novo"
+        from datetime import timedelta
+        tem_nao_lida = False
+        if ultima_msg and ultima_msg.direcao == 'inbound':
+            cinco_min_atras = datetime.utcnow() - timedelta(minutes=5)
+            tem_nao_lida = ultima_msg.criado_em > cinco_min_atras
+
+        lista.append({
+            'id': c.id,
+            'numero': c.numero_chamado,
+            'titulo': c.titulo,
+            'prestador': c.terceirizado.nome,
+            'telefone': c.terceirizado.telefone,
+            'status_chamado': c.status,
+            'prioridade': c.prioridade,
+            'ultima_msg': ultima_msg.mensagem[:60] + '...' if ultima_msg and len(ultima_msg.mensagem) > 60 else (ultima_msg.mensagem if ultima_msg else 'Sem mensagens'),
+            'data_msg': ultima_msg.criado_em.strftime('%H:%M') if ultima_msg else '',
+            'data_completa': ultima_msg.criado_em.strftime('%d/%m/%Y %H:%M') if ultima_msg else '',
+            'tem_msg_nao_lida': tem_nao_lida,
+            'direcao_ultima': ultima_msg.direcao if ultima_msg else None
+        })
+
+    return jsonify(lista)
+
+
+@bp.route('/api/conversas/<int:id>/mensagens', methods=['GET'])
+@login_required
+def api_obter_mensagens(id):
+    """
+    Retorna histórico completo de mensagens de um chamado específico.
+    Usado pela Central de Mensagens para carregar o chat.
+    """
+    # Verifica se o chamado existe
+    chamado = ChamadoExterno.query.get_or_404(id)
+
+    mensagens = HistoricoNotificacao.query.filter_by(chamado_id=id)\
+        .order_by(HistoricoNotificacao.criado_em.asc()).all()
+
+    resultado = []
+    for m in mensagens:
+        # Formata a data de forma amigável
+        data_hora = m.criado_em.strftime('%d/%m/%Y %H:%M')
+        hora_apenas = m.criado_em.strftime('%H:%M')
+
+        # Determina o remetente para mensagens inbound
+        remetente_display = None
+        if m.direcao == 'inbound':
+            remetente_display = chamado.terceirizado.nome
+        elif m.remetente:
+            remetente_display = m.remetente
+        else:
+            remetente_display = 'Sistema GMM'
+
+        resultado.append({
+            'id': m.id,
+            'direcao': m.direcao,  # 'inbound' ou 'outbound'
+            'texto': m.mensagem,
+            'status': m.status_envio,  # pendente, enviado, entregue, lido, falhou
+            'hora': hora_apenas,
+            'data': data_hora,
+            'remetente': remetente_display,
+            'tipo': m.tipo,  # criacao, cobranca, manual_outbound, resposta_inbound
+            'tipo_conteudo': m.tipo_conteudo or 'text',  # text, audio, image, document
+            'url_midia': m.url_midia_local,
+            'caption': m.caption,
+            'mensagem_transcrita': m.mensagem_transcrita
+        })
+
+    return jsonify(resultado)
+
+
+@bp.route('/api/chamados/<int:id>/finalizar', methods=['POST'])
+@login_required
+def api_finalizar_chamado(id):
+    """
+    Marca um chamado como concluído.
+    Usado pela Central de Mensagens.
+    """
+    try:
+        chamado = ChamadoExterno.query.get_or_404(id)
+
+        # Atualiza status
+        chamado.status = 'concluido'
+        chamado.data_conclusao = datetime.utcnow()
+        db.session.commit()
+
+        # Opcional: Envia mensagem de agradecimento
+        msg_finalizacao = (
+            f"✅ *Chamado Finalizado*\n\n"
+            f"Chamado: {chamado.numero_chamado}\n"
+            f"Título: {chamado.titulo}\n\n"
+            f"Obrigado pelo atendimento! O chamado foi marcado como concluído."
+        )
+
+        notif = HistoricoNotificacao(
+            chamado_id=chamado.id,
+            tipo='finalizacao',
+            destinatario=chamado.terceirizado.telefone,
+            mensagem=msg_finalizacao,
+            status_envio='pendente',
+            direcao='outbound'
+        )
+        db.session.add(notif)
+        db.session.commit()
+
+        # Envia assíncrono
+        enviar_whatsapp_task.delay(notif.id)
+
+        return jsonify({
+            'success': True,
+            'msg': 'Chamado finalizado com sucesso!'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'msg': f'Erro ao finalizar chamado: {str(e)}'
+        }), 500
+
+
+@bp.route('/api/chamados/<int:id>/info', methods=['GET'])
+@login_required
+def api_info_chamado(id):
+    """
+    Retorna informações detalhadas do chamado para exibição rápida.
+    """
+    chamado = ChamadoExterno.query.get_or_404(id)
+
+    # Contadores
+    total_msgs = HistoricoNotificacao.query.filter_by(chamado_id=id).count()
+    msgs_enviadas = HistoricoNotificacao.query.filter_by(
+        chamado_id=id, direcao='outbound'
+    ).count()
+    msgs_recebidas = HistoricoNotificacao.query.filter_by(
+        chamado_id=id, direcao='inbound'
+    ).count()
+
+    return jsonify({
+        'id': chamado.id,
+        'numero': chamado.numero_chamado,
+        'titulo': chamado.titulo,
+        'descricao': chamado.descricao,
+        'status': chamado.status,
+        'prioridade': chamado.prioridade,
+        'prestador': {
+            'nome': chamado.terceirizado.nome,
+            'telefone': chamado.terceirizado.telefone,
+            'empresa': chamado.terceirizado.empresa
+        },
+        'criado_em': chamado.criado_em.strftime('%d/%m/%Y %H:%M'),
+        'prazo': chamado.prazo_combinado.strftime('%d/%m/%Y %H:%M') if chamado.prazo_combinado else None,
+        'data_conclusao': chamado.data_conclusao.strftime('%d/%m/%Y %H:%M') if chamado.data_conclusao else None,
+        'estatisticas': {
+            'total_mensagens': total_msgs,
+            'enviadas': msgs_enviadas,
+            'recebidas': msgs_recebidas
+        }
+    })

@@ -79,9 +79,13 @@
 
                 <div class="nav-group">
                     <div class="nav-group-title">Externo</div>
+                    <a href="{{ url_for('terceirizados.central_mensagens') }}"
+                        class="nav-link-saas {{ 'active' if request.endpoint == 'terceirizados.central_mensagens' }}">
+                        <i class="bi bi-whatsapp"></i> Central de Mensagens
+                    </a>
                     <a href="{{ url_for('terceirizados.listar_chamados') }}"
-                        class="nav-link-saas {{ 'active' if 'terceirizados' in request.endpoint }}">
-                        <i class="bi bi-headset"></i> Chamados & Chat
+                        class="nav-link-saas {{ 'active' if request.endpoint == 'terceirizados.listar_chamados' }}">
+                        <i class="bi bi-list-task"></i> Lista de Chamados
                     </a>
                     {% if current_user.tipo in ['admin', 'gerente'] %}
                     <a href="{{ url_for('admin.dashboard', tab='terceirizados') }}" class="nav-link-saas">
