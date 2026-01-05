@@ -145,22 +145,112 @@ def editar_tecnico(): # Mantive o nome da função para compatibilidade, mas ser
 def excluir_tecnico(id):
     from app.models.estoque_models import OrdemServico
 
+    # Parâmetro para forçar exclusão (com confirmação)
+    force = request.args.get('force', 'false') == 'true'
+
     user = Usuario.query.get(id)
+    if not user:
+        flash('Usuário não encontrado.', 'danger')
+        return redirect(url_for('admin.dashboard', tab='tecnicos'))
+
     # Impede que o admin exclua a si mesmo acidentalmente
     if user.id == current_user.id:
         flash('Você não pode excluir seu próprio usuário.', 'danger')
         return redirect(url_for('admin.dashboard', tab='tecnicos'))
 
-    if user:
-        # Verifica se o usuário tem ordens de serviço associadas
-        ordens_count = OrdemServico.query.filter_by(tecnico_id=user.id).count()
-        if ordens_count > 0:
-            flash(f'Não é possível excluir este usuário. Existem {ordens_count} ordem(ns) de serviço associada(s) a ele. Desative o usuário ao invés de excluí-lo.', 'danger')
+    # Busca TODOS os relacionamentos associados
+    ordens = OrdemServico.query.filter_by(tecnico_id=user.id).all()
+    registros = RegistroPonto.query.filter_by(usuario_id=user.id).all()
+
+    # Verifica se há dados associados
+    if (ordens or registros) and not force:
+        # Monta mensagem detalhada com lista de dados
+        ordens_abertas = [o for o in ordens if o.status in ['aberta', 'em_andamento']]
+        ordens_fechadas = [o for o in ordens if o.status not in ['aberta', 'em_andamento']]
+
+        msg_parts = [f'<strong>Usuário: {user.nome}</strong><br>']
+
+        if ordens:
+            msg_parts.append(f'<strong>Total de OS associadas: {len(ordens)}</strong><br>')
+        if registros:
+            msg_parts.append(f'<strong>Total de Registros de Ponto: {len(registros)}</strong><br>')
+        msg_parts.append('<br>')
+
+        if ordens_abertas:
+            msg_parts.append(f'<strong class="text-danger">⚠️ {len(ordens_abertas)} OS Aberta(s):</strong><ul class="mb-2">')
+            for o in ordens_abertas[:5]:
+                msg_parts.append(f'<li>OS #{o.numero_os} - {o.status.upper()} - {o.descricao_problema[:50]}...</li>')
+            if len(ordens_abertas) > 5:
+                msg_parts.append(f'<li>... e mais {len(ordens_abertas) - 5} OS abertas</li>')
+            msg_parts.append('</ul>')
+            msg_parts.append('<p class="text-danger mb-3">❌ Não é possível excluir enquanto houver OS abertas. Finalize-as primeiro.</p>')
+
+            flash(''.join(msg_parts), 'danger')
             return redirect(url_for('admin.dashboard', tab='tecnicos'))
 
-        db.session.delete(user)
+        # Se chegou aqui, só tem dados fechados (OS fechadas e/ou registros de ponto)
+        total_dados = len(ordens_fechadas) + len(registros)
+
+        if ordens_fechadas:
+            msg_parts.append(f'<strong class="text-warning">📋 {len(ordens_fechadas)} OS Fechada(s):</strong><ul class="mb-2">')
+            for o in ordens_fechadas[:3]:
+                msg_parts.append(f'<li>OS #{o.numero_os} - {o.status.upper()} - {o.descricao_problema[:50]}...</li>')
+            if len(ordens_fechadas) > 3:
+                msg_parts.append(f'<li>... e mais {len(ordens_fechadas) - 3} OS fechadas</li>')
+            msg_parts.append('</ul>')
+
+        if registros:
+            msg_parts.append(f'<strong class="text-info">🕐 {len(registros)} Registro(s) de Ponto:</strong><ul class="mb-2">')
+            for r in registros[:3]:
+                data_str = r.data_hora_entrada.strftime('%d/%m/%Y %H:%M')
+                msg_parts.append(f'<li>{data_str} - {r.unidade.nome if r.unidade else "N/A"}</li>')
+            if len(registros) > 3:
+                msg_parts.append(f'<li>... e mais {len(registros) - 3} registros</li>')
+            msg_parts.append('</ul>')
+
+        msg_parts.append(f'<p class="mb-2"><strong>⚠️ ATENÇÃO:</strong> Ao excluir este usuário, TODOS os {total_dados} registro(s) associados serão excluídos permanentemente!</p>')
+        msg_parts.append(f'<a href="{url_for("admin.excluir_tecnico", id=user.id, force="true")}" class="btn btn-danger btn-sm" onclick="return confirm(\'CONFIRMAÇÃO FINAL:\\n\\nVocê tem certeza que deseja EXCLUIR PERMANENTEMENTE:\\n- Usuário: {user.nome}\\n- {len(ordens_fechadas)} OS\\n- {len(registros)} Registros de Ponto\\n\\nEsta ação NÃO PODE ser desfeita!\')"><i class="bi bi-trash-fill me-1"></i>Confirmar Exclusão Permanente</a> ')
+        msg_parts.append(f'<a href="{url_for("admin.toggle_usuario_status", id=user.id)}" class="btn btn-warning btn-sm"><i class="bi bi-pause-circle me-1"></i>Desativar ao Invés (Recomendado)</a>')
+
+        flash(''.join(msg_parts), 'warning')
+        return redirect(url_for('admin.dashboard', tab='tecnicos'))
+
+    # Se chegou aqui com force=true ou sem dados, pode excluir
+    if force:
+        # Exclui todos os dados associados primeiro
+        for o in ordens:
+            db.session.delete(o)
+        for r in registros:
+            db.session.delete(r)
+
+    db.session.delete(user)
+    db.session.commit()
+
+    msg_sucesso = f'Usuário {user.nome} removido com sucesso'
+    if force and (ordens or registros):
+        msg_sucesso += f' junto com {len(ordens)} OS e {len(registros)} registros de ponto.'
+    else:
+        msg_sucesso += '.'
+
+    flash(msg_sucesso, 'success')
+    return redirect(url_for('admin.dashboard', tab='tecnicos'))
+
+@bp.route('/usuario/toggle-status/<int:id>')
+@login_required
+def toggle_usuario_status(id):
+    """Ativa ou desativa um usuário"""
+    user = Usuario.query.get(id)
+
+    if user.id == current_user.id:
+        flash('Você não pode desativar seu próprio usuário.', 'danger')
+        return redirect(url_for('admin.dashboard', tab='tecnicos'))
+
+    if user:
+        user.ativo = not user.ativo
         db.session.commit()
-        flash('Usuário removido com sucesso.', 'success')
+        status = 'ativado' if user.ativo else 'desativado'
+        flash(f'Usuário {status} com sucesso.', 'success')
+
     return redirect(url_for('admin.dashboard', tab='tecnicos'))
 
 # ==============================================================================

@@ -8,7 +8,8 @@
       "Bash(py run.py:*)",
       "Bash(curl:*)",
       "Bash(flask db:*)",
-      "Bash(py -m flask db:*)"
+      "Bash(py -m flask db:*)",
+      "Bash(py -c:*)"
     ]
   }
 }

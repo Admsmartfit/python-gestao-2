@@ -11,6 +11,27 @@
     </a>
 </div>
 
+<!-- Mensagens Flash -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {% if category == 'danger' %}
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                {% elif category == 'warning' %}
+                    <i class="bi bi-exclamation-circle-fill me-2"></i>
+                {% elif category == 'success' %}
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                {% else %}
+                    <i class="bi bi-info-circle-fill me-2"></i>
+                {% endif %}
+                {{ message|safe }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
 <div class="row g-3 mb-4">
     <div class="col-6 col-md-3">
         <div class="card border-0 shadow-sm h-100">
@@ -130,6 +151,7 @@
                                 <th>Função</th>
                                 <th>Contato</th>
                                 <th>Unidade</th>
+                                <th>Status</th>
                                 <th class="text-end pe-4">Ações</th>
                             </tr>
                         </thead>
@@ -147,10 +169,23 @@
                                     <div>{{ f.telefone or '' }}</div>
                                 </td>
                                 <td data-label="Unidade">{{ f.unidade_padrao_id or 'Global' }}</td>
+                                <td data-label="Status">
+                                    {% if f.ativo %}
+                                        <span class="badge bg-success">Ativo</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Inativo</span>
+                                    {% endif %}
+                                </td>
                                 <td class="text-end pe-4" data-label="Ações">
+                                    <a href="{{ url_for('admin.toggle_usuario_status', id=f.id) }}"
+                                        class="btn btn-sm btn-outline-{% if f.ativo %}warning{% else %}success{% endif %} me-1"
+                                        title="{% if f.ativo %}Desativar{% else %}Ativar{% endif %} usuário">
+                                        <i class="bi bi-{% if f.ativo %}pause-circle{% else %}play-circle{% endif %}"></i>
+                                    </a>
                                     <a href="{{ url_for('admin.excluir_tecnico', id=f.id) }}"
-                                        class="btn btn-sm btn-outline-danger w-100-mobile"
-                                        onclick="return confirm('Confirmar exclusão?')">
+                                        class="btn btn-sm btn-outline-danger"
+                                        onclick="return confirm('Confirmar exclusão permanente?')"
+                                        title="Excluir permanentemente">
                                         <i class="bi bi-trash"></i>
                                     </a>
                                 </td>
@@ -643,5 +678,16 @@
                 tbody.innerHTML = '<tr><td colspan="4" class="text-danger text-center py-3">Erro ao carregar dados.</td></tr>';
             });
     }
+
+    // Auto-dismiss alerts após 5 segundos
+    document.addEventListener('DOMContentLoaded', function() {
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(alert => {
+            setTimeout(() => {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            }, 5000);
+        });
+    });
 </script>
 {% endblock %}
