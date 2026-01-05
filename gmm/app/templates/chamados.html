@@ -79,12 +79,17 @@
                                 {% endif %}
                         </td>
                         <td class="text-end pe-4" data-label="Ações">
-                            {% if c.prazo_combinado and c.prazo_combinado < hoje and c.status !='concluido' %} <button
-                                onclick="cobrar('{{ c.id }}', this)" class="btn btn-sm btn-outline-danger w-100-mobile"
-                                title="Cobrar via WhatsApp">
-                                <i class="bi bi-whatsapp me-1"></i> Cobrar
-                                </button>
-                                {% endif %}
+                            {% if c.status != 'concluido' %}
+                            <button
+                                onclick="abrirModalCobranca('{{ c.id }}', '{{ c.numero_chamado }}', '{{ c.titulo }}')"
+                                class="btn btn-sm btn-outline-danger w-100-mobile" title="Cobrar via WhatsApp">
+                                <i class="bi bi-bell"></i> Cobrar
+                            </button>
+                            {% endif %}
+                            <a href="{{ url_for('terceirizados.detalhes_chamado', id=c.id) }}"
+                                class="btn btn-sm btn-light border w-100-mobile">
+                                Ver
+                            </a>
                         </td>
                     </tr>
                     {% else %}
@@ -158,24 +163,63 @@
     </div>
 </div>
 
-<script>
-    function cobrar(id, btn) {
-        if (confirm("Enviar cobrança automática via WhatsApp?")) {
-            // Loading state no botão específico
-            const originalHtml = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Enviando...';
+<!-- Modal de Cobrança Terceirizado -->
+<div class="modal fade" id="modalCobrancaGlobal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-light border-0">
+                <h5 class="modal-title fw-bold">Enviar Cobrança</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-0">
+                <p class="text-muted small mb-3">Edite a mensagem antes de disparar via WhatsApp.</p>
+                <input type="hidden" id="cobrancaChamadoId">
+                <textarea class="form-control" id="textoCobranca" rows="6" style="resize: none;"></textarea>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-white border" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="btnConfirmarCobranca" class="btn btn-primary px-4"
+                    onclick="confirmarEnvioCobranca()">
+                    <i class="bi bi-send me-2"></i>Enviar Agora
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
-            fetch(`/terceirizados/chamados/${id}/cobrar`, { method: 'POST' })
-                .then(res => res.json())
-                .then(data => {
-                    ToastModule.show(data.msg, data.success ? 'success' : 'danger');
-                })
-                .catch(err => ToastModule.show("Erro de conexão.", 'danger'))
-                .finally(() => {
-                    btn.disabled = false;
-                    btn.innerHTML = originalHtml;
-                });
+<script>
+    function abrirModalCobranca(id, numero, titulo) {
+        document.getElementById('cobrancaChamadoId').value = id;
+        document.getElementById('textoCobranca').value = `⏰ *Lembrete / Cobrança*\n\nChamado: ${numero}\nTítulo: ${titulo}\nComo está o andamento deste serviço?`;
+        new bootstrap.Modal(document.getElementById('modalCobrancaGlobal')).show();
+    }
+
+    async function confirmarEnvioCobranca() {
+        const id = document.getElementById('cobrancaChamadoId').value;
+        const msg = document.getElementById('textoCobranca').value;
+        const btn = document.getElementById('btnConfirmarCobranca');
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Enviando...';
+
+        try {
+            const res = await fetch(`/terceirizados/chamados/${id}/cobrar`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mensagem_personalizada: msg })
+            });
+            const data = await res.json();
+            if (data.success) {
+                ToastModule.show("Cobrança enviada com sucesso!", "success");
+                bootstrap.Modal.getInstance(document.getElementById('modalCobrancaGlobal')).hide();
+            } else {
+                ToastModule.show("Erro: " + (data.msg || data.erro), "danger");
+            }
+        } catch (e) {
+            ToastModule.show("Erro de conexão.", "danger");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-send me-2"></i>Enviar Agora';
         }
     }
 </script>

@@ -207,9 +207,65 @@ def transcrever_audio_task(self, notificacao_id):
 
     Args:
         notificacao_id: ID da notificação no banco
-
-    Nota: Implementação completa na FASE 4
     """
-    # Por enquanto apenas logga - implementação completa na FASE 4
-    logger.info(f"Transcrição de áudio agendada para notificação {notificacao_id}")
-    return {"status": "pending_fase4", "notificacao_id": notificacao_id}
+    try:
+        from flask import current_app
+        import requests
+        import os
+        
+        notificacao = HistoricoNotificacao.query.get(notificacao_id)
+        if not notificacao or not notificacao.url_midia_local:
+            return {"error": "Notificação ou arquivo não encontrado"}
+
+        # Caminho absoluto do arquivo
+        # url_midia_local começa com /static/...
+        filepath = os.path.join(current_app.root_path, notificacao.url_midia_local.lstrip('/'))
+        
+        if not os.path.exists(filepath):
+             raise Exception(f"Arquivo não encontrado no disco: {filepath}")
+
+        # Configurações OpenAI
+        api_key = current_app.config.get('OPENAI_API_KEY')
+        if not api_key:
+            logger.warning("OPENAI_API_KEY não configurada. Transcrição impossível.")
+            return {"status": "skipped", "reason": "no_api_key"}
+
+        # Chamada Whisper API
+        url = "https://api.openai.com/v1/audio/transcriptions"
+        headers = {"Authorization": f"Bearer {api_key}"}
+        
+        logger.info(f"Enviando arquivo {filepath} para Whisper")
+        
+        with open(filepath, 'rb') as audio_file:
+            files = {
+                'file': (os.path.basename(filepath), audio_file),
+            }
+            data = {
+                'model': 'whisper-1',
+                'language': 'pt'
+            }
+            response = requests.post(url, headers=headers, files=files, data=data, timeout=60)
+
+        if response.status_code != 200:
+            raise Exception(f"Erro na API OpenAI: {response.status_code} - {response.text}")
+
+        transcricao = response.json().get('text')
+        
+        if transcricao:
+            notificacao.mensagem = f"[ÁUDIO] {transcricao}"
+            db.session.commit()
+            
+            logger.info(f"Transcrição concluída para {notificacao_id}: {transcricao[:50]}...")
+            
+            # Após transcrever, processar o texto resultante como se fosse um inbound de texto
+            # para acionar NLP e roteamento
+            processar_mensagem_inbound.delay(notificacao.remetente, transcricao, datetime.utcnow().timestamp())
+
+        return {"status": "success", "transcription": transcricao}
+
+    except Exception as exc:
+        logger.error(f"Erro na transcrição (tentativa {self.request.retries + 1}): {exc}")
+        if self.request.retries < self.max_retries:
+            delay = 60 * (5 ** self.request.retries)
+            raise self.retry(exc=exc, countdown=delay)
+        return {"status": "failed", "error": str(exc)}

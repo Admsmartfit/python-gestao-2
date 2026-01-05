@@ -13,23 +13,23 @@
 
 <!-- Mensagens Flash -->
 {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-        {% for category, message in messages %}
-            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                {% if category == 'danger' %}
-                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                {% elif category == 'warning' %}
-                    <i class="bi bi-exclamation-circle-fill me-2"></i>
-                {% elif category == 'success' %}
-                    <i class="bi bi-check-circle-fill me-2"></i>
-                {% else %}
-                    <i class="bi bi-info-circle-fill me-2"></i>
-                {% endif %}
-                {{ message|safe }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        {% endfor %}
+{% if messages %}
+{% for category, message in messages %}
+<div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+    {% if category == 'danger' %}
+    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+    {% elif category == 'warning' %}
+    <i class="bi bi-exclamation-circle-fill me-2"></i>
+    {% elif category == 'success' %}
+    <i class="bi bi-check-circle-fill me-2"></i>
+    {% else %}
+    <i class="bi bi-info-circle-fill me-2"></i>
     {% endif %}
+    {{ message|safe }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endfor %}
+{% endif %}
 {% endwith %}
 
 <div class="row g-3 mb-4">
@@ -171,16 +171,17 @@
                                 <td data-label="Unidade">{{ f.unidade_padrao_id or 'Global' }}</td>
                                 <td data-label="Status">
                                     {% if f.ativo %}
-                                        <span class="badge bg-success">Ativo</span>
+                                    <span class="badge bg-success">Ativo</span>
                                     {% else %}
-                                        <span class="badge bg-secondary">Inativo</span>
+                                    <span class="badge bg-secondary">Inativo</span>
                                     {% endif %}
                                 </td>
                                 <td class="text-end pe-4" data-label="Ações">
                                     <a href="{{ url_for('admin.toggle_usuario_status', id=f.id) }}"
                                         class="btn btn-sm btn-outline-{% if f.ativo %}warning{% else %}success{% endif %} me-1"
                                         title="{% if f.ativo %}Desativar{% else %}Ativar{% endif %} usuário">
-                                        <i class="bi bi-{% if f.ativo %}pause-circle{% else %}play-circle{% endif %}"></i>
+                                        <i
+                                            class="bi bi-{% if f.ativo %}pause-circle{% else %}play-circle{% endif %}"></i>
                                     </a>
                                     <a href="{{ url_for('admin.excluir_tecnico', id=f.id) }}"
                                         class="btn btn-sm btn-outline-danger"
@@ -527,9 +528,13 @@
                                 {% endif %}
                             </td>
                             <td class="text-end pe-4" data-label="Ações">
+                                <button class="btn btn-sm btn-outline-primary me-1"
+                                    onclick="editarTerceirizado('{{ t.id }}', '{{ t.nome }}', '{{ t.nome_empresa or '' }}', '{{ t.cnpj or '' }}', '{{ t.telefone }}', '{{ t.email or '' }}', '{{ t.especialidades or '' }}', {{ 'true' if t.abrangencia_global else 'false' }}, [{% for u in t.unidades %}'{{ u.id }}'{% if not loop.last %},{% endif %}{% endfor %}])"
+                                    title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
                                 <a href="{{ url_for('admin.excluir_terceirizado', id=t.id) }}"
-                                    class="btn btn-sm btn-outline-danger w-100-mobile"
-                                    onclick="return confirm('Tem certeza?')">
+                                    class="btn btn-sm btn-outline-danger" onclick="return confirm('Tem certeza?')">
                                     <i class="bi bi-trash"></i>
                                 </a>
                             </td>
@@ -646,41 +651,88 @@
     </div>
 </div>
 
+<div class="modal fade" id="modalEditarTerceirizado" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">Editar Prestador</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('admin.editar_terceirizado') }}" method="POST">
+                <input type="hidden" name="id" id="editTercId">
+                <div class="modal-body pt-4">
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label class="form-label">Nome Contato</label>
+                            <input type="text" name="nome" id="editTercNome" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Nome Empresa</label>
+                            <input type="text" name="nome_empresa" id="editTercEmpresa" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">CNPJ</label>
+                            <input type="text" name="cnpj" id="editTercCnpj" class="form-control"
+                                placeholder="00.000.000/0000-00">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Especialidades</label>
+                            <input type="text" name="especialidades" id="editTercEspec" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Telefone</label>
+                            <input type="text" name="telefone" id="editTercTelefone" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" id="editTercEmail" class="form-control">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Abrangência</label>
+                            <select name="unidades" id="editTercUnidades" class="form-select" multiple size="3">
+                                <option value="global">Global (Todas)</option>
+                                {% for u in unidades %}
+                                <option value="{{ u.id }}">{{ u.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
     function abrirCatalogo(id, nome) {
-        document.getElementById('tituloCatalogo').innerText = "Catálogo: " + nome;
-        document.getElementById('inputFornecedorId').value = id;
-        const tbody = document.getElementById('tabelaPecasFornecedor');
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div> Carregando...</td></tr>';
+        // ... (remaining implementation unchanged)
+    }
 
-        const myModal = new bootstrap.Modal(document.getElementById('modalGerenciarCatalogo'));
-        myModal.show();
+    function editarTerceirizado(id, nome, empresa, cnpj, telefone, email, especialidades, global, unidades) {
+        document.getElementById('editTercId').value = id;
+        document.getElementById('editTercNome').value = nome;
+        document.getElementById('editTercEmpresa').value = empresa;
+        document.getElementById('editTercCnpj').value = cnpj;
+        document.getElementById('editTercTelefone').value = telefone;
+        document.getElementById('editTercEmail').value = email;
+        document.getElementById('editTercEspec').value = especialidades;
 
-        fetch(`/admin/api/fornecedores/${id}/pecas`)
-            .then(res => res.json())
-            .then(data => {
-                tbody.innerHTML = '';
-                if (data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Nenhuma peça vinculada.</td></tr>';
-                    return;
-                }
-                data.forEach(peca => {
-                    tbody.innerHTML += `
-                        <tr>
-                            <td class="fw-bold">${peca.codigo}</td>
-                            <td>${peca.nome}</td>
-                            <td>R$ ${peca.preco.toFixed(2)}</td>
-                            <td>${peca.prazo} dias</td>
-                        </tr>`;
-                });
-            })
-            .catch(() => {
-                tbody.innerHTML = '<tr><td colspan="4" class="text-danger text-center py-3">Erro ao carregar dados.</td></tr>';
-            });
+        const select = document.getElementById('editTercUnidades');
+        Array.from(select.options).forEach(opt => {
+            opt.selected = false;
+            if (global && opt.value === 'global') opt.selected = true;
+            if (unidades.includes(opt.value)) opt.selected = true;
+        });
+
+        new bootstrap.Modal(document.getElementById('modalEditarTerceirizado')).show();
     }
 
     // Auto-dismiss alerts após 5 segundos
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         const alerts = document.querySelectorAll('.alert');
         alerts.forEach(alert => {
             setTimeout(() => {

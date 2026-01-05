@@ -15,7 +15,9 @@ def listar_chamados():
     # Filtros opcionais (ex: ?filtro=atrasados)
     filtro = request.args.get('filtro', 'todos')
     
-    query = ChamadoExterno.query.order_by(ChamadoExterno.prazo_combinado.asc())
+    query = ChamadoExterno.query.outerjoin(OrdemServico).filter(
+        (ChamadoExterno.os_id == None) | (OrdemServico.status != 'concluida')
+    ).order_by(ChamadoExterno.prazo_combinado.asc())
     
     if filtro == 'atrasados':
         query = query.filter(
@@ -154,10 +156,16 @@ def cobrar_terceirizado(id):
     """
     chamado = ChamadoExterno.query.get_or_404(id)
     
-    msg = (f"⏰ *Prazo Vencido*\n\n"
-           f"Chamado: {chamado.numero_chamado}\n"
-           f"Título: {chamado.titulo}\n"
-           f"Previsão de conclusão?")
+    data = request.get_json() or {}
+    mensagem_custom = data.get('mensagem_personalizada')
+    
+    if mensagem_custom:
+        msg = mensagem_custom
+    else:
+        msg = (f"⏰ *Prazo Vencido*\n\n"
+               f"Chamado: {chamado.numero_chamado}\n"
+               f"Título: {chamado.titulo}\n"
+               f"Previsão de conclusão?")
     
     notif = HistoricoNotificacao(
         chamado_id=chamado.id,

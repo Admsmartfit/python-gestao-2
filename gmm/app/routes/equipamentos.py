@@ -57,3 +57,18 @@ def detalhes(id):
                              'qtd_os': qtd_os,
                              'mtbf': mtbf
                          })
+
+@bp.route('/<int:id>/gerar-qr')
+@login_required
+def gerar_qr(id):
+    """Gera o arquivo de QR Code no servidor (conforme PRD v3.1)"""
+    from app.services.qr_service import QRService
+    from flask import flash, redirect, url_for
+    
+    Equipamento.query.get_or_404(id)
+    try:
+        path = QRService.gerar_etiqueta_equipamento(id)
+        return redirect(path)
+    except Exception as e:
+        flash(f'Erro ao gerar QR Code: {str(e)}', 'danger')
+        return redirect(url_for('equipamentos.detalhes', id=id))

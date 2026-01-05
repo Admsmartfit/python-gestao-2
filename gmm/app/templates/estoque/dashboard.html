@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Estoque Inteligente</li>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h2 class="fw-bold mb-0">Painel de Inventário</h2>
+    <p class="text-muted small">Gestão global de ativos, insumos e balanceamento entre unidades</p>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm p-4 h-100 bg-primary text-white">
+            <div class="small fw-bold text-uppercase opacity-75">Valor Total em Estoque</div>
+            <div class="fs-2 fw-bold">R$ {{ "{:.2f}".format(total_valor) }}</div>
+            <div class="mt-2 small opacity-75">Valor de aquisição acumulado</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm p-4 h-100">
+            <div class="small text-muted fw-bold text-uppercase">Itens Críticos</div>
+            <div class="fs-2 fw-bold text-danger">{{ criticos|length }}</div>
+            <div class="mt-2 small text-muted">Abaixo do estoque mínimo</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm p-4 h-100">
+            <div class="small text-muted fw-bold text-uppercase">Itens Classe A</div>
+            <div class="fs-2 fw-bold text-dark">{{ dados_abc|selectattr('classe', 'equalto', 'A')|list|length }}</div>
+            <div class="mt-2 small text-muted">Responsáveis por 80% do valor</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm p-4 h-100">
+            <div class="small text-muted fw-bold text-uppercase">Total de Itens</div>
+            <div class="fs-2 fw-bold text-primary">{{ itens|length }}</div>
+            <div class="mt-2 small text-muted">Cadastrados no sistema</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Curva ABC -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0">Análise Curva ABC (Consumo)</h5>
+                <span class="badge bg-light text-dark border">RF-011</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="ps-4">Item</th>
+                            <th>Consumo Acum. (R$)</th>
+                            <th>Qtd Consumida</th>
+                            <th>Classe</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for d in dados_abc %}
+                        <tr>
+                            <td class="ps-4">
+                                <div class="fw-bold">{{ d.nome }}</div>
+                                <div class="small text-muted">{{ d.codigo }}</div>
+                            </td>
+                            <td>R$ {{ "{:.2f}".format(d.valor_consumo) }}</td>
+                            <td>{{ "{:g}".format(d.qtd_consumo) }}</td>
+                            <td>
+                                <span
+                                    class="badge bg-{{ 'success' if d.classe == 'A' else ('warning' if d.classe == 'B' else 'secondary') }} bg-opacity-10 text-{{ 'success' if d.classe == 'A' else ('warning' if d.classe == 'B' else 'secondary') }} border">
+                                    {{ d.classe }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alertas Críticos -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-danger bg-opacity-10 py-3">
+                <h5 class="fw-bold mb-0 text-danger">Reposição Necessária</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for c in criticos %}
+                <div class="list-group-item p-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="fw-bold">{{ c.nome }}</span>
+                        <span class="text-danger fw-bold">{{ "{:g}".format(c.quantidade_atual) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between small text-muted">
+                        <span>Min: {{ "{:g}".format(c.quantidade_minima) }}</span>
+                        <a href="{{ url_for('compras.novo', estoque_id=c.id) }}"
+                            class="text-primary text-decoration-none">Solicitar Compra</a>
+                    </div>
+                </div>
+                {% else %}
+                <div class="p-4 text-center text-muted small italic">Nenhum alerta crítico no momento.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h5 class="fw-bold mb-0">Movimentações Recentes</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for m in recentes %}
+                <div class="list-group-item p-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="small">{{ m.peca.nome }}</span>
+                        <span
+                            class="small fw-bold text-{{ 'success' if m.tipo_movimentacao in ['entrada', 'ajuste'] and m.quantidade > 0 else 'danger' }}">
+                            {{ '+' if m.quantidade > 0 else '' }}{{ "{:g}".format(m.quantidade) }}
+                        </span>
+                    </div>
+                    <div class="small text-muted opacity-75">
+                        {{ m.unidade.nome or 'Global' }} • {{ m.data_movimentacao.strftime('%d/%m %H:%M') }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="card-footer bg-white text-center py-2 border-top-0">
+                <a href="{{ url_for('estoque.movimentacoes') }}" class="small text-decoration-none">Ver tudo</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

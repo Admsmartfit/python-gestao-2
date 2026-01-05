@@ -420,6 +420,37 @@ def novo_terceirizado():
     flash('Prestador de Serviço cadastrado com sucesso!', 'success')
     return redirect(url_for('admin.dashboard', tab='terceirizados'))
     
+@bp.route('/terceirizado/editar', methods=['POST'])
+@login_required
+def editar_terceirizado():
+    prestador_id = request.form.get('id')
+    prestador = Terceirizado.query.get_or_404(prestador_id)
+    
+    unidades_ids = request.form.getlist('unidades')
+    
+    prestador.nome = request.form.get('nome')
+    prestador.nome_empresa = request.form.get('nome_empresa')
+    prestador.cnpj = request.form.get('cnpj')
+    prestador.telefone = request.form.get('telefone')
+    prestador.email = request.form.get('email')
+    prestador.especialidades = request.form.get('especialidades')
+    
+    # Lógica de Abrangência
+    if 'global' in unidades_ids:
+        prestador.abrangencia_global = True
+        prestador.unidades = [] # Limpa associações se for global
+    else:
+        prestador.abrangencia_global = False
+        prestador.unidades = [] # Reseta para re-adicionar
+        for uid in unidades_ids:
+            unidade = Unidade.query.get(int(uid))
+            if unidade:
+                prestador.unidades.append(unidade)
+    
+    db.session.commit()
+    flash('Dados do prestador atualizados!', 'success')
+    return redirect(url_for('admin.dashboard', tab='terceirizados'))
+
 @bp.route('/terceirizado/excluir/<int:id>')
 @login_required
 def excluir_terceirizado(id):

@@ -123,31 +123,83 @@
         }
     });
 
-    // Função de cobrança
-    function cobrar(id, btn) {
-        if (confirm("Enviar cobrança automática via WhatsApp?")) {
-            const originalHtml = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Enviando...';
+    // Variável para armazenar o ID do chamado que será cobrado
+    let chamadoIdCobranca = null;
 
-            fetch(`/terceirizados/chamados/${id}/cobrar`, { method: 'POST' })
-                .then(res => res.json())
-                .then(data => {
-                    if (typeof ToastModule !== 'undefined') {
-                        ToastModule.show(data.msg, data.success ? 'success' : 'danger');
-                    } else {
-                        alert(data.msg);
-                    }
-                    if (data.success) setTimeout(() => location.reload(), 1000);
-                })
-                .catch(err => {
-                    alert("Erro de conexão.");
-                    btn.disabled = false;
-                    btn.innerHTML = originalHtml;
-                });
-        }
+    // Abre o modal de cobrança
+    function cobrar(id, btn) {
+        chamadoIdCobranca = id;
+        const modal = new bootstrap.Modal(document.getElementById('modalCobranca'));
+
+        // Texto padrão (Hardcoded aqui para o frontend, mas poderia vir de uma API)
+        const textoPadrao = `⏰ *Prazo Vencido*\n\nChamado: {{ chamado.numero_chamado }}\nTítulo: {{ chamado.titulo }}\nPrevisão de conclusão?`;
+
+        document.getElementById('textoCobranca').value = textoPadrao;
+        modal.show();
+    }
+
+    // Função que realmente envia a cobrança
+    function confirmarCobranca() {
+        if (!chamadoIdCobranca) return;
+
+        const btn = document.getElementById('btnConfirmarCobranca');
+        const msg = document.getElementById('textoCobranca').value;
+        const originalHtml = btn.innerHTML;
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Enviando...';
+
+        fetch(`/terceirizados/chamados/${chamadoIdCobranca}/cobrar`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ mensagem_personalizada: msg })
+        })
+            .then(res => res.json())
+            .then(data => {
+                const modalEl = document.getElementById('modalCobranca');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                modal.hide();
+
+                if (typeof ToastModule !== 'undefined') {
+                    ToastModule.show(data.msg, data.success ? 'success' : 'danger');
+                } else {
+                    alert(data.msg);
+                }
+                if (data.success) setTimeout(() => location.reload(), 1000);
+            })
+            .catch(err => {
+                alert("Erro de conexão.");
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            });
     }
 </script>
+
+<!-- Modal de Cobrança Editável -->
+<div class="modal fade" id="modalCobranca" tabindex="-1" aria-labelledby="modalCobrancaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold" id="modalCobrancaLabel">Enviar Cobrança</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <label for="textoCobranca" class="form-label small text-muted text-uppercase fw-bold">Mensagem via
+                    WhatsApp</label>
+                <textarea class="form-control" id="textoCobranca" rows="6" style="resize: none;"></textarea>
+                <div class="form-text mt-2 small">Você pode editar o texto acima antes de enviar ao prestador.</div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-white border" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="btnConfirmarCobranca" class="btn btn-primary" onclick="confirmarCobranca()">
+                    <i class="bi bi-send me-2"></i>Enviar Agora
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div class="p-3 bg-white border-top">
     <form id="formChat" onsubmit="enviarMensagemManual(event)">

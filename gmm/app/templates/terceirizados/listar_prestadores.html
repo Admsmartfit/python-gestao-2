@@ -7,7 +7,7 @@
             <h2 class="h4 fw-bold text-dark mb-0">Gestão de Prestadores</h2>
             <p class="text-muted small mb-0">Gerencie técnicos externos e empresas parceiras</p>
         </div>
-        <button class="btn btn-primary" onclick="abrirModalNovoPrestador()">
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNovoPrestador">
             <i class="bi bi-plus-lg me-1"></i> Novo Prestador
         </button>
     </div>
@@ -50,15 +50,21 @@
                                 <span class="text-muted small">-</span>
                             </td>
                             <td class="text-end pe-4">
-                                <div class="btn-group">
-                                    <a href="#" class="btn btn-sm btn-light text-primary" title="Editar">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                    <a href="{{ url_for('terceirizados.listar_chamados', prestador_id=p.id) }}"
-                                        class="btn btn-sm btn-light text-dark" title="Ver Chamados">
-                                        <i class="bi bi-list-task"></i>
-                                    </a>
-                                </div>
+                                <button class="btn btn-sm btn-light text-primary"
+                                    onclick="editarTerceirizado('{{ p.id }}', '{{ p.nome }}', '{{ p.nome_empresa or '' }}', '{{ p.cnpj or '' }}', '{{ p.telefone }}', '{{ p.email or '' }}', '{{ p.especialidades or '' }}', {{ 'true' if p.abrangencia_global else 'false' }}, [{% for u in p.unidades %}'{{ u.id }}'{% if not loop.last %},{% endif %}{% endfor %}])"
+                                    title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <a href="{{ url_for('terceirizados.listar_chamados', prestador_id=p.id) }}"
+                                    class="btn btn-sm btn-light text-dark" title="Ver Chamados">
+                                    <i class="bi bi-list-task"></i>
+                                </a>
+                                <a href="{{ url_for('admin.excluir_terceirizado', id=p.id) }}"
+                                    class="btn btn-sm btn-light text-danger"
+                                    onclick="return confirm('Tem certeza que deseja remover este prestador?')"
+                                    title="Excluir">
+                                    <i class="bi bi-trash"></i>
+                                </a>
                             </td>
                         </tr>
                         {% else %}
@@ -76,9 +82,112 @@
     </div>
 </div>
 
+<!-- Modal Novo Prestador -->
+<div class="modal fade" id="modalNovoPrestador" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">Novo Prestador</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('admin.novo_terceirizado') }}" method="POST">
+                <div class="modal-body pt-4">
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label class="form-label">Nome Contato</label>
+                            <input type="text" name="nome" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Nome Empresa</label>
+                            <input type="text" name="nome_empresa" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">CNPJ</label>
+                            <input type="text" name="cnpj" class="form-control" placeholder="00.000.000/0000-00">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Especialidades</label>
+                            <input type="text" name="especialidades" class="form-control"
+                                placeholder="Elétrica, Ar Condicionado...">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Telefone</label>
+                            <input type="text" name="telefone" class="form-control" placeholder="5511999999999"
+                                required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Cadastrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Prestador -->
+<div class="modal fade" id="modalEditarTerceirizado" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">Editar Prestador</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('admin.editar_terceirizado') }}" method="POST">
+                <input type="hidden" name="id" id="editTercId">
+                <div class="modal-body pt-4">
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label class="form-label">Nome Contato</label>
+                            <input type="text" name="nome" id="editTercNome" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Nome Empresa</label>
+                            <input type="text" name="nome_empresa" id="editTercEmpresa" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">CNPJ</label>
+                            <input type="text" name="cnpj" id="editTercCnpj" class="form-control">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Especialidades</label>
+                            <input type="text" name="especialidades" id="editTercEspec" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Telefone</label>
+                            <input type="text" name="telefone" id="editTercTelefone" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" id="editTercEmail" class="form-control">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
-    function abrirModalNovoPrestador() {
-        alert("Funcionalidade de cadastro rápido a ser implementada na Fase 2.");
+    function editarTerceirizado(id, nome, empresa, cnpj, telefone, email, especialidades, global, unidades) {
+        document.getElementById('editTercId').value = id;
+        document.getElementById('editTercNome').value = nome;
+        document.getElementById('editTercEmpresa').value = empresa;
+        document.getElementById('editTercCnpj').value = cnpj;
+        document.getElementById('editTercTelefone').value = telefone;
+        document.getElementById('editTercEmail').value = email;
+        document.getElementById('editTercEspec').value = especialidades;
+
+        new bootstrap.Modal(document.getElementById('modalEditarTerceirizado')).show();
     }
 </script>
 {% endblock %}

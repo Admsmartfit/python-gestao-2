@@ -42,7 +42,15 @@ class WhatsAppService:
 
         # 2. Circuit Breaker
         if not CircuitBreaker.should_attempt():
-            return False, {"error": "Circuit breaker OPEN", "code": "CIRCUIT_OPEN"}
+            # FALLBACK SMS (RF-013)
+            from app.services.sms_service import SMSService
+            logger.warning(f"WhatsApp Indisponível (Circuit OPEN). Tentando SMS para {telefone}")
+            sucesso_sms, res_sms = SMSService.enviar_sms(telefone, texto)
+            
+            if sucesso_sms:
+                return True, {"status": "enviado_via_sms", "details": res_sms}
+            
+            return False, {"error": "Circuit breaker OPEN and SMS fallback failed", "code": "CIRCUIT_OPEN_NO_FALLBACK"}
 
         # 3. Rate Limit (ignorar se prioridade urgente >= 2)
         if prioridade < 2:

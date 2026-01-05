@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Compras</li>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4 d-flex justify-content-between align-items-center">
+    <div>
+        <h2 class="fw-bold mb-0">Pedidos de Compra</h2>
+        <p class="text-muted small mb-0">Gerenciamento de solicitações de peças e suprimentos</p>
+    </div>
+    <a href="{{ url_for('compras.novo') }}" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-2"></i>Novo Pedido
+    </a>
+</div>
+
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body py-3">
+        <form class="row g-2 align-items-center" method="GET">
+            <div class="col-auto">
+                <label class="small text-muted fw-bold text-uppercase">Filtrar Status:</label>
+            </div>
+            <div class="col-auto">
+                <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">Todos</option>
+                    <option value="solicitado" {% if status_atual=='solicitado' %}selected{% endif %}>Solicitado
+                    </option>
+                    <option value="aprovado" {% if status_atual=='aprovado' %}selected{% endif %}>Aprovado</option>
+                    <option value="entregue" {% if status_atual=='entregue' %}selected{% endif %}>Entregue</option>
+                    <option value="rejeitado" {% if status_atual=='rejeitado' %}selected{% endif %}>Rejeitado</option>
+                </select>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead class="bg-light">
+                <tr>
+                    <th class="ps-4">ID / Data</th>
+                    <th>Peça</th>
+                    <th>Qtd</th>
+                    <th>Fornecedor</th>
+                    <th>Destino</th>
+                    <th>Status</th>
+                    <th class="text-end pe-4">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in pedidos %}
+                <tr>
+                    <td class="ps-4">
+                        <div class="fw-bold">#{{ p.id }}</div>
+                        <div class="small text-muted">{{ p.data_solicitacao.strftime('%d/%m/%Y %H:%M') }}</div>
+                    </td>
+                    <td>
+                        <div class="fw-medium">{{ p.peca.nome }}</div>
+                        <div class="small text-muted">{{ p.peca.codigo }}</div>
+                    </td>
+                    <td>{{ "{:g}".format(p.quantidade) }} {{ p.peca.unidade_medida }}</td>
+                    <td>{{ p.fornecedor.nome if p.fornecedor else '<span class="text-muted italic">Não
+                            definido</span>'|safe }}</td>
+                    <td>{{ p.unidade_destino.nome if p.unidade_destino else 'Central' }}</td>
+                    <td>
+                        {% set badge_class = 'secondary' %}
+                        {% if p.status == 'solicitado' %}{% set badge_class = 'warning text-dark' %}
+                        {% elif p.status == 'aprovado' %}{% set badge_class = 'info text-white' %}
+                        {% elif p.status == 'entregue' %}{% set badge_class = 'success' %}
+                        {% elif p.status == 'rejeitado' %}{% set badge_class = 'danger' %}
+                        {% endif %}
+                        <span
+                            class="badge bg-{{ badge_class }} bg-opacity-10 text-{{ badge_class.split(' ')[0] }} border">
+                            {{ p.status|upper }}
+                        </span>
+                    </td>
+                    <td class="text-end pe-4">
+                        <a href="{{ url_for('compras.detalhes', id=p.id) }}"
+                            class="btn btn-sm btn-light text-primary border">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center py-5 text-muted">
+                        <i class="bi bi-inbox fs-1 d-block mb-3 opacity-25"></i>
+                        Nenhum pedido encontrado.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -52,7 +52,9 @@ def create_app():
         admin_whatsapp, 
         equipamentos, 
         search, 
-        notifications
+        notifications,
+        compras,
+        estoque
     )
     
     app.register_blueprint(auth.bp)
@@ -71,6 +73,8 @@ def create_app():
     # Módulos de Utilidade
     app.register_blueprint(search.bp)
     app.register_blueprint(notifications.bp)
+    app.register_blueprint(compras.bp)
+    app.register_blueprint(estoque.bp)
     
     # Rota Raiz
     @app.route('/')

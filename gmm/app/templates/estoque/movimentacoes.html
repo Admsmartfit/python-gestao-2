@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('estoque.dashboard') }}">Estoque</a></li>
+<li class="breadcrumb-item active">Histórico de Movimentações</li>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h2 class="fw-bold mb-0">Rastreabilidade de Insumos</h2>
+    <p class="text-muted small">Logs completos de todas as entradas, saídas e ajustes de estoque</p>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead class="bg-light">
+                <tr>
+                    <th class="ps-4">Data / Hora</th>
+                    <th>Item</th>
+                    <th>Tipo</th>
+                    <th>Qtd</th>
+                    <th>Unidade</th>
+                    <th>Responsável</th>
+                    <th>Referência / Obs</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in movs.items %}
+                <tr>
+                    <td class="ps-4 small text-muted">
+                        {{ m.data_movimentacao.strftime('%d/%m/%Y') }}<br>
+                        {{ m.data_movimentacao.strftime('%H:%M:%S') }}
+                    </td>
+                    <td>
+                        <div class="fw-bold">{{ m.estoque.nome }}</div>
+                        <div class="small text-muted">{{ m.estoque.codigo }}</div>
+                    </td>
+                    <td>
+                        <span
+                            class="badge bg-{{ 'success' if m.tipo_movimentacao == 'entrada' else ('danger' if m.tipo_movimentacao == 'consumo' else 'warning text-dark') }} bg-opacity-10 text-{{ 'success' if m.tipo_movimentacao == 'entrada' else ('danger' if m.tipo_movimentacao == 'consumo' else 'warning') }} border">
+                            {{ m.tipo_movimentacao|upper }}
+                        </span>
+                    </td>
+                    <td class="fw-bold text-{{ 'success' if m.quantidade > 0 else 'danger' }}">
+                        {{ '+' if m.quantidade > 0 else '' }}{{ "{:g}".format(m.quantidade) }}
+                    </td>
+                    <td>{{ m.unidade.nome if m.unidade else 'Central' }}</td>
+                    <td>{{ m.usuario.nome if m.usuario else 'Sistema' }}</td>
+                    <td class="small text-muted">{% if m.os %}<a href="{{ url_for('os.detalhes', id=m.os.id) }}">OS #{{
+                            m.os.numero_os }}</a>{% else %}{{ m.observacao or '-' }}{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if movs.pages > 1 %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% for page in movs.iter_pages() %}
+        {% if page %}
+        <li class="page-item {{ 'active' if page == movs.page else '' }}">
+            <a class="page-link" href="{{ url_for('estoque.movimentacoes', page=page) }}">{{ page }}</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">...</span></li>
+        {% endif %}
+        {% endfor %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

@@ -70,7 +70,35 @@ class RoteamentoService:
                     'funcao': r.funcao_sistema # if acao=executar_funcao
                 }
         
-        # 5. Fallback (Forward to Manager)
+        # 5. NLP Analysis (Advanced Extraction)
+        from app.services.nlp_service import NLPService
+        entidades = NLPService.extrair_entidades(texto)
+        if entidades and entidades.get('equipamento'):
+             # Se Extraiu equipamento, sugere abertura de OS ou encaminha com contexto
+             res_texto = f"Entendi que há um problema com: *{entidades['equipamento']}*.\n"
+             res_texto += f"Local: {entidades['local'] or 'Não especificado'}\n"
+             res_texto += f"Urgência: {entidades['urgencia'].upper()}\n\n"
+             res_texto += "Deseja que eu abra uma Ordem de Serviço agora? (Responda SIM ou NÃO)"
+             
+             # Salva contexto para confirmação posterior (conforme Spec 4.2.3)
+             from app.models.whatsapp_models import EstadoConversa
+             from app.extensions import db
+             import json
+             
+             estado = EstadoConversa(
+                 telefone=remetente,
+                 contexto=json.dumps({
+                     'fluxo': 'confirmar_os_nlp',
+                     'dados': entidades
+                 }),
+                 ultimo_comando='nlp_extraction'
+             )
+             db.session.add(estado)
+             db.session.commit()
+             
+             return {'acao': 'responder', 'resposta': res_texto}
+
+        # 6. Fallback (Forward to Manager)
         return {
             'acao': 'encaminhar',
             'destino': 'gerente',

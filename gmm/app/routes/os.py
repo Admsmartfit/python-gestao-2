@@ -3,13 +3,13 @@ from flask_login import login_required, current_user
 from datetime import datetime
 from app.extensions import db
 from app.models.models import Unidade, Usuario
-from app.models.estoque_models import OrdemServico, Estoque, CategoriaEstoque, Equipamento, AnexosOS, PedidoCompra, EstoqueSaldo, MovimentacaoEstoque
+from app.models.estoque_models import OrdemServico, Estoque, CategoriaEstoque, Equipamento, AnexosOS, PedidoCompra, EstoqueSaldo, MovimentacaoEstoque, Fornecedor
 from app.models.terceirizados_models import Terceirizado, ChamadoExterno
 from app.services.os_service import OSService
 from app.services.estoque_service import EstoqueService
-from app.services.whatsapp_service import WhatsAppService # [Novo] Import
-from app.models.terceirizados_models import HistoricoNotificacao # Certifique-se que est√° importado
-from app.tasks.whatsapp_tasks import enviar_whatsapp_task # Certifique-se que est√° importado
+from app.services.email_service import EmailService
+from app.models.terceirizados_models import HistoricoNotificacao
+from app.tasks.whatsapp_tasks import enviar_whatsapp_task
 
 bp = Blueprint('os', __name__, url_prefix='/os')
 
@@ -212,6 +212,22 @@ def solicitar_compra_peca(id):
         
         db.session.add(novo_pedido)
         db.session.commit()
+
+        # Notificar setor de compras por email
+        try:
+            # Busca nome do solicitante
+            solicitante_nome = current_user.username
+            if hasattr(current_user, 'nome') and current_user.nome:
+                solicitante_nome = current_user.nome
+
+            EmailService.notify_purchase_request(
+                novo_pedido, 
+                item.nome, 
+                solicitante_nome
+            )
+        except Exception as e:
+            # Logar erro mas n√£o impedir o retorno de sucesso do pedido
+            print(f"Erro ao enviar email de notifica√ß√£o: {e}")
         
         return jsonify({
             'success': True,
@@ -678,4 +694,20 @@ def cancelar_os_route(id):
         db.session.rollback()
         flash(f'Erro ao cancelar OS: {str(e)}', 'danger')
         
-    return redirect(url_for('os.detalhes', id=id))
+    return redirect(url_for('os.detalhes', id=id))@ b p . r o u t e ( ' / < i n t : i d > / f e e d b a c k ' ,   m e t h o d s = [ ' P O S T ' ] ) 
+ @ l o g i n _ r e q u i r e d 
+ d e f   s a l v a r _ f e e d b a c k ( i d ) : 
+         o s _ o b j   =   O r d e m S e r v i c o . q u e r y . g e t _ o r _ 4 0 4 ( i d ) 
+         r a t i n g   =   r e q u e s t . j s o n . g e t ( ' r a t i n g ' ) 
+         c o m e n t a r i o   =   r e q u e s t . j s o n . g e t ( ' c o m e n t a r i o ' ) 
+         
+         i f   n o t   r a t i n g : 
+                 r e t u r n   j s o n i f y ( { ' s u c c e s s ' :   F a l s e ,   ' m s g ' :   ' R a t i n g   o b r i g a t Û r i o ' } ) ,   4 0 0 
+                 
+         o s _ o b j . f e e d b a c k _ r a t i n g   =   i n t ( r a t i n g ) 
+         i f   c o m e n t a r i o : 
+                 o s _ o b j . f e e d b a c k _ c o m e n t a r i o   =   c o m e n t a r i o 
+                 
+         d b . s e s s i o n . c o m m i t ( ) 
+         r e t u r n   j s o n i f y ( { ' s u c c e s s ' :   T r u e ,   ' m s g ' :   ' A v a l i a Á „ o   s a l v a   c o m   s u c e s s o ' } )  
+ 

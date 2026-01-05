@@ -7,7 +7,7 @@
         height: calc(100vh - 120px);
         background-color: #fff;
         border-radius: 12px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
         overflow: hidden;
         display: flex;
     }
@@ -25,7 +25,7 @@
         padding: 20px 16px;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
-        border-bottom: 1px solid rgba(255,255,255,0.1);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     .sidebar-header h5 {
@@ -130,7 +130,7 @@
         align-items: center;
         padding: 0 20px;
         justify-content: space-between;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     }
 
     .chat-header-info {
@@ -186,7 +186,7 @@
 
     .messages-area::-webkit-scrollbar-thumb,
     .chat-list::-webkit-scrollbar-thumb {
-        background: rgba(0,0,0,0.2);
+        background: rgba(0, 0, 0, 0.2);
         border-radius: 10px;
     }
 
@@ -197,7 +197,7 @@
         display: flex;
         align-items: center;
         gap: 10px;
-        box-shadow: 0 -1px 2px rgba(0,0,0,0.05);
+        box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.05);
     }
 
     /* ==================== BALÕES DE MENSAGEM ==================== */
@@ -208,7 +208,7 @@
         position: relative;
         font-size: 0.9rem;
         line-height: 1.5;
-        box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+        box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
         word-wrap: break-word;
     }
 
@@ -240,7 +240,8 @@
     }
 
     /* ==================== STATUS DE ENTREGA (CHECKS VISUAIS) ==================== */
-    .bi-check2, .bi-check2-all {
+    .bi-check2,
+    .bi-check2-all {
         font-size: 1rem;
     }
 
@@ -317,6 +318,7 @@
             opacity: 0;
             transform: translateY(10px);
         }
+
         to {
             opacity: 1;
             transform: translateY(0);
@@ -351,7 +353,7 @@
         font-size: 0.85rem;
         margin-top: 8px;
         padding: 8px;
-        background-color: rgba(0,0,0,0.03);
+        background-color: rgba(0, 0, 0, 0.03);
         border-radius: 6px;
         border-left: 3px solid #667eea;
     }
@@ -378,8 +380,7 @@
 
             <div class="sidebar-search">
                 <input type="text" class="form-control form-control-sm" id="buscaConversa"
-                       placeholder="🔍 Buscar por prestador ou número..."
-                       oninput="filtrarConversas()">
+                    placeholder="🔍 Buscar por prestador ou número..." oninput="filtrarConversas()">
             </div>
 
             <div class="chat-list" id="listaConversas">
@@ -422,15 +423,17 @@
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li><a class="dropdown-item" href="#" id="linkVerChamado" target="_blank">
-                                <i class="bi bi-box-arrow-up-right me-2"></i>Ver Detalhes do Chamado
-                            </a></li>
-                            <li><hr class="dropdown-divider"></li>
+                                    <i class="bi bi-box-arrow-up-right me-2"></i>Ver Detalhes do Chamado
+                                </a></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
                             <li><a class="dropdown-item" href="#" onclick="enviarCobranca()">
-                                <i class="bi bi-bell me-2"></i>Enviar Cobrança
-                            </a></li>
+                                    <i class="bi bi-bell me-2"></i>Enviar Cobrança
+                                </a></li>
                             <li><a class="dropdown-item text-success" href="#" onclick="finalizarChamado()">
-                                <i class="bi bi-check-circle me-2"></i>Marcar como Concluído
-                            </a></li>
+                                    <i class="bi bi-check-circle me-2"></i>Marcar como Concluído
+                                </a></li>
                         </ul>
                     </div>
                 </div>
@@ -441,13 +444,16 @@
                 <!-- Input de Mensagem -->
                 <form class="chat-input-area" onsubmit="enviarMensagem(event)">
                     <input type="hidden" id="currentChamadoId">
-                    <input type="file" id="inputArquivo" class="d-none" accept="image/*,application/pdf,.doc,.docx" onchange="exibirPreviewArquivo(this)">
-                    <button type="button" class="btn btn-light rounded-circle" title="Anexar arquivo" onclick="document.getElementById('inputArquivo').click()">
+                    <input type="file" id="inputArquivo" class="d-none" accept="image/*,application/pdf,.doc,.docx"
+                        onchange="exibirPreviewArquivo(this)">
+                    <button type="button" class="btn btn-light rounded-circle" title="Anexar arquivo"
+                        onclick="document.getElementById('inputArquivo').click()">
                         <i class="bi bi-paperclip"></i>
                     </button>
 
                     <!-- Preview do Arquivo Selecionado -->
-                    <div id="previewArquivo" class="d-none position-absolute bg-white border rounded shadow-sm p-2 mb-2" style="bottom: 60px; left: 10px; max-width: 300px;">
+                    <div id="previewArquivo" class="d-none position-absolute bg-white border rounded shadow-sm p-2 mb-2"
+                        style="bottom: 60px; left: 10px; max-width: 300px;">
                         <div class="d-flex align-items-center gap-2">
                             <i class="bi bi-file-earmark text-primary fs-4"></i>
                             <div class="flex-grow-1 small">
@@ -458,17 +464,17 @@
                         </div>
                     </div>
 
-                    <input type="text" class="form-control rounded-pill border-0 py-2 px-3 shadow-sm"
-                           id="inputMsg" placeholder="Digite uma mensagem..."
-                           autocomplete="off">
+                    <input type="text" class="form-control rounded-pill border-0 py-2 px-3 shadow-sm" id="inputMsg"
+                        placeholder="Digite uma mensagem..." autocomplete="off">
 
                     <!-- Botão de Gravar Áudio -->
-                    <button type="button" class="btn btn-light rounded-circle" id="btnAudio" title="Gravar áudio" onclick="toggleGravacaoAudio()">
+                    <button type="button" class="btn btn-light rounded-circle" id="btnAudio" title="Gravar áudio"
+                        onclick="toggleGravacaoAudio()">
                         <i class="bi bi-mic-fill"></i>
                     </button>
 
                     <button type="submit" class="btn btn-primary rounded-circle p-2 shadow-sm"
-                            style="width: 42px; height: 42px;" id="btnEnviar">
+                        style="width: 42px; height: 42px;" id="btnEnviar">
                         <i class="bi bi-send-fill"></i>
                     </button>
                 </form>
@@ -511,17 +517,16 @@
                         <div class="col-12">
                             <label class="form-label">Título do Chamado *</label>
                             <input type="text" class="form-control" id="tituloInput"
-                                   placeholder="Ex: Manutenção do Ar Condicionado - Sala 201" required>
+                                placeholder="Ex: Manutenção do Ar Condicionado - Sala 201" required>
                         </div>
                         <div class="col-12">
                             <label class="form-label">Descrição Detalhada *</label>
                             <textarea class="form-control" id="descricaoInput" rows="4"
-                                      placeholder="Descreva o problema ou serviço solicitado..." required></textarea>
+                                placeholder="Descreva o problema ou serviço solicitado..." required></textarea>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Ordem de Serviço (Opcional)</label>
-                            <input type="number" class="form-control" id="osIdInput"
-                                   placeholder="ID da OS relacionada">
+                            <input type="number" class="form-control" id="osIdInput" placeholder="ID da OS relacionada">
                         </div>
                         <div class="col-md-6">
                             <div class="form-check mt-4 pt-2">
@@ -545,57 +550,57 @@
 </div>
 
 <script>
-let intervaloPolling = null;
-let conversaAtivaId = null;
-let todasConversas = [];
-let todosTerceirizados = [];
+    let intervaloPolling = null;
+    let conversaAtivaId = null;
+    let todasConversas = [];
+    let todosTerceirizados = [];
 
-document.addEventListener('DOMContentLoaded', () => {
-    carregarConversas();
-    carregarTerceirizados();
-    // Atualiza a lista de conversas a cada 30 segundos
-    setInterval(carregarConversas, 30000);
-});
+    document.addEventListener('DOMContentLoaded', () => {
+        carregarConversas();
+        carregarTerceirizados();
+        // Atualiza a lista de conversas a cada 30 segundos
+        setInterval(carregarConversas, 30000);
+    });
 
-// ==================== CARREGA LISTA DE CONVERSAS (SIDEBAR) ====================
-async function carregarConversas() {
-    try {
-        const res = await fetch('/terceirizados/api/conversas');
-        todasConversas = await res.json();
-        renderizarConversas(todasConversas);
-    } catch (e) {
-        console.error("Erro ao carregar conversas", e);
-        document.getElementById('listaConversas').innerHTML = `
+    // ==================== CARREGA LISTA DE CONVERSAS (SIDEBAR) ====================
+    async function carregarConversas() {
+        try {
+            const res = await fetch('/terceirizados/api/conversas');
+            todasConversas = await res.json();
+            renderizarConversas(todasConversas);
+        } catch (e) {
+            console.error("Erro ao carregar conversas", e);
+            document.getElementById('listaConversas').innerHTML = `
             <div class="text-center p-4 text-danger">
                 <i class="bi bi-exclamation-triangle mb-2"></i>
                 <div>Erro ao carregar conversas</div>
             </div>
         `;
+        }
     }
-}
 
-function renderizarConversas(conversas) {
-    const container = document.getElementById('listaConversas');
+    function renderizarConversas(conversas) {
+        const container = document.getElementById('listaConversas');
 
-    if (conversas.length === 0) {
-        container.innerHTML = `
+        if (conversas.length === 0) {
+            container.innerHTML = `
             <div class="text-center p-5 text-muted">
                 <i class="bi bi-inbox fs-1 mb-2 opacity-25"></i>
                 <div>Nenhuma conversa encontrada</div>
             </div>
         `;
-        return;
-    }
+            return;
+        }
 
-    container.innerHTML = conversas.map(c => {
-        const prioridadeClass = c.prioridade === 'alta' ? 'prioridade-alta' :
-                               c.prioridade === 'media' ? 'prioridade-media' : 'prioridade-baixa';
+        container.innerHTML = conversas.map(c => {
+            const prioridadeClass = c.prioridade === 'alta' ? 'prioridade-alta' :
+                c.prioridade === 'media' ? 'prioridade-media' : 'prioridade-baixa';
 
-        const statusBadge = c.status_chamado === 'concluido' ? 'bg-success' :
-                           c.status_chamado === 'aguardando' ? 'bg-warning' :
-                           c.status_chamado === 'em_andamento' ? 'bg-info' : 'bg-secondary';
+            const statusBadge = c.status_chamado === 'concluido' ? 'bg-success' :
+                c.status_chamado === 'aguardando' ? 'bg-warning' :
+                    c.status_chamado === 'em_andamento' ? 'bg-info' : 'bg-secondary';
 
-        return `
+            return `
             <div class="chat-item ${c.id === conversaAtivaId ? 'active' : ''}"
                  data-id="${c.id}"
                  data-nome="${c.prestador.toLowerCase()}"
@@ -620,85 +625,85 @@ function renderizarConversas(conversas) {
                 </div>
             </div>
         `;
-    }).join('');
-}
-
-// ==================== FILTRO DE BUSCA ====================
-function filtrarConversas() {
-    const busca = document.getElementById('buscaConversa').value.toLowerCase();
-
-    if (!busca) {
-        renderizarConversas(todasConversas);
-        return;
+        }).join('');
     }
 
-    const filtradas = todasConversas.filter(c =>
-        c.prestador.toLowerCase().includes(busca) ||
-        c.numero.toLowerCase().includes(busca) ||
-        c.titulo.toLowerCase().includes(busca)
-    );
+    // ==================== FILTRO DE BUSCA ====================
+    function filtrarConversas() {
+        const busca = document.getElementById('buscaConversa').value.toLowerCase();
 
-    renderizarConversas(filtradas);
-}
-
-// ==================== ABRE UMA CONVERSA ====================
-function abrirConversa(id, nome, numero, telefone) {
-    conversaAtivaId = id;
-
-    // Esconde empty state, mostra chat
-    document.getElementById('emptyState').classList.add('d-none');
-    document.getElementById('activeChat').classList.remove('d-none');
-    document.getElementById('activeChat').classList.add('d-flex');
-
-    // Atualiza header
-    document.getElementById('chatTitle').innerText = nome;
-    document.getElementById('chatSubtitle').innerText = `Chamado: ${numero} | ${telefone}`;
-    document.getElementById('currentChamadoId').value = id;
-    document.getElementById('linkVerChamado').href = `/terceirizados/chamados/${id}`;
-
-    // Carrega mensagens imediatamente
-    carregarMensagens();
-
-    // Polling a cada 5 segundos
-    if (intervaloPolling) clearInterval(intervaloPolling);
-    intervaloPolling = setInterval(carregarMensagens, 5000);
-
-    // Atualiza visual da sidebar
-    renderizarConversas(todasConversas);
-
-    // Foca no input
-    document.getElementById('inputMsg').focus();
-}
-
-// ==================== CARREGA MENSAGENS DO CHAT ATIVO ====================
-async function carregarMensagens() {
-    if (!conversaAtivaId) return;
-
-    try {
-        const res = await fetch(`/terceirizados/api/conversas/${conversaAtivaId}/mensagens`);
-        const msgs = await res.json();
-        const area = document.getElementById('msgsArea');
-
-        // Verifica scroll position para manter ou scrollar ao final
-        const isAtBottom = (area.scrollHeight - area.scrollTop) <= (area.clientHeight + 100);
-
-        area.innerHTML = msgs.map(m => renderizarMensagem(m)).join('');
-
-        // Auto-scroll apenas se estava no final
-        if (isAtBottom || area.childElementCount === msgs.length) {
-            area.scrollTop = area.scrollHeight;
+        if (!busca) {
+            renderizarConversas(todasConversas);
+            return;
         }
-    } catch (e) {
-        console.error('Erro ao carregar mensagens:', e);
+
+        const filtradas = todasConversas.filter(c =>
+            c.prestador.toLowerCase().includes(busca) ||
+            c.numero.toLowerCase().includes(busca) ||
+            c.titulo.toLowerCase().includes(busca)
+        );
+
+        renderizarConversas(filtradas);
     }
-}
 
-function renderizarMensagem(m) {
-    let conteudo = '';
+    // ==================== ABRE UMA CONVERSA ====================
+    function abrirConversa(id, nome, numero, telefone) {
+        conversaAtivaId = id;
 
-    // Renderiza conteúdo baseado no tipo
-    if (m.tipo_conteudo === 'audio' && m.url_midia) {
-        conteudo = `
+        // Esconde empty state, mostra chat
+        document.getElementById('emptyState').classList.add('d-none');
+        document.getElementById('activeChat').classList.remove('d-none');
+        document.getElementById('activeChat').classList.add('d-flex');
+
+        // Atualiza header
+        document.getElementById('chatTitle').innerText = nome;
+        document.getElementById('chatSubtitle').innerText = `Chamado: ${numero} | ${telefone}`;
+        document.getElementById('currentChamadoId').value = id;
+        document.getElementById('linkVerChamado').href = `/terceirizados/chamados/${id}`;
+
+        // Carrega mensagens imediatamente
+        carregarMensagens();
+
+        // Polling a cada 5 segundos
+        if (intervaloPolling) clearInterval(intervaloPolling);
+        intervaloPolling = setInterval(carregarMensagens, 5000);
+
+        // Atualiza visual da sidebar
+        renderizarConversas(todasConversas);
+
+        // Foca no input
+        document.getElementById('inputMsg').focus();
+    }
+
+    // ==================== CARREGA MENSAGENS DO CHAT ATIVO ====================
+    async function carregarMensagens() {
+        if (!conversaAtivaId) return;
+
+        try {
+            const res = await fetch(`/terceirizados/api/conversas/${conversaAtivaId}/mensagens`);
+            const msgs = await res.json();
+            const area = document.getElementById('msgsArea');
+
+            // Verifica scroll position para manter ou scrollar ao final
+            const isAtBottom = (area.scrollHeight - area.scrollTop) <= (area.clientHeight + 100);
+
+            area.innerHTML = msgs.map(m => renderizarMensagem(m)).join('');
+
+            // Auto-scroll apenas se estava no final
+            if (isAtBottom || area.childElementCount === msgs.length) {
+                area.scrollTop = area.scrollHeight;
+            }
+        } catch (e) {
+            console.error('Erro ao carregar mensagens:', e);
+        }
+    }
+
+    function renderizarMensagem(m) {
+        let conteudo = '';
+
+        // Renderiza conteúdo baseado no tipo
+        if (m.tipo_conteudo === 'audio' && m.url_midia) {
+            conteudo = `
             <audio controls class="message-audio">
                 <source src="${m.url_midia}" type="audio/ogg">
                 Seu navegador não suporta áudio.
@@ -710,23 +715,23 @@ function renderizarMensagem(m) {
                 </div>
             ` : '<div class="text-muted small mt-2"><i class="bi bi-hourglass-split me-1"></i>Aguardando transcrição...</div>'}
         `;
-    } else if (m.tipo_conteudo === 'image' && m.url_midia) {
-        conteudo = `
+        } else if (m.tipo_conteudo === 'image' && m.url_midia) {
+            conteudo = `
             <img src="${m.url_midia}" class="message-image" alt="Imagem" onclick="window.open('${m.url_midia}', '_blank')">
             ${m.caption ? `<div class="mt-2">${escapeHtml(m.caption)}</div>` : ''}
         `;
-    } else if (m.tipo_conteudo === 'document' && m.url_midia) {
-        conteudo = `
+        } else if (m.tipo_conteudo === 'document' && m.url_midia) {
+            conteudo = `
             <a href="${m.url_midia}" target="_blank" class="btn btn-sm btn-outline-secondary">
                 <i class="bi bi-file-earmark-text me-2"></i>Abrir Documento
             </a>
             ${m.caption ? `<div class="mt-2">${escapeHtml(m.caption)}</div>` : ''}
         `;
-    } else {
-        conteudo = `<div class="message-text">${escapeHtml(m.texto).replace(/\n/g, '<br>')}</div>`;
-    }
+        } else {
+            conteudo = `<div class="message-text">${escapeHtml(m.texto).replace(/\n/g, '<br>')}</div>`;
+        }
 
-    return `
+        return `
         <div class="message ${m.direcao}">
             ${conteudo}
             <div class="msg-meta">
@@ -735,400 +740,450 @@ function renderizarMensagem(m) {
             </div>
         </div>
     `;
-}
+    }
 
-function getStatusIcon(status) {
-    if (status === 'lido') return '<i class="bi bi-check2-all status-read" title="Lido"></i>';
-    if (status === 'entregue') return '<i class="bi bi-check2-all status-delivered" title="Entregue"></i>';
-    if (status === 'enviado') return '<i class="bi bi-check2 status-sent" title="Enviado"></i>';
-    if (status === 'falhou') return '<i class="bi bi-exclamation-circle status-failed" title="Falhou"></i>';
-    return '<i class="bi bi-clock status-pending" title="Pendente"></i>';
-}
+    function getStatusIcon(status) {
+        if (status === 'lido') return '<i class="bi bi-check2-all status-read" title="Lido"></i>';
+        if (status === 'entregue') return '<i class="bi bi-check2-all status-delivered" title="Entregue"></i>';
+        if (status === 'enviado') return '<i class="bi bi-check2 status-sent" title="Enviado"></i>';
+        if (status === 'falhou') return '<i class="bi bi-exclamation-circle status-failed" title="Falhou"></i>';
+        return '<i class="bi bi-clock status-pending" title="Pendente"></i>';
+    }
 
-// ==================== ENVIAR MENSAGEM ====================
-async function enviarMensagem(e) {
-    e.preventDefault();
-    const input = document.getElementById('inputMsg');
-    const texto = input.value.trim();
-    const id = document.getElementById('currentChamadoId').value;
-    const btn = document.getElementById('btnEnviar');
+    // ==================== ENVIAR MENSAGEM ====================
+    async function enviarMensagem(e) {
+        e.preventDefault();
+        const input = document.getElementById('inputMsg');
+        const texto = input.value.trim();
+        const id = document.getElementById('currentChamadoId').value;
+        const btn = document.getElementById('btnEnviar');
 
-    if (!texto) return;
+        if (!texto) return;
 
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
 
-    try {
-        const res = await fetch(`/terceirizados/chamados/${id}/responder`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `mensagem=${encodeURIComponent(texto)}`
-        });
+        try {
+            const res = await fetch(`/terceirizados/chamados/${id}/responder`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `mensagem=${encodeURIComponent(texto)}`
+            });
 
-        if (res.ok) {
-            input.value = '';
-            carregarMensagens();
-            carregarConversas(); // Atualiza sidebar
-        } else {
-            ToastModule.show('Erro ao enviar mensagem', 'danger');
+            if (res.ok) {
+                input.value = '';
+                carregarMensagens();
+                carregarConversas(); // Atualiza sidebar
+            } else {
+                ToastModule.show('Erro ao enviar mensagem', 'danger');
+            }
+        } catch (err) {
+            ToastModule.show('Erro de conexão', 'danger');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-send-fill"></i>';
+            input.focus();
         }
-    } catch (err) {
-        ToastModule.show('Erro de conexão', 'danger');
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-send-fill"></i>';
-        input.focus();
-    }
-}
-
-// ==================== AÇÕES RÁPIDAS ====================
-async function enviarCobranca() {
-    if (!conversaAtivaId) return;
-
-    if (!confirm('Enviar mensagem de cobrança para este prestador?')) return;
-
-    try {
-        const res = await fetch(`/terceirizados/chamados/${conversaAtivaId}/cobrar`, {
-            method: 'POST'
-        });
-        const data = await res.json();
-
-        if (data.success) {
-            ToastModule.show('Cobrança enviada com sucesso!', 'success');
-            carregarMensagens();
-        } else {
-            ToastModule.show(data.msg || 'Erro ao enviar cobrança', 'danger');
-        }
-    } catch (e) {
-        ToastModule.show('Erro ao enviar cobrança', 'danger');
-    }
-}
-
-async function finalizarChamado() {
-    if (!conversaAtivaId) return;
-
-    if (!confirm('Tem certeza que deseja marcar este chamado como concluído? Isso enviará uma mensagem de agradecimento ao prestador.')) {
-        return;
     }
 
-    try {
-        const res = await fetch(`/terceirizados/api/chamados/${conversaAtivaId}/finalizar`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        });
+    // ==================== AÇÕES RÁPIDAS ====================
+    async function enviarCobranca() {
+        if (!conversaAtivaId) return;
 
-        const data = await res.json();
+        const modal = new bootstrap.Modal(document.getElementById('modalCobranca'));
 
-        if (data.success) {
-            ToastModule.show('Chamado finalizado com sucesso!', 'success');
-            carregarMensagens();
-            carregarConversas(); // Atualiza status na sidebar
-        } else {
-            ToastModule.show(data.msg || 'Erro ao finalizar chamado', 'danger');
-        }
-    } catch (e) {
-        ToastModule.show('Erro ao finalizar chamado', 'danger');
-        console.error(e);
+        // Busca informações da conversa para montar o texto
+        const conversa = todasConversas.find(c => c.id === conversaAtivaId);
+        const textoPadrao = `⏰ *Prazo Vencido*\n\nChamado: ${conversa ? conversa.numero : ''}\nTítulo: ${conversa ? conversa.titulo : ''}\nPrevisão de conclusão?`;
+
+        document.getElementById('textoCobranca').value = textoPadrao;
+        modal.show();
     }
-}
 
-// ==================== NOVO CHAMADO ====================
-async function carregarTerceirizados() {
-    // Carrega lista de terceirizados ativos para o select
-    try {
-        const res = await fetch('/terceirizados/api/terceirizados');
-        todosTerceirizados = await res.json();
+    async function confirmarCobranca() {
+        if (!conversaAtivaId) return;
 
-        const select = document.getElementById('terceirizadoSelect');
-        select.innerHTML = '<option value="">Selecione...</option>';
+        const btn = document.getElementById('btnConfirmarCobranca');
+        const msg = document.getElementById('textoCobranca').value;
+        const originalHtml = btn.innerHTML;
 
-        todosTerceirizados.forEach(t => {
-            const option = document.createElement('option');
-            option.value = t.id;
-            option.textContent = `${t.nome} - ${t.empresa || 'Sem empresa'}`;
-            select.appendChild(option);
-        });
-    } catch (e) {
-        console.error('Erro ao carregar terceirizados', e);
-    }
-}
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Enviando...';
 
-function abrirModalNovoChamado() {
-    // Abre modal e define prazo padrão para 24h a partir de agora
-    // Define prazo padrão: 24 horas a partir de agora
-    const agora = new Date();
-    agora.setHours(agora.getHours() + 24);
-    const prazoFormatado = agora.toISOString().slice(0, 16);
-    document.getElementById('prazoInput').value = prazoFormatado;
+        try {
+            const res = await fetch(`/terceirizados/chamados/${conversaAtivaId}/cobrar`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mensagem_personalizada: msg })
+            });
+            const data = await res.json();
 
-    // Limpa formulário
-    document.getElementById('formNovoChamado').reset();
-    document.getElementById('prazoInput').value = prazoFormatado;
-
-    // Abre modal
-    const modal = new bootstrap.Modal(document.getElementById('modalNovoChamado'));
-    modal.show();
-}
-
-async function criarChamado(event) {
-    // Envia formulário de criação de chamado
-    event.preventDefault();
-
-    const btn = document.getElementById('btnCriarChamado');
-    const btnText = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Criando...';
-
-    try {
-        const formData = new FormData();
-        formData.append('terceirizado_id', document.getElementById('terceirizadoSelect').value);
-        formData.append('prioridade', document.getElementById('prioridadeSelect').value);
-        formData.append('prazo', document.getElementById('prazoInput').value);
-        formData.append('titulo', document.getElementById('tituloInput').value);
-        formData.append('descricao', document.getElementById('descricaoInput').value);
-        formData.append('os_id', document.getElementById('osIdInput').value || '');
-
-        if (document.getElementById('enviarWhatsappCheck').checked) {
-            formData.append('enviar_whatsapp', 'on');
-        }
-
-        const res = await fetch('/terceirizados/chamados/criar', {
-            method: 'POST',
-            body: formData
-        });
-
-        if (res.ok) {
-            // Fecha modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('modalNovoChamado'));
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalCobranca'));
             modal.hide();
 
-            // Atualiza lista
-            await carregarConversas();
+            if (data.success) {
+                ToastModule.show('Cobrança enviada com sucesso!', 'success');
+                carregarMensagens();
+            } else {
+                ToastModule.show(data.msg || 'Erro ao enviar cobrança', 'danger');
+            }
+        } catch (e) {
+            ToastModule.show('Erro ao enviar cobrança', 'danger');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-send me-2"></i>Enviar Agora';
+        }
+    }
 
-            ToastModule.show('Chamado criado com sucesso!', 'success');
+    async function finalizarChamado() {
+        if (!conversaAtivaId) return;
 
-            // Se houver conversas, abre a primeira (que será o novo chamado)
-            if (todasConversas.length > 0) {
-                const novoChamado = todasConversas[0];
-                abrirConversa(novoChamado.id, novoChamado.prestador, novoChamado.numero, novoChamado.telefone);
+        if (!confirm('Tem certeza que deseja marcar este chamado como concluído? Isso enviará uma mensagem de agradecimento ao prestador.')) {
+            return;
+        }
+
+        try {
+            const res = await fetch(`/terceirizados/api/chamados/${conversaAtivaId}/finalizar`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                ToastModule.show('Chamado finalizado com sucesso!', 'success');
+                carregarMensagens();
+                carregarConversas(); // Atualiza status na sidebar
+            } else {
+                ToastModule.show(data.msg || 'Erro ao finalizar chamado', 'danger');
+            }
+        } catch (e) {
+            ToastModule.show('Erro ao finalizar chamado', 'danger');
+            console.error(e);
+        }
+    }
+
+    // ==================== NOVO CHAMADO ====================
+    async function carregarTerceirizados() {
+        // Carrega lista de terceirizados ativos para o select
+        try {
+            const res = await fetch('/terceirizados/api/terceirizados');
+            todosTerceirizados = await res.json();
+
+            const select = document.getElementById('terceirizadoSelect');
+            select.innerHTML = '<option value="">Selecione...</option>';
+
+            todosTerceirizados.forEach(t => {
+                const option = document.createElement('option');
+                option.value = t.id;
+                option.textContent = `${t.nome} - ${t.empresa || 'Sem empresa'}`;
+                select.appendChild(option);
+            });
+        } catch (e) {
+            console.error('Erro ao carregar terceirizados', e);
+        }
+    }
+
+    function abrirModalNovoChamado() {
+        // Abre modal e define prazo padrão para 24h a partir de agora
+        // Define prazo padrão: 24 horas a partir de agora
+        const agora = new Date();
+        agora.setHours(agora.getHours() + 24);
+        const prazoFormatado = agora.toISOString().slice(0, 16);
+        document.getElementById('prazoInput').value = prazoFormatado;
+
+        // Limpa formulário
+        document.getElementById('formNovoChamado').reset();
+        document.getElementById('prazoInput').value = prazoFormatado;
+
+        // Abre modal
+        const modal = new bootstrap.Modal(document.getElementById('modalNovoChamado'));
+        modal.show();
+    }
+
+    async function criarChamado(event) {
+        // Envia formulário de criação de chamado
+        event.preventDefault();
+
+        const btn = document.getElementById('btnCriarChamado');
+        const btnText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Criando...';
+
+        try {
+            const formData = new FormData();
+            formData.append('terceirizado_id', document.getElementById('terceirizadoSelect').value);
+            formData.append('prioridade', document.getElementById('prioridadeSelect').value);
+            formData.append('prazo', document.getElementById('prazoInput').value);
+            formData.append('titulo', document.getElementById('tituloInput').value);
+            formData.append('descricao', document.getElementById('descricaoInput').value);
+            formData.append('os_id', document.getElementById('osIdInput').value || '');
+
+            if (document.getElementById('enviarWhatsappCheck').checked) {
+                formData.append('enviar_whatsapp', 'on');
+            }
+
+            const res = await fetch('/terceirizados/chamados/criar', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (res.ok) {
+                // Fecha modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('modalNovoChamado'));
+                modal.hide();
+
+                // Atualiza lista
+                await carregarConversas();
+
+                ToastModule.show('Chamado criado com sucesso!', 'success');
+
+                // Se houver conversas, abre a primeira (que será o novo chamado)
+                if (todasConversas.length > 0) {
+                    const novoChamado = todasConversas[0];
+                    abrirConversa(novoChamado.id, novoChamado.prestador, novoChamado.numero, novoChamado.telefone);
+                }
+            } else {
+                const errorText = await res.text();
+                ToastModule.show('Erro ao criar chamado: ' + errorText, 'danger');
+            }
+        } catch (e) {
+            ToastModule.show('Erro ao criar chamado', 'danger');
+            console.error(e);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = btnText;
+        }
+    }
+
+    // ==================== MULTIMÍDIA (ARQUIVOS E ÁUDIO) ====================
+    let arquivoSelecionado = null;
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let gravandoAudio = false;
+
+    function exibirPreviewArquivo(input) {
+        // Exibe preview do arquivo selecionado
+        const arquivo = input.files[0];
+        if (!arquivo) return;
+
+        arquivoSelecionado = arquivo;
+
+        // Mostra preview
+        const preview = document.getElementById('previewArquivo');
+        const nome = document.getElementById('nomeArquivo');
+        const tamanho = document.getElementById('tamanhoArquivo');
+
+        nome.textContent = arquivo.name;
+        tamanho.textContent = formatarTamanho(arquivo.size);
+
+        preview.classList.remove('d-none');
+
+        // Muda placeholder do input
+        document.getElementById('inputMsg').placeholder = 'Adicione uma legenda (opcional)...';
+    }
+
+    function cancelarArquivo() {
+        // Cancela o arquivo selecionado
+        arquivoSelecionado = null;
+        document.getElementById('inputArquivo').value = '';
+        document.getElementById('previewArquivo').classList.add('d-none');
+        document.getElementById('inputMsg').placeholder = 'Digite uma mensagem...';
+    }
+
+    function formatarTamanho(bytes) {
+        // Formata tamanho de arquivo em KB ou MB
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / 1048576).toFixed(1) + ' MB';
+    }
+
+    async function toggleGravacaoAudio() {
+        // Inicia ou para gravação de áudio
+        const btnAudio = document.getElementById('btnAudio');
+
+        if (!gravandoAudio) {
+            // Iniciar gravação
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    await enviarAudio(audioBlob);
+
+                    // Para stream
+                    stream.getTracks().forEach(track => track.stop());
+                };
+
+                mediaRecorder.start();
+                gravandoAudio = true;
+
+                // Muda visual do botão
+                btnAudio.classList.remove('btn-light');
+                btnAudio.classList.add('btn-danger');
+                btnAudio.innerHTML = '<i class="bi bi-stop-circle-fill"></i>';
+                btnAudio.title = 'Parar gravação';
+
+                // Muda placeholder
+                document.getElementById('inputMsg').placeholder = 'Gravando áudio...';
+                document.getElementById('inputMsg').disabled = true;
+
+                ToastModule.show('Gravação de áudio iniciada', 'info');
+            } catch (error) {
+                console.error('Erro ao acessar microfone:', error);
+                ToastModule.show('Erro ao acessar microfone. Verifique as permissões.', 'danger');
             }
         } else {
-            const errorText = await res.text();
-            ToastModule.show('Erro ao criar chamado: ' + errorText, 'danger');
+            // Parar gravação
+            mediaRecorder.stop();
+            gravandoAudio = false;
+
+            // Restaura visual
+            btnAudio.classList.remove('btn-danger');
+            btnAudio.classList.add('btn-light');
+            btnAudio.innerHTML = '<i class="bi bi-mic-fill"></i>';
+            btnAudio.title = 'Gravar áudio';
+
+            document.getElementById('inputMsg').placeholder = 'Digite uma mensagem...';
+            document.getElementById('inputMsg').disabled = false;
         }
-    } catch (e) {
-        ToastModule.show('Erro ao criar chamado', 'danger');
-        console.error(e);
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = btnText;
-    }
-}
-
-// ==================== MULTIMÍDIA (ARQUIVOS E ÁUDIO) ====================
-let arquivoSelecionado = null;
-let mediaRecorder = null;
-let audioChunks = [];
-let gravandoAudio = false;
-
-function exibirPreviewArquivo(input) {
-    // Exibe preview do arquivo selecionado
-    const arquivo = input.files[0];
-    if (!arquivo) return;
-
-    arquivoSelecionado = arquivo;
-
-    // Mostra preview
-    const preview = document.getElementById('previewArquivo');
-    const nome = document.getElementById('nomeArquivo');
-    const tamanho = document.getElementById('tamanhoArquivo');
-
-    nome.textContent = arquivo.name;
-    tamanho.textContent = formatarTamanho(arquivo.size);
-
-    preview.classList.remove('d-none');
-
-    // Muda placeholder do input
-    document.getElementById('inputMsg').placeholder = 'Adicione uma legenda (opcional)...';
-}
-
-function cancelarArquivo() {
-    // Cancela o arquivo selecionado
-    arquivoSelecionado = null;
-    document.getElementById('inputArquivo').value = '';
-    document.getElementById('previewArquivo').classList.add('d-none');
-    document.getElementById('inputMsg').placeholder = 'Digite uma mensagem...';
-}
-
-function formatarTamanho(bytes) {
-    // Formata tamanho de arquivo em KB ou MB
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / 1048576).toFixed(1) + ' MB';
-}
-
-async function toggleGravacaoAudio() {
-    // Inicia ou para gravação de áudio
-    const btnAudio = document.getElementById('btnAudio');
-
-    if (!gravandoAudio) {
-        // Iniciar gravação
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
-            audioChunks = [];
-
-            mediaRecorder.ondataavailable = (event) => {
-                audioChunks.push(event.data);
-            };
-
-            mediaRecorder.onstop = async () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                await enviarAudio(audioBlob);
-
-                // Para stream
-                stream.getTracks().forEach(track => track.stop());
-            };
-
-            mediaRecorder.start();
-            gravandoAudio = true;
-
-            // Muda visual do botão
-            btnAudio.classList.remove('btn-light');
-            btnAudio.classList.add('btn-danger');
-            btnAudio.innerHTML = '<i class="bi bi-stop-circle-fill"></i>';
-            btnAudio.title = 'Parar gravação';
-
-            // Muda placeholder
-            document.getElementById('inputMsg').placeholder = 'Gravando áudio...';
-            document.getElementById('inputMsg').disabled = true;
-
-            ToastModule.show('Gravação de áudio iniciada', 'info');
-        } catch (error) {
-            console.error('Erro ao acessar microfone:', error);
-            ToastModule.show('Erro ao acessar microfone. Verifique as permissões.', 'danger');
-        }
-    } else {
-        // Parar gravação
-        mediaRecorder.stop();
-        gravandoAudio = false;
-
-        // Restaura visual
-        btnAudio.classList.remove('btn-danger');
-        btnAudio.classList.add('btn-light');
-        btnAudio.innerHTML = '<i class="bi bi-mic-fill"></i>';
-        btnAudio.title = 'Gravar áudio';
-
-        document.getElementById('inputMsg').placeholder = 'Digite uma mensagem...';
-        document.getElementById('inputMsg').disabled = false;
-    }
-}
-
-async function enviarAudio(audioBlob) {
-    // Envia áudio gravado
-    if (!conversaAtivaId) return;
-
-    const formData = new FormData();
-    formData.append('audio', audioBlob, 'audio.webm');
-
-    try {
-        const res = await fetch('/terceirizados/chamados/' + conversaAtivaId + '/enviar-audio', {
-            method: 'POST',
-            body: formData
-        });
-
-        const data = await res.json();
-
-        if (data.success) {
-            ToastModule.show(data.msg, 'success');
-            carregarMensagens(); // Recarrega mensagens para mostrar o áudio
-        } else {
-            ToastModule.show(data.msg || 'Erro ao enviar áudio', 'danger');
-        }
-    } catch (error) {
-        console.error('Erro ao enviar áudio:', error);
-        ToastModule.show('Erro ao enviar áudio', 'danger');
-    }
-}
-
-// Modificar função enviarMensagem para suportar arquivos
-async function enviarMensagemOriginal(event) {
-    event.preventDefault();
-    if (!conversaAtivaId) return;
-
-    const mensagem = document.getElementById('inputMsg').value.trim();
-
-    // Se houver arquivo anexado
-    if (arquivoSelecionado) {
-        await enviarComArquivo(mensagem);
-        return;
     }
 
-    // Envio normal de texto (código existente continua abaixo)
-    if (!mensagem) return;
+    async function enviarAudio(audioBlob) {
+        // Envia áudio gravado
+        if (!conversaAtivaId) return;
 
-    try {
         const formData = new FormData();
-        formData.append('mensagem', mensagem);
+        formData.append('audio', audioBlob, 'audio.webm');
 
-        const res = await fetch(`/terceirizados/chamados/${conversaAtivaId}/responder`, {
-            method: 'POST',
-            body: formData
-        });
+        try {
+            const res = await fetch('/terceirizados/chamados/' + conversaAtivaId + '/enviar-audio', {
+                method: 'POST',
+                body: formData
+            });
 
-        const data = await res.json();
+            const data = await res.json();
 
-        if (data.success) {
-            document.getElementById('inputMsg').value = '';
-            carregarMensagens();
-        } else {
-            ToastModule.show(data.msg || 'Erro ao enviar', 'danger');
+            if (data.success) {
+                ToastModule.show(data.msg, 'success');
+                carregarMensagens(); // Recarrega mensagens para mostrar o áudio
+            } else {
+                ToastModule.show(data.msg || 'Erro ao enviar áudio', 'danger');
+            }
+        } catch (error) {
+            console.error('Erro ao enviar áudio:', error);
+            ToastModule.show('Erro ao enviar áudio', 'danger');
         }
-    } catch (e) {
-        ToastModule.show('Erro ao enviar mensagem', 'danger');
     }
-}
 
-async function enviarComArquivo(legenda) {
-    // Envia mensagem com arquivo anexado
-    const formData = new FormData();
-    formData.append('arquivo', arquivoSelecionado);
-    if (legenda) formData.append('legenda', legenda);
+    // Modificar função enviarMensagem para suportar arquivos
+    async function enviarMensagemOriginal(event) {
+        event.preventDefault();
+        if (!conversaAtivaId) return;
 
-    try {
-        const res = await fetch('/terceirizados/chamados/' + conversaAtivaId + '/enviar-arquivo', {
-            method: 'POST',
-            body: formData
-        });
+        const mensagem = document.getElementById('inputMsg').value.trim();
 
-        const data = await res.json();
-
-        if (data.success) {
-            ToastModule.show(data.msg, 'success');
-            carregarMensagens(); // Recarrega mensagens para mostrar o arquivo
-
-            // Limpa
-            cancelarArquivo();
-            document.getElementById('inputMsg').value = '';
-        } else {
-            ToastModule.show(data.msg || 'Erro ao enviar arquivo', 'danger');
+        // Se houver arquivo anexado
+        if (arquivoSelecionado) {
+            await enviarComArquivo(mensagem);
+            return;
         }
-    } catch (error) {
-        console.error('Erro ao enviar arquivo:', error);
-        ToastModule.show('Erro ao enviar arquivo', 'danger');
+
+        // Envio normal de texto (código existente continua abaixo)
+        if (!mensagem) return;
+
+        try {
+            const formData = new FormData();
+            formData.append('mensagem', mensagem);
+
+            const res = await fetch(`/terceirizados/chamados/${conversaAtivaId}/responder`, {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                document.getElementById('inputMsg').value = '';
+                carregarMensagens();
+            } else {
+                ToastModule.show(data.msg || 'Erro ao enviar', 'danger');
+            }
+        } catch (e) {
+            ToastModule.show('Erro ao enviar mensagem', 'danger');
+        }
     }
-}
 
-// ==================== UTILITÁRIOS ====================
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
+    async function enviarComArquivo(legenda) {
+        // Envia mensagem com arquivo anexado
+        const formData = new FormData();
+        formData.append('arquivo', arquivoSelecionado);
+        if (legenda) formData.append('legenda', legenda);
 
-// Cleanup ao sair da página
-window.addEventListener('beforeunload', () => {
-    if (intervaloPolling) clearInterval(intervaloPolling);
-});
+        try {
+            const res = await fetch('/terceirizados/chamados/' + conversaAtivaId + '/enviar-arquivo', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                ToastModule.show(data.msg, 'success');
+                carregarMensagens(); // Recarrega mensagens para mostrar o arquivo
+
+                // Limpa
+                cancelarArquivo();
+                document.getElementById('inputMsg').value = '';
+            } else {
+                ToastModule.show(data.msg || 'Erro ao enviar arquivo', 'danger');
+            }
+        } catch (error) {
+            console.error('Erro ao enviar arquivo:', error);
+            ToastModule.show('Erro ao enviar arquivo', 'danger');
+        }
+    }
+
+    // ==================== UTILITÁRIOS ====================
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Cleanup ao sair da página
+    window.addEventListener('beforeunload', () => {
+        if (intervaloPolling) clearInterval(intervaloPolling);
+    });
 </script>
+
+<!-- Modal de Cobrança Editável -->
+<div class="modal fade" id="modalCobranca" tabindex="-1" aria-labelledby="modalCobrancaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold" id="modalCobrancaLabel">Enviar Cobrança</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <label for="textoCobranca" class="form-label small text-muted text-uppercase fw-bold">Mensagem via
+                    WhatsApp</label>
+                <textarea class="form-control" id="textoCobranca" rows="6" style="resize: none;"></textarea>
+                <div class="form-text mt-2 small">Você pode editar o texto acima antes de enviar ao prestador.</div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-white border" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="btnConfirmarCobranca" class="btn btn-primary" onclick="confirmarCobranca()">
+                    <i class="bi bi-send me-2"></i>Enviar Agora
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

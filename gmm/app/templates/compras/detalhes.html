@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('compras.listar') }}">Compras</a></li>
+<li class="breadcrumb-item active">Pedido #{{ pedido.id }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                <h4 class="fw-bold mb-0">Detalhes do Pedido #{{ pedido.id }}</h4>
+                <span class="badge bg-primary bg-opacity-10 text-primary border px-3 py-2">
+                    {{ pedido.status|upper }}
+                </span>
+            </div>
+            <div class="card-body p-4">
+                <div class="row mb-5">
+                    <div class="col-md-6 mb-3">
+                        <label class="small text-muted fw-bold text-uppercase d-block mb-1">Peça Solicitada</label>
+                        <div class="fs-5 fw-bold">{{ pedido.peca.nome }}</div>
+                        <div class="text-muted">{{ pedido.peca.codigo }}</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="small text-muted fw-bold text-uppercase d-block mb-1">Quantidade</label>
+                        <div class="fs-5 fw-bold">{{ "{:g}".format(pedido.quantidade) }} {{ pedido.peca.unidade_medida
+                            }}</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="small text-muted fw-bold text-uppercase d-block mb-1">Destino</label>
+                        <div class="fs-5">{{ pedido.unidade_destino.nome if pedido.unidade_destino else 'Central' }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <label class="small text-muted fw-bold text-uppercase d-block mb-1">Solicitado por</label>
+                        <div>{{ pedido.solicitante.nome if pedido.solicitante else 'Bot WhatsApp' }}</div>
+                        <small class="text-muted">{{ pedido.data_solicitacao.strftime('%d/%m/%Y %H:%M') }}</small>
+                    </div>
+                    {% if pedido.aprovador %}
+                    <div class="col-md-4">
+                        <label class="small text-muted fw-bold text-uppercase d-block mb-1">Aprovado por</label>
+                        <div>{{ pedido.aprovador.nome }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <hr class="my-4">
+
+                <h5 class="fw-bold mb-3">Fornecedor Selecionado</h5>
+                {% if pedido.fornecedor %}
+                <div class="p-3 bg-light rounded border d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-bold fs-5">{{ pedido.fornecedor.nome }}</div>
+                        <div class="small text-muted"><i class="bi bi-envelope me-1"></i> {{ pedido.fornecedor.email }}
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <div class="text-muted small">Prazo sugerido</div>
+                        <div class="fw-bold">{{ pedido.fornecedor.prazo_medio_entrega_dias|int }} dias</div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="alert alert-light border border-dashed text-center py-4">
+                    Nenhum fornecedor selecionado ainda. Veja opções abaixo.
+                </div>
+                {% endif %}
+            </div>
+
+            {% if pedido.status == 'solicitado' and current_user.tipo in ['admin', 'gerente'] %}
+            <div class="card-footer bg-white p-4 border-top-0">
+                <div class="d-flex gap-2">
+                    <form action="{{ url_for('compras.aprovar', id=pedido.id) }}" method="POST" class="flex-grow-1">
+                        <button type="submit" class="btn btn-success w-100 py-3 shadow-sm">
+                            <i class="bi bi-check-circle me-2"></i>Aprovar agora
+                        </button>
+                    </form>
+                    <button class="btn btn-outline-danger px-4 border shadow-sm">Rejeitar</button>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h5 class="fw-bold mb-0">Cotações / Catálogo</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for quote in quotes %}
+                <div class="list-group-item p-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="fw-bold text-dark">{{ quote.fornecedor.nome }}</span>
+                        <span class="text-success fw-bold">R$ {{ "{:.2f}".format(quote.preco_atual) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between small text-muted">
+                        <span>Prazo: {{ quote.prazo_estimado_dias }} dias</span>
+                        <span>Total: R$ {{ "{:.2f}".format(quote.preco_atual * pedido.quantidade) }}</span>
+                    </div>
+                </div>
+                {% else %}
+                <div class="p-4 text-center text-muted small italic">
+                    Sem cotações registradas para esta peça.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -59,6 +59,10 @@ class OrdemServico(db.Model):
     data_abertura = db.Column(db.DateTime, default=datetime.utcnow)
     data_conclusao = db.Column(db.DateTime, nullable=True)
     
+    # Feedback (RF-014)
+    feedback_rating = db.Column(db.Integer, nullable=True) # 1-5
+    feedback_comentario = db.Column(db.Text, nullable=True)
+    
     tecnico = db.relationship('Usuario', backref='ordens_servico')
     unidade = db.relationship('Unidade', backref='ordens_servico')
     equipamento_rel = db.relationship('Equipamento', backref='ordens')

@@ -46,6 +46,46 @@
     </div>
 </div>
 
+{% if os.status == 'concluida' %}
+<div
+    class="card shadow-sm border-0 mb-4 bg-light border-start border-4 border-success animate__animated animate__fadeIn">
+    <div class="card-body py-3">
+        <div class="d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-3">
+                <div class="bg-success bg-opacity-10 p-2 rounded-circle">
+                    <i class="bi bi-star-fill text-success fs-4"></i>
+                </div>
+                <div>
+                    <h5 class="fw-bold mb-0">Avaliação do Serviço</h5>
+                    <p class="text-muted small mb-0">Como foi a execução deste chamado?</p>
+                </div>
+            </div>
+            <div class="rating-stars" style="font-size: 1.75rem; color: #ffc107;" id="ratingStars">
+                {% if os.feedback_rating %}
+                {% for i in range(os.feedback_rating) %}
+                <i class="bi bi-star-fill"></i>
+                {% endfor %}
+                {% for i in range(5 - os.feedback_rating) %}
+                <i class="bi bi-star"></i>
+                {% endfor %}
+                {% else %}
+                <span style="cursor: pointer;">
+                    <i class="bi bi-star star-btn" data-value="1"></i>
+                    <i class="bi bi-star star-btn" data-value="2"></i>
+                    <i class="bi bi-star star-btn" data-value="3"></i>
+                    <i class="bi bi-star star-btn" data-value="4"></i>
+                    <i class="bi bi-star star-btn" data-value="5"></i>
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        <div id="feedbackResult" class="text-center fw-bold text-success mt-2 d-none">
+            <i class="bi bi-check-circle-fill me-1"></i>Avaliação salva com sucesso!
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <div class="card shadow-sm border-0 mb-4">
     <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
         <h5 class="mb-0 text-secondary fw-bold"><i class="bi bi-info-circle me-2"></i>Detalhes do Serviço</h5>
@@ -123,11 +163,14 @@
     <div
         class="card-header bg-white py-3 border-bottom d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
         <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-tools me-2"></i>Recursos Utilizados</h5>
-        {% if os.status != 'concluida' %}
-        <button class="btn btn-primary btn-sm w-100 w-md-auto" data-bs-toggle="modal" data-bs-target="#modalRecursos">
-            <i class="bi bi-plus-lg me-1"></i> Adicionar (Peça/Serviço)
-        </button>
-        {% endif %}
+        <div class="d-flex flex-column flex-md-row gap-2 w-100 w-md-auto">
+            <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalSolicitarCompra">
+                <i class="bi bi-cart-plus me-1"></i> Solicitar Compra
+            </button>
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalRecursos">
+                <i class="bi bi-plus-lg me-1"></i> Adicionar (Peça/Serviço)
+            </button>
+        </div>
     </div>
 
     <div class="card-body p-0">
@@ -185,6 +228,7 @@
                         <th>Descrição</th>
                         <th>Prazo</th>
                         <th>Status</th>
+                        <th class="text-end">Ação</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -200,6 +244,21 @@
                                 class="badge bg-{{ 'success' if ch.status=='concluido' else 'warning' }} bg-opacity-10 text-{{ 'success' if ch.status=='concluido' else 'warning' }}">
                                 {{ ch.status|upper }}
                             </span>
+                        </td>
+                        <td data-label="Ação" class="text-end">
+                            <div class="d-flex justify-content-end gap-1">
+                                <a href="{{ url_for('terceirizados.detalhes_chamado', id=ch.id) }}"
+                                    class="btn btn-sm btn-light border" title="Ver conversa">
+                                    <i class="bi bi-chat-text"></i>
+                                </a>
+                                {% if ch.status != 'concluido' %}
+                                <button class="btn btn-sm btn-outline-danger"
+                                    onclick="abrirModalCobranca('{{ ch.id }}', '{{ ch.numero_chamado }}', '{{ ch.titulo }}')"
+                                    title="Enviar cobrança">
+                                    <i class="bi bi-bell"></i>
+                                </button>
+                                {% endif %}
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -269,9 +328,18 @@
             </div>
             <div class="modal-body pt-4">
                 <div class="mb-3">
-                    <label class="form-label">Item</label>
-                    <input type="text" class="form-control bg-light" id="compraNomeItem" readonly>
+                    <label class="form-label">Peça / Item de Estoque</label>
+                    <div class="position-relative">
+                        <input type="text" class="form-control" id="buscaPecaCompra" placeholder="Digite para buscar..."
+                            autocomplete="off">
+                        <div id="listaSugestoesCompra" class="list-group position-absolute w-100 shadow"
+                            style="z-index: 1060; top: 100%;"></div>
+                    </div>
                     <input type="hidden" id="compraIdItem">
+                </div>
+                <div id="divItemFixo" class="mb-3 d-none">
+                    <label class="form-label text-muted">Item Selecionado</label>
+                    <input type="text" class="form-control bg-light" id="compraNomeItem" readonly>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Quantidade Necessária</label>
@@ -305,7 +373,8 @@
                         <div class="small">
                             <strong>O que acontecerá ao cancelar:</strong>
                             <ul class="mb-0 mt-2 ps-3">
-                                <li>Todas as peças consumidas serão <strong>estornadas</strong> para o estoque da unidade</li>
+                                <li>Todas as peças consumidas serão <strong>estornadas</strong> para o estoque da
+                                    unidade</li>
                                 <li>A OS será marcada como <strong>cancelada</strong> e não poderá ser reaberta</li>
                                 <li>O histórico será preservado para auditoria</li>
                             </ul>
@@ -317,8 +386,8 @@
                             Motivo do Cancelamento <span class="text-danger">*</span>
                         </label>
                         <textarea name="motivo_cancelamento" class="form-control" rows="4"
-                                  placeholder="Descreva o motivo do cancelamento desta OS..."
-                                  required minlength="10"></textarea>
+                            placeholder="Descreva o motivo do cancelamento desta OS..." required
+                            minlength="10"></textarea>
                         <div class="form-text">
                             <i class="bi bi-shield-lock text-muted me-1"></i>
                             Esta justificativa ficará registrada permanentemente no histórico da OS.
@@ -943,7 +1012,7 @@
         });
 
         // Atualiza limite de quantidade quando origem muda
-        selectOrigem.onchange = function() {
+        selectOrigem.onchange = function () {
             const selectedOption = this.options[this.selectedIndex];
             const saldoMax = parseFloat(selectedOption.dataset.saldo);
             document.getElementById('transfQtd').max = saldoMax;
@@ -1056,5 +1125,147 @@
         </div>
     </div>
 </div>
+
+<!-- Modal de Cobrança Terceirizado -->
+<div class="modal fade" id="modalCobrancaTerc" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold">Enviar Cobrança</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="cobrancaChamadoId">
+                <label for="textoCobranca" class="form-label small text-muted text-uppercase fw-bold">Mensagem via
+                    WhatsApp</label>
+                <textarea class="form-control" id="textoCobranca" rows="6" style="resize: none;"></textarea>
+                <div class="form-text mt-2 small">O prestador receberá esta mensagem pelo WhatsApp.</div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-white border" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="btnConfirmarCobranca" class="btn btn-primary"
+                    onclick="confirmarEnvioCobranca()">
+                    <i class="bi bi-send me-2"></i>Enviar Agora
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Lógica adicional para busca no modal de compra
+    const buscaCompraInput = document.getElementById('buscaPecaCompra');
+    const sugestoesCompraDiv = document.getElementById('listaSugestoesCompra');
+
+    buscaCompraInput.addEventListener('input', async function () {
+        if (this.value.length < 2) {
+            sugestoesCompraDiv.innerHTML = '';
+            return;
+        }
+        const res = await fetch(`/os/api/pecas/buscar?q=${this.value}`);
+        const data = await res.json();
+        sugestoesCompraDiv.innerHTML = '';
+        data.forEach(peca => {
+            const item = document.createElement('a');
+            item.className = 'list-group-item list-group-item-action';
+            item.innerHTML = `<span>${peca.nome}</span>`;
+            item.style.cursor = 'pointer';
+            item.onclick = () => {
+                document.getElementById('compraIdItem').value = peca.id;
+                document.getElementById('compraNomeItem').value = peca.nome;
+                buscaCompraInput.value = peca.nome;
+                sugestoesCompraDiv.innerHTML = '';
+                document.getElementById('divItemFixo').classList.remove('d-none');
+            };
+            sugestoesCompraDiv.appendChild(item);
+        });
+    });
+
+    function abrirModalCobranca(id, numero, titulo) {
+        document.getElementById('cobrancaChamadoId').value = id;
+        document.getElementById('textoCobranca').value = `⏰ *Prazo Vencido*\n\nChamado: ${numero}\nTítulo: ${titulo}\nPrevisão de conclusão?`;
+        new bootstrap.Modal(document.getElementById('modalCobrancaTerc')).show();
+    }
+
+    async function confirmarEnvioCobranca() {
+        const id = document.getElementById('cobrancaChamadoId').value;
+        const msg = document.getElementById('textoCobranca').value;
+        const btn = document.getElementById('btnConfirmarCobranca');
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Enviando...';
+
+        try {
+            const res = await fetch(`/terceirizados/chamados/${id}/cobrar`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mensagem_personalizada: msg })
+            });
+            const data = await res.json();
+            if (data.success) {
+                ToastModule.show("Cobrança enviada!", "success");
+                bootstrap.Modal.getInstance(document.getElementById('modalCobrancaTerc')).hide();
+            } else {
+                ToastModule.show("Erro: " + data.msg, "danger");
+            }
+        } catch (e) {
+            ToastModule.show("Erro de conexão.", "danger");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-send me-2"></i>Enviar Agora';
+        }
+    }
+
+    // --- LÓGICA DE AVALIAÇÃO (RF-014) ---
+    document.querySelectorAll('.star-btn').forEach(star => {
+        star.addEventListener('mouseover', function () {
+            const val = parseInt(this.getAttribute('data-value'));
+            highlightStars(val);
+        });
+
+        star.addEventListener('mouseout', function () {
+            highlightStars(0);
+        });
+
+        star.addEventListener('click', async function () {
+            const val = parseInt(this.getAttribute('data-value'));
+            await enviarAvaliacao(val);
+        });
+    });
+
+    function highlightStars(val) {
+        document.querySelectorAll('.star-btn').forEach(s => {
+            const sVal = parseInt(s.getAttribute('data-value'));
+            if (sVal <= val) {
+                s.classList.replace('bi-star', 'bi-star-fill');
+            } else {
+                s.classList.replace('bi-star-fill', 'bi-star');
+            }
+        });
+    }
+
+    async function enviarAvaliacao(rating) {
+        try {
+            const res = await fetch(`/os/{{ os.id }}/feedback`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ rating: rating })
+            });
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('ratingStars').innerHTML = '';
+                for (let i = 0; i < 5; i++) {
+                    const icon = document.createElement('i');
+                    icon.className = i < rating ? 'bi bi-star-fill' : 'bi bi-star';
+                    document.getElementById('ratingStars').appendChild(icon);
+                }
+                document.getElementById('feedbackResult').classList.remove('d-none');
+                ToastModule.show("Avaliação enviada!", "success");
+            }
+        } catch (e) {
+            ToastModule.show("Erro ao salvar avaliação", "danger");
+        }
+    }
+</script>
 
 {% endblock %}

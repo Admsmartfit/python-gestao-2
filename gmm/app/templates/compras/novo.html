@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('compras.listar') }}">Compras</a></li>
+<li class="breadcrumb-item active">Novo Pedido</li>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card border-0 shadow-sm mt-3">
+            <div class="card-header bg-white py-3">
+                <h4 class="fw-bold mb-0">Nova Solicitação de Compra</h4>
+            </div>
+            <div class="card-body p-4">
+                <form action="{{ url_for('compras.novo') }}" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-muted text-uppercase">Peça / Insumo</label>
+                        <select name="estoque_id" class="form-select select2" required>
+                            <option value="">Selecione uma peça...</option>
+                            {% for peca in pecas %}
+                            <option value="{{ peca.id }}">{{ peca.nome }} ({{ peca.codigo }}) - Atual: {{
+                                "{:g}".format(peca.quantidade_atual) }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-muted text-uppercase">Quantidade</label>
+                            <input type="number" step="0.001" name="quantidade" class="form-control" placeholder="0.000"
+                                required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-muted text-uppercase">Unidade de Destino</label>
+                            <select name="unidade_destino_id" class="form-select">
+                                <option value="">Estoque Central</option>
+                                {% for u in unidades %}
+                                <option value="{{ u.id }}">{{ u.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small text-muted text-uppercase">Fornecedor Preferencial
+                            (Opcional)</label>
+                        <select name="fornecedor_id" class="form-select">
+                            <option value="">Automático / Sugerir</option>
+                            {% for f in fornecedores %}
+                            <option value="{{ f.id }}">{{ f.nome }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text small">Se deixado em branco, o comprador poderá escolher ou será sugerido
+                            pelo catálogo.</div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('compras.listar') }}" class="btn btn-light border px-4">Cancelar</a>
+                        <button type="submit" class="btn btn-primary px-4">Criar Solicitação</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

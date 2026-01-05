@@ -337,3 +337,53 @@ class EstoqueService:
         db.session.commit()
         
         return os_obj
+
+    @staticmethod
+    def gerar_curva_abc():
+        """
+        Calcula a curva ABC baseada no consumo (quantidade * valor unitário).
+        RF-011: Visão global e balanceamento.
+        """
+        from sqlalchemy import func
+        
+        # 1. Obter consumo por item (Apenas tipo 'consumo')
+        consumo_query = db.session.query(
+            MovimentacaoEstoque.estoque_id,
+            func.sum(MovimentacaoEstoque.quantidade).label('total_qtd')
+        ).filter(
+            MovimentacaoEstoque.tipo_movimentacao == 'consumo'
+        ).group_by(MovimentacaoEstoque.estoque_id).all()
+        
+        dados_abc = []
+        total_geral_valor = Decimal('0.00')
+        
+        for estoque_id, qtd in consumo_query:
+            item = Estoque.query.get(estoque_id)
+            if item and item.valor_unitario:
+                valor_total = qtd * item.valor_unitario
+                dados_abc.append({
+                    'id': item.id,
+                    'nome': item.nome,
+                    'codigo': item.codigo,
+                    'valor_consumo': valor_total,
+                    'qtd_consumo': qtd
+                })
+                total_geral_valor += valor_total
+        
+        # 2. Ordenar por valor decrescente
+        dados_abc.sort(key=lambda x: x['valor_consumo'], reverse=True)
+        
+        # 3. Classificar e calcular acumulado
+        acumulado = Decimal('0.00')
+        for d in dados_abc:
+            acumulado += d['valor_consumo']
+            percentual_acumulado = (acumulado / total_geral_valor * 100) if total_geral_valor > 0 else 0
+            
+            if percentual_acumulado <= 80:
+                d['classe'] = 'A'
+            elif percentual_acumulado <= 95:
+                d['classe'] = 'B'
+            else:
+                d['classe'] = 'C'
+        
+        return dados_abc, total_geral_valor
