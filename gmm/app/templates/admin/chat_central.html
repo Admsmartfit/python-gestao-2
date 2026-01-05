@@ -1,0 +1,550 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="h4 fw-bold text-dark mb-0">Central de Mensagens</h2>
+            <div class="text-muted small">
+                <i class="bi bi-whatsapp"></i>
+                WhatsApp Business
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('admin_whatsapp.dashboard') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-speedometer2 me-1"></i> Dashboard
+            </a>
+            <button class="btn btn-primary btn-sm" onclick="location.reload()">
+                <i class="bi bi-arrow-clockwise me-1"></i> Atualizar
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-3" style="height: calc(100vh - 200px);">
+        <!-- Lista de Conversas (Sidebar) -->
+        <div class="col-md-4 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center py-3">
+                    <h5 class="h6 fw-bold mb-0">Conversas</h5>
+                    <span class="badge bg-primary" id="totalConversas">0</span>
+                </div>
+                <div class="card-body p-0">
+                    <!-- Filtros -->
+                    <div class="px-3 pt-2 pb-3 border-bottom">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-white border-end-0">
+                                <i class="bi bi-search text-muted"></i>
+                            </span>
+                            <input type="text" class="form-control border-start-0" id="searchConversas"
+                                   placeholder="Buscar por nome ou telefone...">
+                        </div>
+                        <div class="btn-group btn-group-sm w-100 mt-2" role="group">
+                            <input type="radio" class="btn-check" name="filtroStatus" id="filtroTodas" value="todas" checked>
+                            <label class="btn btn-outline-secondary" for="filtroTodas">Todas</label>
+
+                            <input type="radio" class="btn-check" name="filtroStatus" id="filtroNaoLidas" value="nao_lidas">
+                            <label class="btn btn-outline-secondary" for="filtroNaoLidas">Não Lidas</label>
+
+                            <input type="radio" class="btn-check" name="filtroStatus" id="filtroAtivas" value="ativas">
+                            <label class="btn btn-outline-secondary" for="filtroAtivas">Ativas (24h)</label>
+                        </div>
+                    </div>
+
+                    <!-- Lista de Conversas -->
+                    <div class="overflow-auto" style="max-height: calc(100vh - 380px);" id="listaConversas">
+                        <div class="text-center py-4 text-muted small">
+                            <div class="spinner-border spinner-border-sm mb-2" role="status"></div>
+                            <div>Carregando conversas...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Área de Chat -->
+        <div class="col-md-8 col-lg-9">
+            <div class="card border-0 shadow-sm h-100 d-flex flex-column">
+                <!-- Chat Header -->
+                <div class="card-header bg-white border-0 py-3" id="chatHeader">
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-chat-dots fs-1"></i>
+                        <p class="mb-0 mt-2">Selecione uma conversa para iniciar</p>
+                    </div>
+                </div>
+
+                <!-- Mensagens -->
+                <div class="card-body flex-grow-1 overflow-auto bg-light" id="chatMessages"
+                     style="max-height: calc(100vh - 420px); background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,.02) 10px, rgba(0,0,0,.02) 20px);">
+                    <!-- Mensagens carregadas dinamicamente -->
+                </div>
+
+                <!-- Input de Mensagem -->
+                <div class="card-footer bg-white border-0 py-3" id="chatFooter" style="display: none;">
+                    <form id="formEnviarMensagem" class="d-flex gap-2">
+                        <input type="hidden" id="telefoneAtivo">
+
+                        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="tooltip"
+                                title="Anexar arquivo (em desenvolvimento)">
+                            <i class="bi bi-paperclip"></i>
+                        </button>
+
+                        <div class="flex-grow-1">
+                            <textarea class="form-control" id="inputMensagem" rows="1"
+                                      placeholder="Digite sua mensagem..."
+                                      style="resize: none; overflow-y: hidden;"
+                                      maxlength="4096"></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" id="btnEnviar">
+                            <i class="bi bi-send-fill"></i>
+                        </button>
+                    </form>
+                    <div class="text-muted small mt-2">
+                        <i class="bi bi-info-circle"></i>
+                        Use <kbd>Enter</kbd> para enviar, <kbd>Shift+Enter</kbd> para nova linha
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Visualizar Mídia -->
+<div class="modal fade" id="modalVisualizarMidia" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title h6 fw-bold">Visualizar Mídia</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center" id="modalMidiaContent">
+                <!-- Conteúdo dinâmico (imagem, áudio, PDF) -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Estilos para mensagens */
+    .mensagem-item {
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: flex-end;
+    }
+
+    .mensagem-item.outbound {
+        justify-content: flex-end;
+    }
+
+    .mensagem-item.inbound {
+        justify-content: flex-start;
+    }
+
+    .mensagem-bubble {
+        max-width: 65%;
+        padding: 0.75rem 1rem;
+        border-radius: 1rem;
+        position: relative;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+
+    .mensagem-item.outbound .mensagem-bubble {
+        background: #0d6efd;
+        color: white;
+        border-bottom-right-radius: 0.25rem;
+    }
+
+    .mensagem-item.inbound .mensagem-bubble {
+        background: white;
+        color: #212529;
+        border-bottom-left-radius: 0.25rem;
+    }
+
+    .mensagem-texto {
+        word-wrap: break-word;
+        white-space: pre-wrap;
+    }
+
+    .mensagem-meta {
+        font-size: 0.7rem;
+        opacity: 0.7;
+        margin-top: 0.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .mensagem-item.outbound .mensagem-meta {
+        justify-content: flex-end;
+    }
+
+    .mensagem-midia {
+        margin-bottom: 0.5rem;
+        cursor: pointer;
+        border-radius: 0.5rem;
+        overflow: hidden;
+        max-width: 300px;
+    }
+
+    .mensagem-midia img {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+
+    .mensagem-audio {
+        width: 250px;
+    }
+
+    .mensagem-documento {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        background: rgba(0,0,0,0.05);
+        border-radius: 0.5rem;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .mensagem-documento:hover {
+        background: rgba(0,0,0,0.1);
+    }
+
+    .conversa-item {
+        padding: 1rem;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .conversa-item:hover {
+        background: #f8f9fa;
+    }
+
+    .conversa-item.active {
+        background: #e7f1ff;
+        border-left: 3px solid #0d6efd;
+    }
+
+    .conversa-item .badge-unread {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+    }
+
+    .status-icon {
+        font-size: 0.8rem;
+    }
+
+    .typing-indicator {
+        display: inline-flex;
+        gap: 0.25rem;
+        align-items: center;
+    }
+
+    .typing-indicator span {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+        opacity: 0.4;
+        animation: typing 1.4s infinite;
+    }
+
+    .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typing {
+        0%, 60%, 100% { opacity: 0.4; }
+        30% { opacity: 1; }
+    }
+</style>
+
+<script>
+let conversaAtiva = null;
+let mensagensCache = {};
+let pollInterval = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+    carregarConversas();
+    setupEventListeners();
+
+    // Poll a cada 5 segundos
+    pollInterval = setInterval(() => {
+        carregarConversas();
+        if (conversaAtiva) {
+            carregarMensagens(conversaAtiva);
+        }
+    }, 5000);
+});
+
+function setupEventListeners() {
+    // Busca de conversas
+    document.getElementById('searchConversas').addEventListener('input', filtrarConversas);
+
+    // Filtros de status
+    document.querySelectorAll('input[name="filtroStatus"]').forEach(radio => {
+        radio.addEventListener('change', carregarConversas);
+    });
+
+    // Form de envio
+    document.getElementById('formEnviarMensagem').addEventListener('submit', enviarMensagem);
+
+    // Auto-resize textarea
+    const textarea = document.getElementById('inputMensagem');
+    textarea.addEventListener('input', () => {
+        textarea.style.height = 'auto';
+        textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+    });
+
+    // Enter para enviar
+    textarea.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            document.getElementById('formEnviarMensagem').dispatchEvent(new Event('submit'));
+        }
+    });
+}
+
+function carregarConversas() {
+    const filtro = document.querySelector('input[name="filtroStatus"]:checked').value;
+
+    fetch(`/admin/chat/conversas?filtro=${filtro}`)
+        .then(res => res.json())
+        .then(data => {
+            const container = document.getElementById('listaConversas');
+            document.getElementById('totalConversas').textContent = data.length;
+
+            if (data.length === 0) {
+                container.innerHTML = '<div class="text-center py-4 text-muted small">Nenhuma conversa encontrada</div>';
+                return;
+            }
+
+            container.innerHTML = data.map(conv => `
+                <div class="conversa-item position-relative ${conv.telefone === conversaAtiva ? 'active' : ''}"
+                     onclick="abrirConversa('${conv.telefone}', '${conv.nome}')">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <div class="fw-bold">${conv.nome}</div>
+                        <small class="text-muted">${conv.ultima_msg_tempo}</small>
+                    </div>
+                    <div class="small text-muted text-truncate" style="max-width: 85%;">
+                        ${conv.ultima_msg_preview}
+                    </div>
+                    ${conv.nao_lidas > 0 ? `<span class="badge bg-primary badge-unread rounded-pill">${conv.nao_lidas}</span>` : ''}
+                </div>
+            `).join('');
+        })
+        .catch(err => {
+            console.error('Erro ao carregar conversas:', err);
+            document.getElementById('listaConversas').innerHTML =
+                '<div class="text-center py-4 text-danger small">Erro ao carregar conversas</div>';
+        });
+}
+
+function filtrarConversas() {
+    const search = document.getElementById('searchConversas').value.toLowerCase();
+    const items = document.querySelectorAll('.conversa-item');
+
+    items.forEach(item => {
+        const texto = item.textContent.toLowerCase();
+        item.style.display = texto.includes(search) ? 'block' : 'none';
+    });
+}
+
+function abrirConversa(telefone, nome) {
+    conversaAtiva = telefone;
+
+    // Atualizar header
+    document.getElementById('chatHeader').innerHTML = `
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h5 class="h6 fw-bold mb-0">${nome}</h5>
+                <small class="text-muted">${telefone}</small>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-secondary" onclick="marcarComoLida('${telefone}')"
+                        data-bs-toggle="tooltip" title="Marcar como lida">
+                    <i class="bi bi-check2-all"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" onclick="verDetalhes('${telefone}')"
+                        data-bs-toggle="tooltip" title="Ver detalhes">
+                    <i class="bi bi-info-circle"></i>
+                </button>
+            </div>
+        </div>
+    `;
+
+    // Mostrar footer
+    document.getElementById('chatFooter').style.display = 'block';
+    document.getElementById('telefoneAtivo').value = telefone;
+
+    // Carregar mensagens
+    carregarMensagens(telefone);
+
+    // Atualizar lista de conversas
+    document.querySelectorAll('.conversa-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    event.currentTarget.classList.add('active');
+}
+
+function carregarMensagens(telefone) {
+    fetch(`/admin/chat/mensagens/${telefone}`)
+        .then(res => res.json())
+        .then(data => {
+            mensagensCache[telefone] = data;
+            renderizarMensagens(data);
+        })
+        .catch(err => {
+            console.error('Erro ao carregar mensagens:', err);
+            document.getElementById('chatMessages').innerHTML =
+                '<div class="text-center py-4 text-danger">Erro ao carregar mensagens</div>';
+        });
+}
+
+function renderizarMensagens(mensagens) {
+    const container = document.getElementById('chatMessages');
+
+    if (mensagens.length === 0) {
+        container.innerHTML = '<div class="text-center py-4 text-muted">Nenhuma mensagem ainda</div>';
+        return;
+    }
+
+    container.innerHTML = mensagens.map(msg => {
+        let midiaHtml = '';
+
+        // Renderizar mídia
+        if (msg.tipo_conteudo === 'image' && msg.url_midia_local) {
+            midiaHtml = `
+                <div class="mensagem-midia" onclick="visualizarMidia('${msg.url_midia_local}', 'image')">
+                    <img src="${msg.url_midia_local}" alt="Imagem" loading="lazy">
+                </div>
+            `;
+        } else if (msg.tipo_conteudo === 'audio' && msg.url_midia_local) {
+            midiaHtml = `
+                <audio controls class="mensagem-audio">
+                    <source src="${msg.url_midia_local}" type="${msg.mimetype || 'audio/ogg'}">
+                </audio>
+            `;
+        } else if (msg.tipo_conteudo === 'document' && msg.url_midia_local) {
+            midiaHtml = `
+                <div class="mensagem-documento" onclick="window.open('${msg.url_midia_local}', '_blank')">
+                    <i class="bi bi-file-earmark-pdf fs-3"></i>
+                    <div class="flex-grow-1">
+                        <div class="fw-bold small">Documento</div>
+                        <div class="text-muted" style="font-size: 0.75rem;">${msg.caption || 'Clique para abrir'}</div>
+                    </div>
+                    <i class="bi bi-download"></i>
+                </div>
+            `;
+        }
+
+        const statusIcon = getStatusIcon(msg.status);
+
+        return `
+            <div class="mensagem-item ${msg.direcao}">
+                <div class="mensagem-bubble">
+                    ${midiaHtml}
+                    ${msg.mensagem ? `<div class="mensagem-texto">${escapeHtml(msg.mensagem)}</div>` : ''}
+                    ${msg.caption && msg.tipo_conteudo !== 'document' ? `<div class="mensagem-texto small mt-1"><em>${escapeHtml(msg.caption)}</em></div>` : ''}
+                    <div class="mensagem-meta">
+                        <span>${msg.hora}</span>
+                        ${msg.direcao === 'outbound' ? `<i class="bi ${statusIcon} status-icon"></i>` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    // Scroll para o final
+    container.scrollTop = container.scrollHeight;
+}
+
+function enviarMensagem(e) {
+    e.preventDefault();
+
+    const telefone = document.getElementById('telefoneAtivo').value;
+    const mensagem = document.getElementById('inputMensagem').value.trim();
+
+    if (!mensagem) return;
+
+    const btn = document.getElementById('btnEnviar');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+    fetch('/admin/chat/enviar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telefone, mensagem })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('inputMensagem').value = '';
+            document.getElementById('inputMensagem').style.height = 'auto';
+            carregarMensagens(telefone);
+            carregarConversas(); // Atualizar lista
+        } else {
+            alert('Erro ao enviar: ' + (data.error || 'Erro desconhecido'));
+        }
+    })
+    .catch(err => {
+        console.error('Erro:', err);
+        alert('Erro de conexão ao enviar mensagem');
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-send-fill"></i>';
+    });
+}
+
+function getStatusIcon(status) {
+    const icons = {
+        'pendente': 'bi-clock',
+        'enviado': 'bi-check',
+        'entregue': 'bi-check-all',
+        'lido': 'bi-check-all text-primary',
+        'falhou': 'bi-exclamation-circle text-danger'
+    };
+    return icons[status] || 'bi-clock';
+}
+
+function visualizarMidia(url, tipo) {
+    const modal = new bootstrap.Modal(document.getElementById('modalVisualizarMidia'));
+    const content = document.getElementById('modalMidiaContent');
+
+    if (tipo === 'image') {
+        content.innerHTML = `<img src="${url}" class="img-fluid" alt="Imagem">`;
+    }
+
+    modal.show();
+}
+
+function marcarComoLida(telefone) {
+    fetch(`/admin/chat/marcar-lida/${telefone}`, { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                carregarConversas();
+            }
+        });
+}
+
+function verDetalhes(telefone) {
+    // Implementar modal de detalhes (futuro)
+    alert('Detalhes do contato: ' + telefone);
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Cleanup ao sair da página
+window.addEventListener('beforeunload', () => {
+    if (pollInterval) clearInterval(pollInterval);
+});
+</script>
+{% endblock %}

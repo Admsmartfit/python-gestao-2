@@ -1,0 +1,213 @@
+Aqui está o **PRD Completo e Atualizado (Versão 1.1)** para o **Módulo 5: KPI e Analytics Dinâmico**.
+
+Este documento incorpora os seus novos objetivos, as personas detalhadas (especialmente a necessidade do Comprador em monitorizar a equipa técnica) e a estrutura técnica baseada nos ficheiros que já analisámos (modelos de `RegistroPonto`, `OrdemServico`, `MovimentacaoEstoque`).
+
+---
+
+# Product Requirements Document (PRD)
+
+## Sistema GMM - Módulo 5: Analytics e KPIs Dinâmicos
+
+**Versão:** 1.1
+**Data:** Dezembro 2024
+**Status:** Planeamento
+**Dependências:** Módulos 1 (Auth/Ponto), 2 (Manutenção/Estoque) e 3 (Terceirizados)
+
+---
+
+## 1. Visão Geral
+
+### 1.1 Objetivo
+
+Criar um sistema de inteligência de dados (BI) nativo, dinâmico e personalizável que permita aos utilizadores:
+
+1. **Visualizar métricas em tempo real** para tomada de decisão imediata sobre custos e operatividade.
+2. **Criar dashboards personalizados**, permitindo que cada perfil foque apenas no que é relevante para a sua função.
+3. **Configurar alertas automáticos** para desvios de padrão (ex: stock crítico, MTTR alto, técnicos com baixa produtividade).
+4. **Exportar relatórios** em formatos padrão (CSV, Excel, PDF) para reuniões e auditorias.
+5. **Comparar períodos e unidades** para identificar tendências, sazonalidades e *benchmarking* entre filiais.
+
+### 1.2 Personas e Necessidades
+
+* **Admin:** Necessita de uma visão 360° de todas as unidades. Foca em métricas estratégicas (Custo Global, ROI de Manutenção, Eficiência Global). Tem acesso irrestrito.
+* **Gerente de Unidade:** Foca em KPIs operacionais da sua unidade específica. Precisa de controlar o MTTR local, custos da sua filial e garantir que a equipa cumpre a jornada.
+* **Técnico:** Visualiza métricas de performance individual (as suas OS concluídas, tempo médio de resolução, feedbacks recebidos) para auto-gestão.
+* **Comprador:**
+* *Foco Primário:* Indicadores de compras, *lead time* (prazo de entrega) e avaliação de fornecedores.
+* *Foco Secundário (Monitorização):* Acompanhar o desempenho da equipa técnica para cruzar dados. Precisa de visualizar horários de início/fim de trabalho (Ponto) e tempos de execução de OS para auditar se o consumo de peças condiz com as horas trabalhadas.
+
+
+
+---
+
+## 2. Requisitos Funcionais
+
+### 2.1 Dashboard Executivo (Visão Macro)
+
+Painel principal com "Big Numbers" e indicadores de tendência (comparativo com período anterior).
+
+* **KPIs Financeiros:** Custo Total (Peças + Serviços Externos), Custo Médio por OS.
+* **KPIs Operacionais:** MTTR (Tempo Médio de Reparação), Backlog (OS abertas > 7 dias), Taxa de Conclusão.
+* **KPIs de Stock:** Valor Imobilizado, Giro de Stock, Itens Críticos.
+
+### 2.2 Relatórios de Desempenho Técnico (Foco: Comprador & Gerente)
+
+Funcionalidade crítica para permitir ao Comprador auditar a produtividade.
+
+* **Relatório de Jornada vs. Execução:** Tabela comparativa diária.
+* *Dados:* Hora de Entrada (`registros_ponto`) | Hora de Saída | Tempo Total na Unidade | Tempo Total em OS (soma da duração das OS).
+* *Métrica Calculada:* **Índice de Ociosidade** (Tempo na Unidade - Tempo em OS).
+
+
+* **Consumo por Técnico:** Valor total de peças requisitadas por cada técnico. Permite identificar desperdícios ou anomalias.
+* **Timeline Diária:** Gráfico de Gantt visualizando:
+* Barra Azul: Jornada de Trabalho (Check-in até Check-out).
+* Blocos Verdes: OS executadas durante esse período.
+
+
+
+### 2.3 Filtros Dinâmicos
+
+Todos os gráficos e tabelas devem reagir a alterações nestes filtros sem recarregar a página:
+
+* **Período:** Seletores rápidos (Hoje, Ontem, 7 dias, 30 dias) e intervalo personalizado (`daterangepicker`).
+* **Unidade:** Multi-seleção (para Admin/Comprador) ou Fixa (para Gerente/Técnico).
+* **Técnico:** Filtrar dados de um indivíduo específico.
+* **Categoria/Equipamento:** Filtrar custos apenas de "Passadeiras" ou "Ar Condicionado".
+
+### 2.4 Visualizações Gráficas (Chart.js)
+
+1. **Evolução de Custos (Linha):** Eixo X = Tempo, Eixo Y = Valor (R$). Linhas separadas para Peças vs. Serviços.
+2. **Pareto de Defeitos (Barras):** Top 10 equipamentos com mais ocorrências.
+3. **Performance de Fornecedores (Radar/Barras):** Prazo prometido vs. Prazo real (dados de `PedidoCompra`).
+
+### 2.5 Funcionalidades Auxiliares
+
+* **Exportação:** Botão para baixar a visualização atual em CSV ou Excel.
+* **Alertas:** Configuração de *triggers* (ex: "Avisar se o custo mensal da Unidade X ultrapassar 5.000€").
+
+---
+
+## 3. Arquitetura Técnica e Dados
+
+### 3.1 Modelo de Dados (Mapping)
+
+O módulo utilizará agregações (`SQLAlchemy func`) sobre as tabelas existentes identificadas nos ficheiros carregados:
+
+| Métrica | Tabelas Origem | Campos Chave |
+| --- | --- | --- |
+| **Jornada de Trabalho** | `registros_ponto` | `data_hora_entrada`, `data_hora_saida`, `usuario_id` |
+| **Execução de Serviço** | `ordens_servico` | `data_abertura`, `data_conclusao`, `tecnico_id` |
+| **Consumo de Peças** | `movimentacoes_estoque` | `quantidade`, `tipo='consumo'`, `usuario_id` |
+| **Custo de Peças** | `estoque` + `movimentacoes` | `movimentacao.quantidade` * `estoque.valor_unitario` |
+| **Compras/Fornecedores** | `pedidos_compra` | `data_solicitacao`, `data_chegada`, `fornecedor_id` |
+
+### 3.2 Lógica de Cálculo (Backend Services)
+
+Criar um serviço dedicado `AnalyticsService` em `app/services/analytics_service.py` para isolar a lógica pesada.
+
+* **MTTR:** Média de `(os.data_conclusao - os.data_abertura)` para OS concluídas no período.
+* **Ociosidade:**
+1. Calcular horas totais do `RegistroPonto` do dia.
+2. Somar duração estimada ou real das `OrdemServico` do mesmo técnico no mesmo dia.
+3. Subtrair (2) de (1).
+
+
+
+### 3.3 Permissões (RBAC)
+
+Atualizar os decoradores ou verificações em `routes/analytics.py`:
+
+* `if current_user.tipo == 'comprador'`: Acesso total a Compras + Acesso de Leitura a Ponto e OS (normalmente restrito).
+* `if current_user.tipo == 'tecnico'`: Filtro forçado `tecnico_id = current_user.id`.
+
+---
+
+## 4. Design da API (Endpoints)
+
+O módulo terá um Blueprint próprio: `bp = Blueprint('analytics', __name__, url_prefix='/api/analytics')`.
+
+### 4.1 Performance da Equipa (Foco Comprador)
+
+`GET /api/analytics/tecnicos/performance`
+
+* **Query Params:** `start_date`, `end_date`, `unidade_id`.
+* **Response:**
+```json
+[
+  {
+    "tecnico_nome": "João Silva",
+    "tecnico_id": 5,
+    "dias_trabalhados": 22,
+    "horas_totais_ponto": 176.5,
+    "horas_totais_os": 140.0,
+    "ociosidade_percentual": 20.6,
+    "custo_pecas_utilizadas": 450.00,
+    "os_concluidas": 30
+  }
+]
+
+```
+
+
+
+### 4.2 Métricas Gerais (Dashboard)
+
+`GET /api/analytics/kpi/geral`
+
+* **Query Params:** `periodo` (ex: '30d'), `unidade_id` (opcional).
+* **Response:** Objeto JSON contendo os "Big Numbers" e as variações percentuais.
+
+### 4.3 Dados para Gráficos
+
+`GET /api/analytics/charts/custos`
+
+* **Query Params:** `group_by` (day, month).
+* **Response:** Dados formatados para *Chart.js* (labels e datasets).
+
+---
+
+## 5. Plano de Implementação
+
+### Fase 1: Backend e Consultas (Semana 1)
+
+1. Criar `app/routes/analytics.py` e registar o blueprint no `__init__.py`.
+2. Implementar `AnalyticsService` com métodos para agregar dados de `OrdemServico` e `RegistroPonto`.
+3. Criar as queries SQL otimizadas para o relatório de performance do técnico (cruzamento Ponto x OS).
+
+### Fase 2: Frontend e Dashboards (Semana 2)
+
+1. Criar templates: `analytics_dashboard.html` e `analytics_tecnicos.html`.
+2. Integrar biblioteca **Chart.js** e **Daterangepicker**.
+3. Implementar lógica JavaScript para atualizar gráficos via AJAX quando os filtros mudam.
+
+### Fase 3: Exportação e Alertas (Semana 3)
+
+1. Adicionar rota `/export/csv` que recebe os mesmos filtros do dashboard e retorna o ficheiro.
+2. Criar tarefa no **Celery** (`tasks.py`) para verificação diária de métricas e envio de alertas (email ou notificação no sistema) para Admin/Comprador.
+
+---
+
+## 6. Exemplo de Interface (Wireframe) - Visão Comprador
+
+```
++-----------------------------------------------------------------------+
+| DASHBOARD ANALYTICS | Filtros: [01/12 - 31/12] [Todas Unidades]       |
++-----------------------------------------------------------------------+
+|                                                                       |
+|  [COMPRAS]                [PERFORMANCE TÉCNICA]                       |
+|  Pedidos Aprovados: 12    Média Horas/Dia: 8.2h                       |
+|  Prazo Médio Forn.: 5d    Ociosidade Média: 15%                       |
+|  Gasto Total: 5.000€      Custo Peças/Técnico: 150€                   |
+|                                                                       |
++--------------------------+--------------------------------------------+
+|                          |                                            |
+| GRÁFICO: Entregas        | TABELA: Detalhe por Técnico                |
+| (Prazo Prometido vs Real)|                                            |
+|                          | Nome | Check-in | Check-out | OSs | Peças  |
+| [ Radar Chart ]          | João | 08:00    | 17:00     | 4   | 50€    |
+|                          | Maria| 08:15    | 17:30     | 6   | 120€   |
+|                          |                                            |
++--------------------------+--------------------------------------------+
+
+```

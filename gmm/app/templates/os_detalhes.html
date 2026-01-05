@@ -1,0 +1,874 @@
+{% extends "base.html" %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('ponto.index') }}">Dashboard</a></li>
+<li class="breadcrumb-item active">OS #{{ os.numero_os }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4 d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+    <div>
+        <nav aria-label="breadcrumb" class="mb-1">
+            <ol class="breadcrumb mb-0" style="font-size: 0.75rem;">
+                <li class="breadcrumb-item"><a href="{{ url_for('ponto.index') }}"
+                        class="text-decoration-none">Dashboard</a></li>
+                <li class="breadcrumb-item active">OS #{{ os.numero_os }}</li>
+            </ol>
+        </nav>
+        <div class="d-flex align-items-center gap-2">
+            <h2 class="mb-0 fw-bold">{{ os.numero_os }}</h2>
+            {% if os.status == 'aberta' %}
+            <span class="badge bg-warning">Aberta</span>
+            {% elif os.status == 'concluida' %}
+            <span class="badge bg-success">Concluída</span>
+            {% else %}
+            <span class="badge bg-secondary text-capitalize">{{ os.status }}</span>
+            {% endif %}
+        </div>
+        <div class="text-muted small mt-1">
+            <i class="bi bi-geo-alt-fill text-accent me-1"></i> {{ os.unidade.nome }}
+            <span class="mx-2 opacity-25">•</span>
+            <i class="bi bi-person-fill text-muted me-1"></i> {{ os.tecnico.nome }}
+        </div>
+    </div>
+
+    <div class="d-flex align-items-center gap-4">
+        <div class="text-md-end">
+            <div class="text-muted small text-uppercase fw-bold opacity-75">Custo Total</div>
+            <div class="fs-4 fw-bold text-dark">R$ <span id="custoTotal">{{ "{:.2f}".format(os.custo_total) }}</span>
+            </div>
+        </div>
+        {% if os.prazo_conclusao %}
+        <div class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-3 py-2">
+            <i class="bi bi-clock me-1"></i> Prazo: {{ os.prazo_conclusao.strftime('%d/%m %H:%M') }}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 text-secondary fw-bold"><i class="bi bi-info-circle me-2"></i>Detalhes do Serviço</h5>
+        {% if os.status != 'concluida' %}
+        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalEditarOS">
+            <i class="bi bi-pencil me-1"></i> Editar
+        </button>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        <div class="row g-4">
+            <div class="col-md-6">
+                <label class="form-label">Equipamento</label>
+                <div class="d-flex align-items-center gap-2">
+                    {% if os.equipamento_rel %}
+                    <span class="fw-medium">{{ os.equipamento_rel.nome }}</span>
+                    <span class="badge bg-secondary bg-opacity-10 text-secondary border">{{
+                        os.equipamento_rel.categoria }}</span>
+                    {% else %}
+                    <span class="text-muted fst-italic">Não vinculado</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Prioridade</label>
+                <div>
+                    {% if os.prioridade == 'urgente' %}
+                    <span class="badge bg-danger text-white">Urgente</span>
+                    {% elif os.prioridade == 'alta' %}
+                    <span class="badge bg-warning text-dark">Alta</span>
+                    {% else %}
+                    <span class="badge bg-info text-dark">Normal</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label">Tipo de Manutenção</label>
+                        <div class="fw-medium text-capitalize">{{ os.tipo_manutencao }}</div>
+                    </div>
+                    <div class="col-md-6 mt-3 mt-md-0">
+                        <label class="form-label">Problema Relatado</label>
+                        <div class="p-3 bg-light rounded border text-muted">
+                            {{ os.descricao_problema }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <label class="form-label">Fotos Iniciais</label>
+            <div class="d-flex gap-2 flex-wrap">
+                {% if os.fotos_antes %}
+                {% for foto in os.fotos_antes %}
+                <a href="{{ url_for('static', filename=foto) }}" target="_blank"
+                    class="d-block position-relative group">
+                    <img src="{{ url_for('static', filename=foto) }}" class="img-thumbnail rounded-3 shadow-sm"
+                        style="height: 100px; width: 100px; object-fit: cover;">
+                </a>
+                {% endfor %}
+                {% else %}
+                <div class="text-muted small fst-italic">Sem fotos registradas.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-5">
+    <div
+        class="card-header bg-white py-3 border-bottom d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
+        <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-tools me-2"></i>Recursos Utilizados</h5>
+        {% if os.status != 'concluida' %}
+        <button class="btn btn-primary btn-sm w-100 w-md-auto" data-bs-toggle="modal" data-bs-target="#modalRecursos">
+            <i class="bi bi-plus-lg me-1"></i> Adicionar (Peça/Serviço)
+        </button>
+        {% endif %}
+    </div>
+
+    <div class="card-body p-0">
+        <div class="bg-light px-3 py-2 border-bottom fw-bold text-uppercase small text-muted">Peças do Estoque
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover table-responsive-stack mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th>Peça</th>
+                        <th>Qtd</th>
+                        <th>Unitário</th>
+                        <th>Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if os.movimentacoes %}
+                    {% for mov in os.movimentacoes %}
+                    {% if mov.tipo_movimentacao == 'consumo' %}
+                    <tr>
+                        <td data-label="Peça" class="fw-medium">{{ mov.estoque.nome }}</td>
+                        <td data-label="Qtd">{{ "{:g}".format(mov.quantidade) }} {{ mov.estoque.unidade_medida
+                            }}</td>
+                        <td data-label="Unitário" class="text-muted">R$ {{
+                            "{:.2f}".format(mov.estoque.valor_unitario or 0) }}</td>
+                        <td data-label="Subtotal" class="fw-bold text-dark">R$ {{ "{:.2f}".format(mov.quantidade
+                            * (mov.estoque.valor_unitario or 0)) }}</td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center py-3 text-muted small">Nenhuma peça utilizada.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="bg-light px-3 py-2 border-bottom border-top fw-bold text-uppercase small text-muted">
+            Serviços Terceirizados</div>
+        <div class="table-responsive">
+            <table class="table table-hover table-responsive-stack mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th>Prestador</th>
+                        <th>Descrição</th>
+                        <th>Prazo</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if os.chamados_externos %}
+                    {% for ch in os.chamados_externos %}
+                    <tr>
+                        <td data-label="Prestador" class="fw-medium">{{ ch.terceirizado.nome }}</td>
+                        <td data-label="Descrição" class="text-muted text-truncate" style="max-width: 200px;">{{
+                            ch.descricao }}</td>
+                        <td data-label="Prazo">{{ ch.prazo_combinado.strftime('%d/%m') }}</td>
+                        <td data-label="Status">
+                            <span
+                                class="badge bg-{{ 'success' if ch.status=='concluido' else 'warning' }} bg-opacity-10 text-{{ 'success' if ch.status=='concluido' else 'warning' }}">
+                                {{ ch.status|upper }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center py-3 text-muted small">Nenhum serviço externo.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if os.status != 'concluida' %}
+<div class="d-grid gap-2 d-md-flex justify-content-md-end mb-5">
+    <button class="btn btn-outline-danger px-4" data-bs-toggle="modal" data-bs-target="#modalCancelar">Cancelar
+        OS</button>
+    <button class="btn btn-success px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalConcluir">
+        <i class="bi bi-check-lg me-2"></i> Concluir Serviço
+    </button>
+</div>
+{% endif %}
+
+<div class="modal fade" id="modalConcluir" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">Finalizar Ordem de Serviço</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('os.concluir_os', id=os.id) }}" method="POST" enctype="multipart/form-data">
+                <div class="modal-body pt-4">
+                    <div class="mb-3">
+                        <label class="form-label">Solução Aplicada</label>
+                        <textarea name="descricao_solucao" class="form-control" rows="4" required
+                            placeholder="Descreva o que foi feito..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Fotos do Resultado</label>
+                        <input type="file" name="fotos_depois" class="form-control" multiple accept="image/*">
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Voltar</button>
+                    <button type="submit" class="btn btn-success">Confirmar Conclusão</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalSolicitarCompra" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">Solicitar Compra de Peça</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-4">
+                <div class="mb-3">
+                    <label class="form-label">Item</label>
+                    <input type="text" class="form-control bg-light" id="compraNomeItem" readonly>
+                    <input type="hidden" id="compraIdItem">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Quantidade Necessária</label>
+                    <input type="number" step="0.01" class="form-control form-control-lg" id="compraQtd" required>
+                </div>
+                <div class="d-grid mt-4">
+                    <button type="button" onclick="confirmarSolicitacaoCompra()" class="btn btn-danger"
+                        id="btnConfirmarCompra">
+                        Confirmar Solicitação
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalCancelar" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-danger">Cancelar Ordem de Serviço</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body py-4 text-center">
+                <i class="bi bi-exclamation-triangle text-danger fs-1 mb-3 d-block"></i>
+                <h6 class="fw-bold">Tem certeza que deseja cancelar esta OS?</h6>
+                <p class="text-muted small mb-0">Todas as peças consumidas serão estornadas para o estoque da unidade.
+                </p>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Manter OS</button>
+                <form action="{{ url_for('os.cancelar_os_route', id=os.id) }}" method="POST">
+                    <button type="submit" class="btn btn-danger px-4">Confirmar Cancelamento</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalTransferencia" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">Solicitar Transferência</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-4">
+                <form id="formTransferencia" onsubmit="event.preventDefault(); confirmarTransferencia();">
+                    <input type="hidden" id="transfEstoqueId">
+                    <input type="hidden" id="transfDestinoId">
+
+                    <div class="mb-3">
+                        <label class="form-label">Item</label>
+                        <input type="text" class="form-control bg-light" id="transfNomeItem" readonly>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-12">
+                            <label class="form-label">Unidade Origem (onde há saldo)</label>
+                            <select id="transfOrigemId" class="form-select" required>
+                                <option value="" disabled selected>Selecione a origem...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Unidade Destino</label>
+                        <input type="text" class="form-control bg-light" id="transfDestinoNome" readonly>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Quantidade</label>
+                        <input type="number" step="0.01" class="form-control form-control-lg" id="transfQtd" required>
+                    </div>
+
+                    <div class="mt-3 border-top pt-3">
+                        <label class="form-label small fw-bold text-uppercase text-muted">Notificação</label>
+                        <div class="mb-2">
+                            <select id="transfResponsavel" class="form-select">
+                                <option value="" selected>Não notificar ninguém</option>
+                                {% for u in usuarios %}
+                                <option value="{{ u.id }}">{{ u.nome }} ({{ u.tipo|capitalize }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="checkTransfWhats">
+                            <label class="form-check-label small" for="checkTransfWhats">
+                                Enviar aviso via WhatsApp para o responsável selecionado
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info py-2 small border-0 mb-3 mt-3">
+                        {% if current_user.tipo in ['admin', 'gerente'] %}
+                        <i class="bi bi-lightning-fill me-1"></i> Será executado imediatamente
+                        {% else %}
+                        <i class="bi bi-hourglass-split me-1"></i> Será enviado para aprovação
+                        {% endif %}
+                    </div>
+
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-primary" id="btnSalvarTransf">
+                            Confirmar Transferência
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalRecursos" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold">Adicionar Recurso</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-0">
+                <ul class="nav nav-tabs nav-fill mb-4" role="tablist">
+                    <li class="nav-item">
+                        <button class="nav-link active fw-bold" data-bs-toggle="tab" data-bs-target="#tabPeca">
+                            <i class="bi bi-box-seam me-2"></i> Peça / Material
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link fw-bold" data-bs-toggle="tab" data-bs-target="#tabServico">
+                            <i class="bi bi-person-gear me-2"></i> Serviço Terceirizado
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="tabPeca">
+                        <div class="mb-3 position-relative">
+                            <label class="form-label text-muted small text-uppercase fw-bold">Buscar no Estoque</label>
+                            <input type="text" class="form-control form-control-lg" id="buscaPecaUnificada"
+                                placeholder="Digite o nome ou código..." autocomplete="off">
+                            <div id="listaSugestoesUnificada" class="list-group position-absolute w-100 shadow"
+                                style="z-index: 1050; top: 100%;"></div>
+                        </div>
+
+                        <div id="acaoPecaCard" class="card bg-light border-0 d-none">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <h5 class="fw-bold text-primary mb-1" id="nomePecaSelecionada">Nome da Peça</h5>
+                                        <span id="statusEstoqueBadge" class="badge bg-secondary">Status</span>
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="small text-muted">Saldo Atual</div>
+                                        <div class="fs-5 fw-bold"><span id="saldoEstoqueValor">0</span> <span
+                                                id="unidadePeca" class="fs-6 text-muted">un</span></div>
+                                    </div>
+                                </div>
+
+                                <input type="hidden" id="idPecaSelecionada">
+
+                                <label class="form-label">Quantidade</label>
+                                <div class="d-flex gap-2">
+                                    <input type="number" id="qtdPecaAcao" class="form-control form-control-lg" value="1"
+                                        min="0.1" step="0.1">
+
+                                    <button onclick="salvarConsumoPeca()" id="btnConsumir"
+                                        class="btn btn-success flex-grow-1">
+                                        <i class="bi bi-box-arrow-down me-2"></i> Adicionar à OS
+                                    </button>
+
+                                    <button onclick="solicitarCompraPeca()" id="btnSolicitarCompra"
+                                        class="btn btn-danger flex-grow-1 d-none">
+                                        <i class="bi bi-cart-plus me-2"></i> Solicitar Compra
+                                    </button>
+                                </div>
+                                <div id="msgCompra" class="form-text text-danger mt-2 d-none">
+                                    <i class="bi bi-exclamation-triangle"></i> Item sem saldo suficiente. Será gerada
+                                    uma solicitação de compra.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="tabServico">
+                        <form action="{{ url_for('os.adicionar_tarefa_externa', id=os.id) }}" method="POST">
+                            <div class="mb-3">
+                                <label class="form-label">Prestador de Serviço</label>
+                                <select name="terceirizado_id" class="form-select" required>
+                                    <option value="" disabled selected>Selecione...</option>
+                                    {% for terc in terceirizados %}
+                                    <option value="{{ terc.id }}">{{ terc.nome }} ({{ terc.especialidades or 'Geral' }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Descrição do Serviço</label>
+                                <input type="text" name="descricao" class="form-control" required
+                                    placeholder="Ex: Manutenção no motor...">
+                            </div>
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <label class="form-label">Prazo Combinado</label>
+                                    <input type="datetime-local" name="prazo" class="form-control" required>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label">Valor Orçado (R$)</label>
+                                    <input type="number" name="valor" step="0.01" class="form-control"
+                                        placeholder="Opcional">
+                                </div>
+                            </div>
+
+                            <div class="form-check bg-light p-3 rounded border mb-3">
+                                <input class="form-check-input" type="checkbox" name="enviar_whatsapp" id="checkWppTerc"
+                                    checked>
+                                <label class="form-check-label small fw-bold" for="checkWppTerc">
+                                    <i class="bi bi-whatsapp text-success me-1"></i> Notificar prestador via WhatsApp
+                                </label>
+                                <div class="form-text x-small mt-1">
+                                    Inclui dados da OS, Endereço da Unidade e seu Contato.
+                                </div>
+                            </div>
+
+                            <div class="d-grid mt-4">
+                                <button type="submit" class="btn btn-primary">Agendar Serviço</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include 'includes/scripts_os_detalhes.html' ignore missing %}
+
+<script>
+    // --- LÓGICA UNIFICADA DE RECURSOS (PEÇAS) ---
+    const buscaInput = document.getElementById('buscaPecaUnificada');
+    const sugestoesDiv = document.getElementById('listaSugestoesUnificada');
+    const cardAcao = document.getElementById('acaoPecaCard');
+
+    // Elementos do Card
+    const nomePeca = document.getElementById('nomePecaSelecionada');
+    const saldoPeca = document.getElementById('saldoEstoqueValor');
+    const unidadePeca = document.getElementById('unidadePeca');
+    const statusBadge = document.getElementById('statusEstoqueBadge');
+    const idPecaField = document.getElementById('idPecaSelecionada');
+    const qtdField = document.getElementById('qtdPecaAcao');
+
+    // Botões e Msg
+    const btnConsumir = document.getElementById('btnConsumir');
+    const btnCompra = document.getElementById('btnSolicitarCompra');
+    const msgCompra = document.getElementById('msgCompra');
+
+    buscaInput.addEventListener('input', async function (e) {
+        const termo = this.value;
+        if (termo.length < 2) {
+            sugestoesDiv.innerHTML = '';
+            return;
+        }
+
+        // Show Skeleton
+        sugestoesDiv.innerHTML = `
+            <div class="list-group-item">
+                <div class="skeleton skeleton-text" style="width: 60%;"></div>
+                <div class="skeleton skeleton-text" style="width: 30%;"></div>
+            </div>
+            <div class="list-group-item">
+                <div class="skeleton skeleton-text" style="width: 50%;"></div>
+                <div class="skeleton skeleton-text" style="width: 25%;"></div>
+            </div>
+        `;
+
+        const res = await fetch(`/os/api/pecas/buscar?q=${termo}`);
+        const data = await res.json();
+
+        sugestoesDiv.innerHTML = '';
+
+        if (data.length === 0) {
+            // Opcional: Sugerir cadastrar nova peça se não existir (fora do escopo atual)
+        }
+
+        data.forEach(peca => {
+            const item = document.createElement('a');
+            item.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
+            // Mostra o saldo na lista para facilitar
+            const corBadge = peca.saldo > 0 ? 'bg-success' : 'bg-danger';
+            item.innerHTML = `<span>${peca.nome}</span> <span class="badge ${corBadge}">${peca.saldo} ${peca.unidade}</span>`;
+            item.style.cursor = 'pointer';
+            item.onclick = () => selecionarPecaUnificada(peca);
+            sugestoesDiv.appendChild(item);
+        });
+    });
+
+    function selecionarPecaUnificada(peca) {
+        sugestoesDiv.innerHTML = '';
+        buscaInput.value = peca.nome;
+
+        idPecaField.value = peca.id;
+        nomePeca.innerText = peca.nome;
+        saldoPeca.innerText = peca.saldo;
+        unidadePeca.innerText = peca.unidade;
+
+        cardAcao.classList.remove('d-none');
+
+        // Lógica de Estado (Estoque vs Compra)
+        if (peca.saldo > 0) {
+            // Tem estoque -> Fluxo de Consumo
+            statusBadge.innerText = 'Em Estoque';
+            statusBadge.className = 'badge bg-success';
+
+            btnConsumir.classList.remove('d-none');
+            btnCompra.classList.add('d-none');
+            msgCompra.classList.add('d-none');
+            qtdField.max = peca.saldo; // Trava a qtd no saldo
+        } else {
+            // Sem estoque -> Fluxo de Compra
+            statusBadge.innerText = 'Indisponível';
+            statusBadge.className = 'badge bg-danger';
+
+            btnCompra.classList.remove('d-none');
+            msgCompra.classList.remove('d-none');
+            msgCompra.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Estoque insuficiente. Deseja solicitar compra?';
+            qtdField.removeAttribute('max'); // Compra é livre
+        }
+    }
+
+    async function salvarConsumoPeca() {
+        const id = idPecaField.value;
+        const qtd = qtdField.value;
+
+        if (!id || !qtd) {
+            ToastModule.show("Selecione um item e informe a quantidade.", "warning");
+            return;
+        }
+
+        // Estado de carregamento no botão
+        const originalText = btnConsumir.innerHTML;
+        btnConsumir.disabled = true;
+        btnConsumir.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Processando...';
+
+        try {
+            const res = await fetch(`/os/{{ os.id }}/adicionar-peca`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ estoque_id: id, quantidade: qtd })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                ToastModule.show(data.mensagem || "Peça adicionada com sucesso!", "success");
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                const erro = data.erro;
+
+                if (erro.includes("Solicite transferência")) {
+                    const actionHTML = `
+                        <button onclick='abrirTransferenciaContexto(${JSON.stringify(data)})' 
+                                class="btn btn-sm btn-primary fw-bold text-white mt-2 w-100">
+                             Solicitar Transferência
+                        </button>
+                    `;
+                    ToastModule.show(erro + actionHTML, 'warning', true);
+                }
+                else if (erro.includes("Solicite compra")) {
+                    const actionHTML = `
+                        <button onclick='abrirCompraContexto(${JSON.stringify(data)})' 
+                                class="btn btn-sm btn-danger fw-bold mt-2 w-100">
+                             Solicitar Compra
+                        </button>
+                    `;
+                    ToastModule.show(erro + actionHTML, 'danger', true);
+                }
+                else {
+                    ToastModule.show(erro, 'danger');
+                }
+
+                // Fecha o modal de recursos para o usuário ver o Toast/Ação se necessário
+                if (erro.includes("Solicite")) {
+                    bootstrap.Modal.getInstance(document.getElementById('modalRecursos')).hide();
+                }
+            }
+        } catch (e) {
+            console.error(e);
+            ToastModule.show('Erro de conexão com o servidor.', 'danger');
+        } finally {
+            btnConsumir.disabled = false;
+            btnConsumir.innerHTML = originalText;
+        }
+    }
+
+    // 3. Função auxiliar para abrir o modal preenchido (Adicione esta função ao script)
+    function abrirModalEntradaContexto(id, nome) {
+        // Verifica se o modal existe na página (precisa ter sido incluído no template)
+        const modalEl = document.getElementById('modalEntrada');
+
+        if (modalEl && window.bootstrap) {
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+            // Preenche os campos (compatível com a estrutura do estoque.html)
+            if (document.getElementById('entradaModalTitle'))
+                document.getElementById('entradaModalTitle').innerText = "Nova Entrada: " + nome;
+
+            if (document.getElementById('pecaIdSelecionada'))
+                document.getElementById('pecaIdSelecionada').value = id;
+
+            // Ajusta visualização para item fixo
+            if (document.getElementById('divSelectPeca'))
+                document.getElementById('divSelectPeca').classList.add('d-none');
+
+            if (document.getElementById('divItemFixo')) {
+                document.getElementById('divItemFixo').classList.remove('d-none');
+                document.getElementById('nomeItemFixo').value = nome;
+            }
+
+            // Reseta outros campos
+            if (document.getElementById('qtdEntrada')) document.getElementById('qtdEntrada').value = "";
+            if (document.getElementById('valorEntrada')) document.getElementById('valorEntrada').value = "";
+            if (document.getElementById('motivoEntrada')) document.getElementById('motivoEntrada').value = "Necessidade OS #{{ os.numero_os }}";
+
+            modal.show();
+        } else {
+            // Fallback se o modal não estiver presente na tela de detalhes
+            if (confirm(`O Modal de Entrada não está nesta página. Deseja ir ao Estoque para dar entrada em "${nome}"?`)) {
+                window.location.href = "{{ url_for('os.painel_estoque') }}";
+            }
+        }
+    }
+
+    function prepararSolicitacaoCompra(id, nome, qtd = 1) {
+        document.getElementById('compraIdItem').value = id;
+        document.getElementById('compraNomeItem').value = nome;
+        document.getElementById('compraQtd').value = qtd;
+
+        const modal = new bootstrap.Modal(document.getElementById('modalSolicitarCompra'));
+        modal.show();
+    }
+
+    async function confirmarSolicitacaoCompra() {
+        const id = document.getElementById('compraIdItem').value;
+        const qtd = document.getElementById('compraQtd').value;
+        const btn = document.getElementById('btnConfirmarCompra');
+
+        if (!qtd || qtd <= 0) {
+            ToastModule.show("Informe uma quantidade válida.", "warning");
+            return;
+        }
+
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Solicitando...';
+
+        try {
+            const res = await fetch(`/os/{{ os.id }}/solicitar-compra-peca`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ estoque_id: id, quantidade: qtd })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                ToastModule.show(data.mensagem, "success");
+                bootstrap.Modal.getInstance(document.getElementById('modalSolicitarCompra')).hide();
+                // Opcional: fechar também o modal de recursos se estiver aberto
+                const modalRecursos = bootstrap.Modal.getInstance(document.getElementById('modalRecursos'));
+                if (modalRecursos) modalRecursos.hide();
+            } else {
+                ToastModule.show("Erro: " + data.erro, "danger");
+            }
+        } catch (e) {
+            ToastModule.show("Erro de conexão.", "danger");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+
+    function abrirTransferenciaContexto(data) {
+        // Remove o toast antes de abrir o modal
+        const toasts = document.querySelectorAll('.gmm-toast.warning');
+        toasts.forEach(t => {
+            if (t.innerHTML.includes('Solicite transferência')) ToastModule.remove(t);
+        });
+
+        document.getElementById('transfEstoqueId').value = idPecaField.value;
+        document.getElementById('transfNomeItem').value = nomePeca.innerText;
+        document.getElementById('transfDestinoId').value = data.unidade_destino_id;
+        document.getElementById('transfDestinoNome').value = data.unidade_destino_nome;
+        document.getElementById('transfQtd').value = qtdField.value;
+
+        const selectOrigem = document.getElementById('transfOrigemId');
+        selectOrigem.innerHTML = '<option value="" disabled selected>Selecione a origem...</option>';
+
+        if (data.sugestoes_transferencia) {
+            data.sugestoes_transferencia.forEach(suge => {
+                const opt = document.createElement('option');
+                opt.value = suge.unidade_id;
+                opt.innerText = `${suge.unidade_nome} (Saldo: ${suge.saldo})`;
+                selectOrigem.appendChild(opt);
+            });
+        }
+
+        const modal = new bootstrap.Modal(document.getElementById('modalTransferencia'));
+        modal.show();
+    }
+
+    function abrirCompraContexto(data) {
+        // Remove o toast
+        const toasts = document.querySelectorAll('.gmm-toast.danger');
+        toasts.forEach(t => {
+            if (t.innerHTML.includes('Solicite compra')) ToastModule.remove(t);
+        });
+
+        prepararSolicitacaoCompra(idPecaField.value, nomePeca.innerText, qtdField.value);
+    }
+
+    function prepararTransferencia(data) {
+        // Alias para a função solicitada no Prompt 6 se necessário, mas vou usar abrirTransferenciaContexto
+        abrirTransferenciaContexto(data);
+    }
+
+    // [MODIFICADO] Função confirmarTransferencia para enviar notificação
+    async function confirmarTransferencia() {
+        const payload = {
+            estoque_id: document.getElementById('transfEstoqueId').value,
+            unidade_origem_id: document.getElementById('transfOrigemId').value,
+            unidade_destino_id: document.getElementById('transfDestinoId').value,
+            quantidade: document.getElementById('transfQtd').value,
+            observacao: `Necessidade para OS #{{ os.numero_os }}`,
+            // [Novos Campos]
+            notificar_responsavel_id: document.getElementById('transfResponsavel').value,
+            enviar_whats: document.getElementById('checkTransfWhats').checked
+        };
+
+        const btn = document.getElementById('btnSalvarTransf');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Processando...';
+
+        try {
+            const res = await fetch('/os/api/estoque/transferir', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                ToastModule.show(data.msg, "success");
+                bootstrap.Modal.getInstance(document.getElementById('modalTransferencia')).hide();
+                const modalRecursos = bootstrap.Modal.getInstance(document.getElementById('modalRecursos'));
+                if (modalRecursos) modalRecursos.hide();
+            } else {
+                ToastModule.show("Erro: " + data.erro, "danger");
+            }
+        } catch (e) {
+            ToastModule.show("Erro de conexão.", "danger");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+
+    function solicitarCompraPeca() {
+        // Atalho usado pelo botão no card de ação (quando estoque é 0)
+        const id = idPecaField.value;
+        const nome = nomePeca.innerText;
+        const qtd = qtdField.value;
+        prepararSolicitacaoCompra(id, nome, qtd);
+    }
+
+    // Fecha a lista se clicar fora
+    document.addEventListener('click', function (e) {
+        if (e.target !== buscaInput) {
+            sugestoesDiv.innerHTML = '';
+        }
+    });
+</script>
+
+<div class="modal fade" id="modalEditarOS" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">Editar Ordem de Serviço</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('os.editar_os', id=os.id) }}" method="POST">
+                <div class="modal-body pt-4">
+                    <div class="mb-3">
+                        <label class="form-label">Prioridade</label>
+                        <select name="prioridade" class="form-select">
+                            <option value="baixa" {% if os.prioridade=='baixa' %}selected{% endif %}>Baixa</option>
+                            <option value="media" {% if os.prioridade=='media' %}selected{% endif %}>Média</option>
+                            <option value="alta" {% if os.prioridade=='alta' %}selected{% endif %}>Alta</option>
+                            <option value="urgente" {% if os.prioridade=='urgente' %}selected{% endif %}>Urgente
+                            </option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Prazo Limite</label>
+                        <input type="datetime-local" name="prazo_conclusao" class="form-control"
+                            value="{{ os.prazo_conclusao.strftime('%Y-%m-%dT%H:%M') if os.prazo_conclusao else '' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descrição do Problema</label>
+                        <textarea name="descricao_problema" class="form-control"
+                            rows="4">{{ os.descricao_problema }}</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

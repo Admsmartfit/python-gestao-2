@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GMM | Gestão Moderna</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div id="nprogress-bar"></div>
+
+    <div id="toast-container"></div>
+
+    <input type="hidden" id="flash-messages"
+        data-messages='[{% for category, message in get_flashed_messages(with_categories=true) %}{"category": "{{ category }}", "message": "{{ message }}"}{{ "," if not loop.last }}{% endfor %}]'>
+
+    <div class="app-shell">
+        <!-- Sidebar Offcanvas -->
+        <aside class="offcanvas-lg offcanvas-start app-sidebar" tabindex="-1" id="sidebar"
+            aria-labelledby="sidebarLabel">
+            <div class="sidebar-header">
+                <a class="text-white text-decoration-none d-flex align-items-center gap-2"
+                    href="{{ url_for('ponto.index') }}">
+                    <i class="bi bi-grid-fill text-accent"></i>
+                    <span class="fw-bold fs-5">GMM</span>
+                </a>
+                <button type="button" class="btn-close btn-close-white d-lg-none ms-auto" data-bs-dismiss="offcanvas"
+                    data-bs-target="#sidebar" aria-label="Close"></button>
+            </div>
+
+            <div class="sidebar-nav">
+                {% if current_user.is_authenticated %}
+
+                <div class="nav-group">
+                    <div class="nav-group-title">Atendimento</div>
+                    <a href="{{ url_for('ponto.index') }}"
+                        class="nav-link-saas {{ 'active' if request.endpoint == 'ponto.index' }}">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                    <a href="{{ url_for('os.nova_os') }}"
+                        class="nav-link-saas {{ 'active' if request.endpoint == 'os.nova_os' }}">
+                        <i class="bi bi-plus-circle"></i> Nova OS
+                    </a>
+                    <a href="{{ url_for('ponto.index') }}#minhas-os" class="nav-link-saas">
+                        <i class="bi bi-tools"></i> Minhas Tarefas
+                    </a>
+                </div>
+
+                <div class="nav-group">
+                    <div class="nav-group-title">Recursos</div>
+                    <a href="{{ url_for('equipamentos.listar') }}"
+                        class="nav-link-saas {{ 'active' if 'equipamentos' in request.endpoint }}">
+                        <i class="bi bi-hdd-network"></i> Equipamentos
+                    </a>
+                    <a href="{{ url_for('os.painel_estoque') }}"
+                        class="nav-link-saas {{ 'active' if 'estoque' in request.endpoint }}">
+                        <i class="bi bi-box-seam"></i> Estoque Global
+                    </a>
+                    {% if current_user.tipo in ['admin', 'comprador', 'gerente'] %}
+                    <a href="{{ url_for('admin.compras_painel') }}"
+                        class="nav-link-saas {{ 'active' if 'compras' in request.endpoint }}">
+                        <i class="bi bi-cart3"></i> Compras
+                    </a>
+                    <a href="{{ url_for('admin.transferencias_painel') }}"
+                        class="nav-link-saas {{ 'active' if 'transferencias' in request.endpoint }}">
+                        <i class="bi bi-arrow-left-right"></i> Transferências
+                    </a>
+                    {% endif %}
+                </div>
+
+                <div class="nav-group">
+                    <div class="nav-group-title">Externo</div>
+                    <a href="{{ url_for('terceirizados.listar_chamados') }}"
+                        class="nav-link-saas {{ 'active' if 'terceirizados' in request.endpoint }}">
+                        <i class="bi bi-headset"></i> Chamados & Chat
+                    </a>
+                    {% if current_user.tipo in ['admin', 'gerente'] %}
+                    <a href="{{ url_for('admin.dashboard', tab='terceirizados') }}" class="nav-link-saas">
+                        <i class="bi bi-people"></i> Prestadores
+                    </a>
+                    {% endif %}
+                </div>
+
+                {% if current_user.tipo in ['admin', 'gerente'] %}
+                <div class="nav-group">
+                    <div class="nav-group-title">Gestão</div>
+                    <a href="{{ url_for('analytics.dashboard') }}"
+                        class="nav-link-saas {{ 'active' if 'analytics' in request.endpoint }}">
+                        <i class="bi bi-pie-chart-fill"></i> Analytics
+                    </a>
+                    {% if current_user.tipo == 'admin' %}
+                    <a href="{{ url_for('admin.dashboard') }}"
+                        class="nav-link-saas {{ 'active' if request.endpoint == 'admin.dashboard' }}">
+                        <i class="bi bi-gear"></i> Configurações
+                    </a>
+                    <a href="{{ url_for('admin_whatsapp.dashboard') }}"
+                        class="nav-link-saas {{ 'active' if 'whatsapp' in request.endpoint }}">
+                        <i class="bi bi-whatsapp"></i> WhatsApp Bot
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                {% endif %}
+            </div>
+
+            {% if current_user.is_authenticated %}
+            <div class="p-3 border-top border-secondary border-opacity-10">
+                <a href="{{ url_for('auth.logout') }}" class="nav-link-saas text-danger">
+                    <i class="bi bi-box-arrow-right"></i> Sair
+                </a>
+            </div>
+            {% endif %}
+        </aside>
+        <!-- Main Content -->
+        <div class="main-wrapper">
+            <!-- Header -->
+            <header class="app-header">
+                <div class="d-flex align-items-center gap-3">
+                    <button class="btn btn-icon d-lg-none" type="button" data-bs-toggle="offcanvas"
+                        data-bs-target="#sidebar">
+                        <i class="bi bi-list fs-4"></i>
+                    </button>
+
+                    <button class="btn btn-secondary border-0 bg-light d-none d-md-flex align-items-center gap-2 px-3"
+                        onclick="SearchModule.open()">
+                        <i class="bi bi-search small text-muted"></i>
+                        <span class="text-muted fw-normal small">Buscar...</span>
+                        <span class="badge bg-white text-muted border ms-2" style="font-size: 10px;">Ctrl K</span>
+                    </button>
+                    <button class="btn btn-icon d-md-none text-muted" onclick="SearchModule.open()">
+                        <i class="bi bi-search fs-5"></i>
+                    </button>
+                </div>
+
+                <div class="d-flex align-items-center gap-3">
+                    {% if current_user.is_authenticated %}
+                    <button class="btn btn-icon text-muted position-relative p-0 border-0 bg-transparent">
+                        <i class="bi bi-bell fs-5"></i>
+                        <span
+                            class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"
+                            style="margin-top: 5px; margin-left: -5px;">
+                            <span class="visually-hidden">Novas notificações</span>
+                        </span>
+                    </button>
+
+                    <div class="dropdown">
+                        <button
+                            class="btn btn-link text-decoration-none p-0 d-flex align-items-center gap-2 dropdown-toggle-no-caret"
+                            data-bs-toggle="dropdown">
+                            <div class="avatar-circle bg-accent bg-opacity-10 text-accent fw-bold rounded-circle d-flex align-items-center justify-content-center"
+                                style="width: 38px; height: 38px; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--border);">
+                                {{ current_user.nome[0] | upper }}
+                            </div>
+                            <div class="text-start d-none d-lg-block" style="line-height: 1.2;">
+                                <div class="fw-bold text-dark small">{{ current_user.nome }}</div>
+                                <div class="text-muted" style="font-size: 10px;">{{ current_user.tipo | upper }}</div>
+                            </div>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-2 p-2"
+                            style="min-width: 200px;">
+                            <li>
+                                <h6 class="dropdown-header text-uppercase small fw-bold">Perfil</h6>
+                            </li>
+                            <li><span class="dropdown-item-text fw-medium text-dark">{{ current_user.nome }}</span></li>
+                            <li><span class="dropdown-item-text text-muted small">{{ current_user.email }}</span></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li>
+                                <a class="dropdown-item text-danger d-flex align-items-center gap-2 rounded"
+                                    href="{{ url_for('auth.logout') }}">
+                                    <i class="bi bi-box-arrow-right"></i> Sair
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+            </header>
+
+            <main class="content-inner">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <!-- Floating Action Button for Mobile -->
+    <div class="d-lg-none position-fixed bottom-0 end-0 p-3" style="z-index: 1040;">
+        <a href="{{ url_for('os.nova_os') }}" class="btn btn-primary rounded-circle shadow-lg"
+            style="width: 56px; height: 56px;">
+            <i class="bi bi-plus-lg fs-4"></i>
+        </a>
+    </div>
+
+    <div id="searchBackdrop" class="search-backdrop">
+        <div class="search-modal">
+            <div class="search-header">
+                <i class="bi bi-search text-primary fs-5"></i>
+                <input type="text" id="globalSearchInput" class="search-input" placeholder="Buscar OS, Peça, Técnico..."
+                    autocomplete="off">
+                <span class="badge bg-secondary text-light ms-auto d-none d-md-inline"
+                    style="font-size: 0.7rem;">ESC</span>
+            </div>
+
+            <div id="searchResults" class="search-results">
+                <div class="p-5 text-center text-muted">
+                    <i class="bi bi-command fs-3 d-block mb-3 opacity-25"></i>
+                    <p class="mb-0">Digite para buscar em todo o sistema...</p>
+                </div>
+            </div>
+
+            <div class="search-footer bg-light p-2 border-top d-flex justify-content-between px-3 small text-muted">
+                <span><i class="bi bi-arrow-return-left me-1"></i> Selecionar</span>
+                <span><i class="bi bi-arrows-vertical me-1"></i> Navegar</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        /**
+         * MODULE 1: NOTIFICATIONS (Custom Vanilla Implementation)
+         * Substitutes Toastify.js for lighter, tailored solution.
+         */
+        const ToastModule = (() => {
+            const container = document.getElementById('toast-container');
+            const icons = {
+                success: 'check-circle-fill',
+                warning: 'exclamation-triangle-fill',
+                danger: 'x-circle-fill',
+                info: 'info-circle-fill'
+            };
+
+            function show(message, type = 'info', persistent = false) {
+                // Map Flask categories to visual types
+                if (type === 'error') type = 'danger';
+
+                // Limit stack to 3 items
+                if (container.childElementCount >= 3) {
+                    remove(container.firstElementChild);
+                }
+
+                const toast = document.createElement('div');
+                toast.className = `gmm-toast ${type}`;
+                toast.innerHTML = `
+                    <i class="bi bi-${icons[type] || icons.info} fs-5 text-${type === 'info' ? 'primary' : type}"></i>
+                    <div class="gmm-toast-content">
+                        <div class="gmm-toast-title">${type === 'danger' ? 'Erro' : (type === 'warning' ? 'Atenção' : type.charAt(0).toUpperCase() + type.slice(1))}</div>
+                        <div class="gmm-toast-msg">${message}</div>
+                    </div>
+                    <button class="btn-close btn-sm ms-2" onclick="ToastModule.remove(this.parentElement)" aria-label="Fechar"></button>
+                `;
+
+                container.appendChild(toast);
+
+                // Auto dismiss (4s) - Only if NOT persistent
+                if (!persistent) {
+                    setTimeout(() => remove(toast), 4000);
+                }
+
+                return toast; // Return toast element for manual removal if needed
+            }
+
+            function remove(el) {
+                if (!el) return;
+                el.style.animation = 'fadeOutRight 0.3s forwards';
+                el.addEventListener('animationend', () => el.remove());
+            }
+
+            return { show, remove };
+        })();
+
+        // Auto-initialize Flask Flash Messages
+        document.addEventListener("DOMContentLoaded", () => {
+            const data = document.getElementById('flash-messages');
+            if (data) {
+                try {
+                    JSON.parse(data.getAttribute('data-messages')).forEach(msg => {
+                        ToastModule.show(msg.message, msg.category);
+                    });
+                } catch (e) { console.error("Flash msg parse error", e); }
+            }
+        });
+
+        /**
+         * MODULE 2: GLOBAL SEARCH (Modal & Keyboard Nav)
+         */
+        const SearchModule = (() => {
+            const backdrop = document.getElementById('searchBackdrop');
+            const input = document.getElementById('globalSearchInput');
+            const results = document.getElementById('searchResults');
+            let debounceTimer;
+            let selectedIndex = -1;
+
+            function open() {
+                backdrop.classList.add('active');
+                input.focus();
+                loadHistory();
+            }
+
+            function close() {
+                backdrop.classList.remove('active');
+                input.value = '';
+                selectedIndex = -1;
+            }
+
+            // Simple History Management
+            function loadHistory() {
+                const history = JSON.parse(localStorage.getItem('gmm_search_history') || '[]');
+                if (!input.value && history.length > 0) {
+                    renderResults({ 'Histórico': history.map(t => ({ titulo: t, tipo: 'history', url: '#' })) });
+                } else if (!input.value) {
+                    results.innerHTML = `<div class="p-5 text-center text-muted small">Sem histórico recente.</div>`;
+                }
+            }
+
+            function saveHistory(term) {
+                if (!term || term.length < 3) return;
+                let history = JSON.parse(localStorage.getItem('gmm_search_history') || '[]');
+                history = [term, ...history.filter(h => h !== term)].slice(0, 5);
+                localStorage.setItem('gmm_search_history', JSON.stringify(history));
+            }
+
+            async function performSearch(query) {
+                results.innerHTML = `<div class="p-4 text-center"><div class="spinner-border text-primary" role="status"></div></div>`;
+
+                try {
+                    const res = await fetch(`/api/global-search?q=${encodeURIComponent(query)}`);
+                    if (!res.ok) throw new Error('API Error');
+                    const data = await res.json();
+                    renderResults(data);
+                } catch (e) {
+                    results.innerHTML = `<div class="p-4 text-center text-danger small">Erro ao buscar dados. Tente novamente.</div>`;
+                }
+            }
+
+            function renderResults(data) {
+                results.innerHTML = '';
+                let hasResults = false;
+
+                for (const [category, items] of Object.entries(data)) {
+                    if (items && items.length > 0) {
+                        hasResults = true;
+                        // Category Header
+                        const catTitle = document.createElement('div');
+                        catTitle.className = 'search-category-title';
+                        catTitle.textContent = category === 'os' ? 'Ordens de Serviço' : category;
+                        results.appendChild(catTitle);
+
+                        // Items
+                        items.forEach(item => {
+                            const el = document.createElement('a');
+                            el.href = item.url;
+                            el.className = 'search-item';
+                            el.innerHTML = `
+                                <i class="bi bi-${getIcon(item.tipo)} text-secondary fs-5"></i>
+                                <div>
+                                    <div class="fw-semibold text-dark">${highlight(item.titulo, input.value)}</div>
+                                    ${item.subtitulo ? `<div class="small text-muted">${item.subtitulo}</div>` : ''}
+                                </div>
+                                <i class="bi bi-chevron-right ms-auto text-light-gray small"></i>
+                            `;
+
+                            // History Click Handler
+                            el.onclick = (e) => {
+                                if (item.tipo === 'history') {
+                                    e.preventDefault();
+                                    input.value = item.titulo;
+                                    performSearch(item.titulo);
+                                } else {
+                                    saveHistory(input.value);
+                                }
+                            };
+                            results.appendChild(el);
+                        });
+                    }
+                }
+
+                if (!hasResults) {
+                    results.innerHTML = `<div class="p-5 text-center text-muted">Nenhum resultado encontrado para "<strong>${input.value}</strong>".</div>`;
+                }
+            }
+
+            function getIcon(type) {
+                const map = {
+                    'Ordem de Serviço': 'tools',
+                    'Equipamento': 'hdd-network',
+                    'Peça': 'box-seam',
+                    'Usuário': 'person',
+                    'Fornecedor': 'truck',
+                    'Terceirizado': 'briefcase',
+                    'history': 'clock-history'
+                };
+                return map[type] || 'search';
+            }
+
+            function highlight(text, term) {
+                if (!term || term.length < 2) return text;
+                const regex = new RegExp(`(${term})`, 'gi');
+                return text.replace(regex, '<span class="bg-warning bg-opacity-25 text-primary rounded px-1">$1</span>');
+            }
+
+            // Events
+            input.addEventListener('input', (e) => {
+                clearTimeout(debounceTimer);
+                const val = e.target.value.trim();
+                if (val.length < 2) {
+                    loadHistory();
+                    return;
+                }
+                debounceTimer = setTimeout(() => performSearch(val), 300); // 300ms Debounce
+            });
+
+            document.addEventListener('keydown', (e) => {
+                // Shortcut Ctrl/Cmd + K
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                    e.preventDefault();
+                    open();
+                }
+
+                if (!backdrop.classList.contains('active')) return;
+
+                // Close on ESC
+                if (e.key === 'Escape') close();
+
+                // Navigation
+                const items = results.querySelectorAll('.search-item');
+                if (items.length === 0) return;
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    selectedIndex = (selectedIndex + 1) % items.length;
+                    updateSelection(items);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    selectedIndex = (selectedIndex - 1 + items.length) % items.length;
+                    updateSelection(items);
+                } else if (e.key === 'Enter' && selectedIndex >= 0) {
+                    items[selectedIndex].click();
+                }
+            });
+
+            function updateSelection(items) {
+                items.forEach(i => i.classList.remove('selected'));
+                if (items[selectedIndex]) {
+                    items[selectedIndex].classList.add('selected');
+                    items[selectedIndex].scrollIntoView({ block: 'nearest' });
+                }
+            }
+
+            backdrop.addEventListener('click', (e) => {
+                if (e.target === backdrop) close();
+            });
+
+            return { open, close };
+        })();
+
+        /**
+         * MODULE 3: LOADING STATES
+         * Linear progress bar at top for navigation feedback
+         */
+        window.addEventListener('beforeunload', () => {
+            const bar = document.getElementById('nprogress-bar');
+            bar.style.width = '30%';
+            bar.style.opacity = '1';
+
+            // Artificial increments for perceived speed
+            setTimeout(() => bar.style.width = '50%', 200);
+            setTimeout(() => bar.style.width = '70%', 500);
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>
