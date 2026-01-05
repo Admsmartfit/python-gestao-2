@@ -441,12 +441,32 @@
                 <!-- Input de Mensagem -->
                 <form class="chat-input-area" onsubmit="enviarMensagem(event)">
                     <input type="hidden" id="currentChamadoId">
-                    <button type="button" class="btn btn-light rounded-circle" title="Anexar arquivo (em breve)">
+                    <input type="file" id="inputArquivo" class="d-none" accept="image/*,application/pdf,.doc,.docx" onchange="exibirPreviewArquivo(this)">
+                    <button type="button" class="btn btn-light rounded-circle" title="Anexar arquivo" onclick="document.getElementById('inputArquivo').click()">
                         <i class="bi bi-paperclip"></i>
                     </button>
+
+                    <!-- Preview do Arquivo Selecionado -->
+                    <div id="previewArquivo" class="d-none position-absolute bg-white border rounded shadow-sm p-2 mb-2" style="bottom: 60px; left: 10px; max-width: 300px;">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-file-earmark text-primary fs-4"></i>
+                            <div class="flex-grow-1 small">
+                                <div id="nomeArquivo" class="fw-bold text-truncate"></div>
+                                <div id="tamanhoArquivo" class="text-muted"></div>
+                            </div>
+                            <button type="button" class="btn-close btn-sm" onclick="cancelarArquivo()"></button>
+                        </div>
+                    </div>
+
                     <input type="text" class="form-control rounded-pill border-0 py-2 px-3 shadow-sm"
                            id="inputMsg" placeholder="Digite uma mensagem..."
-                           autocomplete="off" required>
+                           autocomplete="off">
+
+                    <!-- Botão de Gravar Áudio -->
+                    <button type="button" class="btn btn-light rounded-circle" id="btnAudio" title="Gravar áudio" onclick="toggleGravacaoAudio()">
+                        <i class="bi bi-mic-fill"></i>
+                    </button>
+
                     <button type="submit" class="btn btn-primary rounded-circle p-2 shadow-sm"
                             style="width: 42px; height: 42px;" id="btnEnviar">
                         <i class="bi bi-send-fill"></i>
@@ -902,6 +922,189 @@ async function criarChamado(event) {
     } finally {
         btn.disabled = false;
         btn.innerHTML = btnText;
+    }
+}
+
+// ==================== MULTIMÍDIA (ARQUIVOS E ÁUDIO) ====================
+let arquivoSelecionado = null;
+let mediaRecorder = null;
+let audioChunks = [];
+let gravandoAudio = false;
+
+function exibirPreviewArquivo(input) {
+    // Exibe preview do arquivo selecionado
+    const arquivo = input.files[0];
+    if (!arquivo) return;
+
+    arquivoSelecionado = arquivo;
+
+    // Mostra preview
+    const preview = document.getElementById('previewArquivo');
+    const nome = document.getElementById('nomeArquivo');
+    const tamanho = document.getElementById('tamanhoArquivo');
+
+    nome.textContent = arquivo.name;
+    tamanho.textContent = formatarTamanho(arquivo.size);
+
+    preview.classList.remove('d-none');
+
+    // Muda placeholder do input
+    document.getElementById('inputMsg').placeholder = 'Adicione uma legenda (opcional)...';
+}
+
+function cancelarArquivo() {
+    // Cancela o arquivo selecionado
+    arquivoSelecionado = null;
+    document.getElementById('inputArquivo').value = '';
+    document.getElementById('previewArquivo').classList.add('d-none');
+    document.getElementById('inputMsg').placeholder = 'Digite uma mensagem...';
+}
+
+function formatarTamanho(bytes) {
+    // Formata tamanho de arquivo em KB ou MB
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+async function toggleGravacaoAudio() {
+    // Inicia ou para gravação de áudio
+    const btnAudio = document.getElementById('btnAudio');
+
+    if (!gravandoAudio) {
+        // Iniciar gravação
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+
+            mediaRecorder.ondataavailable = (event) => {
+                audioChunks.push(event.data);
+            };
+
+            mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                await enviarAudio(audioBlob);
+
+                // Para stream
+                stream.getTracks().forEach(track => track.stop());
+            };
+
+            mediaRecorder.start();
+            gravandoAudio = true;
+
+            // Muda visual do botão
+            btnAudio.classList.remove('btn-light');
+            btnAudio.classList.add('btn-danger');
+            btnAudio.innerHTML = '<i class="bi bi-stop-circle-fill"></i>';
+            btnAudio.title = 'Parar gravação';
+
+            // Muda placeholder
+            document.getElementById('inputMsg').placeholder = 'Gravando áudio...';
+            document.getElementById('inputMsg').disabled = true;
+
+            ToastModule.show('Gravação de áudio iniciada', 'info');
+        } catch (error) {
+            console.error('Erro ao acessar microfone:', error);
+            ToastModule.show('Erro ao acessar microfone. Verifique as permissões.', 'danger');
+        }
+    } else {
+        // Parar gravação
+        mediaRecorder.stop();
+        gravandoAudio = false;
+
+        // Restaura visual
+        btnAudio.classList.remove('btn-danger');
+        btnAudio.classList.add('btn-light');
+        btnAudio.innerHTML = '<i class="bi bi-mic-fill"></i>';
+        btnAudio.title = 'Gravar áudio';
+
+        document.getElementById('inputMsg').placeholder = 'Digite uma mensagem...';
+        document.getElementById('inputMsg').disabled = false;
+    }
+}
+
+async function enviarAudio(audioBlob) {
+    // Envia áudio gravado
+    if (!conversaAtivaId) return;
+
+    const formData = new FormData();
+    formData.append('audio', audioBlob, 'audio.webm');
+    formData.append('chamado_id', conversaAtivaId);
+
+    try {
+        // TODO: Implementar rota no backend para receber áudio
+        // const res = await fetch('/terceirizados/chamados/' + conversaAtivaId + '/enviar-audio', {
+        //     method: 'POST',
+        //     body: formData
+        // });
+
+        ToastModule.show('Funcionalidade de áudio será implementada no backend em breve', 'info');
+    } catch (error) {
+        console.error('Erro ao enviar áudio:', error);
+        ToastModule.show('Erro ao enviar áudio', 'danger');
+    }
+}
+
+// Modificar função enviarMensagem para suportar arquivos
+async function enviarMensagemOriginal(event) {
+    event.preventDefault();
+    if (!conversaAtivaId) return;
+
+    const mensagem = document.getElementById('inputMsg').value.trim();
+
+    // Se houver arquivo anexado
+    if (arquivoSelecionado) {
+        await enviarComArquivo(mensagem);
+        return;
+    }
+
+    // Envio normal de texto (código existente continua abaixo)
+    if (!mensagem) return;
+
+    try {
+        const formData = new FormData();
+        formData.append('mensagem', mensagem);
+
+        const res = await fetch(`/terceirizados/chamados/${conversaAtivaId}/responder`, {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            document.getElementById('inputMsg').value = '';
+            carregarMensagens();
+        } else {
+            ToastModule.show(data.msg || 'Erro ao enviar', 'danger');
+        }
+    } catch (e) {
+        ToastModule.show('Erro ao enviar mensagem', 'danger');
+    }
+}
+
+async function enviarComArquivo(legenda) {
+    // Envia mensagem com arquivo anexado
+    const formData = new FormData();
+    formData.append('arquivo', arquivoSelecionado);
+    if (legenda) formData.append('legenda', legenda);
+
+    try {
+        // TODO: Implementar rota no backend para receber arquivos
+        // const res = await fetch('/terceirizados/chamados/' + conversaAtivaId + '/enviar-arquivo', {
+        //     method: 'POST',
+        //     body: formData
+        // });
+
+        ToastModule.show('Funcionalidade de envio de arquivos será implementada no backend em breve', 'info');
+
+        // Limpa
+        cancelarArquivo();
+        document.getElementById('inputMsg').value = '';
+    } catch (error) {
+        console.error('Erro ao enviar arquivo:', error);
+        ToastModule.show('Erro ao enviar arquivo', 'danger');
     }
 }
 

@@ -109,7 +109,10 @@
                 </a>
                 {% endfor %}
                 {% else %}
-                <div class="text-muted small fst-italic">Sem fotos registradas.</div>
+                <div class="d-flex align-items-center gap-2 text-muted">
+                    <i class="bi bi-images" style="font-size: 1.5rem; opacity: 0.3;"></i>
+                    <span class="small fst-italic">Nenhuma foto registrada no momento da abertura</span>
+                </div>
                 {% endif %}
             </div>
         </div>
@@ -157,7 +160,15 @@
                     {% endfor %}
                     {% else %}
                     <tr>
-                        <td colspan="4" class="text-center py-3 text-muted small">Nenhuma peça utilizada.</td>
+                        <td colspan="4" class="p-0">
+                            <div class="empty-state">
+                                <i class="bi bi-box-seam empty-state-icon"></i>
+                                <div class="empty-state-title">Nenhuma peça utilizada</div>
+                                <p class="empty-state-description">
+                                    Adicione peças do estoque conforme necessário para esta ordem de serviço.
+                                </p>
+                            </div>
+                        </td>
                     </tr>
                     {% endif %}
                 </tbody>
@@ -194,7 +205,15 @@
                     {% endfor %}
                     {% else %}
                     <tr>
-                        <td colspan="4" class="text-center py-3 text-muted small">Nenhum serviço externo.</td>
+                        <td colspan="4" class="p-0">
+                            <div class="empty-state">
+                                <i class="bi bi-person-gear empty-state-icon"></i>
+                                <div class="empty-state-title">Nenhum serviço terceirizado</div>
+                                <p class="empty-state-description">
+                                    Contrate prestadores de serviço externos quando necessário.
+                                </p>
+                            </div>
+                        </td>
                     </tr>
                     {% endif %}
                 </tbody>
@@ -270,24 +289,58 @@
 </div>
 
 <div class="modal fade" id="modalCancelar" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold text-danger">Cancelar Ordem de Serviço</h5>
+            <div class="modal-header bg-danger bg-opacity-10 border-bottom border-danger border-opacity-25">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-exclamation-triangle-fill text-danger fs-4"></i>
+                    <h5 class="modal-title fw-bold text-danger mb-0">Cancelar Ordem de Serviço</h5>
+                </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body py-4 text-center">
-                <i class="bi bi-exclamation-triangle text-danger fs-1 mb-3 d-block"></i>
-                <h6 class="fw-bold">Tem certeza que deseja cancelar esta OS?</h6>
-                <p class="text-muted small mb-0">Todas as peças consumidas serão estornadas para o estoque da unidade.
-                </p>
-            </div>
-            <div class="modal-footer border-0 pt-0">
-                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Manter OS</button>
-                <form action="{{ url_for('os.cancelar_os_route', id=os.id) }}" method="POST">
-                    <button type="submit" class="btn btn-danger px-4">Confirmar Cancelamento</button>
-                </form>
-            </div>
+            <form action="{{ url_for('os.cancelar_os_route', id=os.id) }}" method="POST" id="formCancelarOS">
+                <div class="modal-body py-4">
+                    <div class="alert alert-warning d-flex align-items-start gap-3 mb-4">
+                        <i class="bi bi-info-circle-fill fs-5 flex-shrink-0"></i>
+                        <div class="small">
+                            <strong>O que acontecerá ao cancelar:</strong>
+                            <ul class="mb-0 mt-2 ps-3">
+                                <li>Todas as peças consumidas serão <strong>estornadas</strong> para o estoque da unidade</li>
+                                <li>A OS será marcada como <strong>cancelada</strong> e não poderá ser reaberta</li>
+                                <li>O histórico será preservado para auditoria</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            Motivo do Cancelamento <span class="text-danger">*</span>
+                        </label>
+                        <textarea name="motivo_cancelamento" class="form-control" rows="4"
+                                  placeholder="Descreva o motivo do cancelamento desta OS..."
+                                  required minlength="10"></textarea>
+                        <div class="form-text">
+                            <i class="bi bi-shield-lock text-muted me-1"></i>
+                            Esta justificativa ficará registrada permanentemente no histórico da OS.
+                        </div>
+                    </div>
+
+                    <div class="form-check bg-light p-3 rounded border">
+                        <input class="form-check-input" type="checkbox" id="confirmCancelamento" required>
+                        <label class="form-check-label fw-bold" for="confirmCancelamento">
+                            Confirmo que desejo cancelar esta ordem de serviço de forma irreversível
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-1"></i> Manter OS
+                    </button>
+                    <button type="submit" class="btn btn-danger px-4">
+                        <i class="bi bi-trash me-1"></i> Confirmar Cancelamento
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -413,12 +466,12 @@
                                 <input type="hidden" id="idPecaSelecionada">
 
                                 <label class="form-label">Quantidade</label>
-                                <div class="d-flex gap-2">
+                                <div class="d-flex gap-2" id="containerBotoesAcao">
                                     <input type="number" id="qtdPecaAcao" class="form-control form-control-lg" value="1"
                                         min="0.1" step="0.1">
 
                                     <button onclick="salvarConsumoPeca()" id="btnConsumir"
-                                        class="btn btn-success flex-grow-1">
+                                        class="btn btn-success flex-grow-1 d-none">
                                         <i class="bi bi-box-arrow-down me-2"></i> Adicionar à OS
                                     </button>
 
@@ -427,9 +480,7 @@
                                         <i class="bi bi-cart-plus me-2"></i> Solicitar Compra
                                     </button>
                                 </div>
-                                <div id="msgCompra" class="form-text text-danger mt-2 d-none">
-                                    <i class="bi bi-exclamation-triangle"></i> Item sem saldo suficiente. Será gerada
-                                    uma solicitação de compra.
+                                <div id="msgCompra" class="alert alert-sm mt-2 d-none" style="font-size: 0.875rem;">
                                 </div>
                             </div>
                         </div>
@@ -548,33 +599,42 @@
     });
 
     async function selecionarPecaUnificada(peca) {
+        // Limpa interface
         sugestoesDiv.innerHTML = '';
         buscaInput.value = peca.nome;
 
+        // Preenche dados básicos
         idPecaField.value = peca.id;
         nomePeca.innerText = peca.nome;
         saldoPeca.innerText = peca.saldo;
         unidadePeca.innerText = peca.unidade;
 
+        // Mostra card
         cardAcao.classList.remove('d-none');
 
-        // Lógica de Estado INTELIGENTE (Estoque Local → Transferência → Compra)
+        // Esconde todos os botões primeiro
+        btnConsumir.classList.add('d-none');
+        btnCompra.classList.add('d-none');
+        const btnTransf = document.getElementById('btnSolicitarTransferencia');
+        if (btnTransf) btnTransf.classList.add('d-none');
+        msgCompra.classList.add('d-none');
+
+        // ========== LÓGICA INTELIGENTE DE ESTOQUE ==========
         if (peca.saldo > 0) {
-            // 1. TEM ESTOQUE LOCAL → Fluxo de Consumo Direto
+            // ✅ CENÁRIO A: TEM ESTOQUE LOCAL → Fluxo de Consumo Direto
             statusBadge.innerText = 'Em Estoque';
             statusBadge.className = 'badge bg-success';
 
             btnConsumir.classList.remove('d-none');
-            btnConsumir.classList.add('d-none'); // Hide outros botões
-            msgCompra.classList.add('d-none');
             qtdField.max = peca.saldo;
+            qtdField.placeholder = `Máximo: ${peca.saldo}`;
 
-            btnConsumir.classList.remove('d-none');
         } else {
-            // 2. SEM ESTOQUE LOCAL → Verificar outras unidades
+            // ⚠️ CENÁRIO B/C: SEM ESTOQUE LOCAL → Verificar outras unidades
             statusBadge.innerText = 'Verificando...';
             statusBadge.className = 'badge bg-warning';
-            msgCompra.innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div> Verificando disponibilidade...';
+            msgCompra.className = 'alert alert-warning alert-sm mt-2';
+            msgCompra.innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div> Verificando disponibilidade em outras unidades...';
             msgCompra.classList.remove('d-none');
 
             try {
@@ -586,24 +646,21 @@
                 }
 
                 if (disponibilidade.recomendacao === 'transferir') {
-                    // 2a. EXISTE EM OUTRAS UNIDADES → Solicitar Transferência
+                    // ℹ️ CENÁRIO B: EXISTE EM OUTRAS UNIDADES → Solicitar Transferência
                     statusBadge.innerText = 'Disponível em Outras Unidades';
                     statusBadge.className = 'badge bg-info';
 
-                    // Esconde botão de consumo, mostra botão de transferência
-                    btnConsumir.classList.add('d-none');
-                    btnCompra.classList.add('d-none');
-
-                    // Cria botão de transferência se não existir
+                    // Cria/mostra botão de transferência
                     let btnTransferencia = document.getElementById('btnSolicitarTransferencia');
                     if (!btnTransferencia) {
                         btnTransferencia = document.createElement('button');
                         btnTransferencia.id = 'btnSolicitarTransferencia';
                         btnTransferencia.className = 'btn btn-primary flex-grow-1';
                         btnTransferencia.innerHTML = '<i class="bi bi-arrow-left-right me-2"></i> Solicitar Transferência';
-                        btnTransferencia.onclick = () => abrirModalTransferencia(disponibilidade);
-                        document.querySelector('.d-flex.gap-2.mt-3').appendChild(btnTransferencia);
+                        btnTransferencia.type = 'button';
+                        document.getElementById('containerBotoesAcao').appendChild(btnTransferencia);
                     }
+                    btnTransferencia.onclick = () => abrirModalTransferencia(disponibilidade);
                     btnTransferencia.classList.remove('d-none');
 
                     // Monta mensagem com unidades disponíveis
@@ -611,39 +668,58 @@
                         `<li><strong>${u.unidade_nome}</strong>: ${u.saldo} ${peca.unidade}</li>`
                     ).join('');
 
+                    msgCompra.className = 'alert alert-info alert-sm mt-2';
                     msgCompra.innerHTML = `
-                        <i class="bi bi-info-circle text-info"></i>
-                        <strong>Peça não disponível nesta unidade.</strong><br>
-                        Disponível em:<ul class="mb-0 mt-2">${unidadesHtml}</ul>
-                        <div class="mt-2 small text-muted">Clique em "Solicitar Transferência" para requisitar de outra unidade.</div>
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="bi bi-info-circle-fill fs-5"></i>
+                            <div>
+                                <strong>Peça indisponível nesta unidade</strong>
+                                <div class="mt-1 mb-2">Disponível em:</div>
+                                <ul class="mb-2 ps-3">${unidadesHtml}</ul>
+                                <div class="small text-muted">
+                                    <i class="bi bi-lightbulb"></i> Clique em "Solicitar Transferência" para requisitar de outra unidade.
+                                </div>
+                            </div>
+                        </div>
                     `;
                     msgCompra.classList.remove('d-none');
                     qtdField.removeAttribute('max');
+                    qtdField.placeholder = 'Quantidade necessária';
 
                 } else if (disponibilidade.recomendacao === 'comprar') {
-                    // 2b. NÃO EXISTE EM NENHUMA UNIDADE → Solicitar Compra
+                    // ❌ CENÁRIO C: NÃO EXISTE EM NENHUMA UNIDADE → Solicitar Compra
                     statusBadge.innerText = 'Indisponível no Sistema';
                     statusBadge.className = 'badge bg-danger';
 
-                    btnConsumir.classList.add('d-none');
-                    const btnTransf = document.getElementById('btnSolicitarTransferencia');
-                    if (btnTransf) btnTransf.classList.add('d-none');
-
                     btnCompra.classList.remove('d-none');
+
+                    msgCompra.className = 'alert alert-danger alert-sm mt-2';
                     msgCompra.innerHTML = `
-                        <i class="bi bi-exclamation-triangle text-danger"></i>
-                        <strong>Peça indisponível em todas as unidades.</strong><br>
-                        <span class="small">É necessário solicitar a compra deste item.</span>
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                            <div>
+                                <strong>Peça esgotada em todas as unidades</strong>
+                                <div class="mt-1 small">
+                                    Saldo Global: <strong>0</strong><br>
+                                    É necessário solicitar a compra deste item.
+                                </div>
+                            </div>
+                        </div>
                     `;
                     msgCompra.classList.remove('d-none');
                     qtdField.removeAttribute('max');
+                    qtdField.placeholder = 'Quantidade a comprar';
                 }
 
             } catch (error) {
                 console.error('Erro ao verificar disponibilidade:', error);
                 statusBadge.innerText = 'Erro';
                 statusBadge.className = 'badge bg-danger';
-                msgCompra.innerHTML = `<i class="bi bi-x-circle text-danger"></i> ${error.message}`;
+                msgCompra.className = 'alert alert-danger alert-sm mt-2';
+                msgCompra.innerHTML = `
+                    <i class="bi bi-x-circle-fill me-2"></i>
+                    <strong>Erro ao verificar disponibilidade:</strong> ${error.message}
+                `;
                 msgCompra.classList.remove('d-none');
             }
         }
