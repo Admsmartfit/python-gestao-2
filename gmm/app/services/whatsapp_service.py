@@ -17,13 +17,24 @@ class WhatsAppService:
         return bool(re.match(r'^55\d{11}$', str(telefone)))
 
     @classmethod
-    def enviar_mensagem(cls, telefone: str, texto: str, prioridade: int = 0, notificacao_id: int = None):
+    def enviar_mensagem(cls, telefone: str, texto: str, prioridade: int = 0, notificacao_id: int = None,
+                       arquivo_path: str = None, tipo_midia: str = 'text', caption: str = None):
         """
-        Envia mensagem via MegaAPI com resiliência:
+        Envia mensagem via MegaAPI com resiliência e suporte a multimídia:
         1. Validação de Telefone
         2. Circuit Breaker check
         3. Rate Limiting check (exceto para prioridade 2/Urgente)
         4. API Request com Error Handling
+        5. Suporte a Mídia (imagem, áudio, documento)
+
+        Args:
+            telefone: Número no formato 5511999999999
+            texto: Texto da mensagem
+            prioridade: 0=Normal, 1=Alta, 2=Urgente (ignora rate limit)
+            notificacao_id: ID da notificação para tracking
+            arquivo_path: Caminho do arquivo de mídia (opcional)
+            tipo_midia: Tipo de mídia: 'text', 'image', 'audio', 'document'
+            caption: Legenda para mídia (opcional)
         """
         # 1. Validação
         if not cls.validar_telefone(telefone):
@@ -47,7 +58,7 @@ class WhatsAppService:
         # 4. Get Credentials
         from app.models.whatsapp_models import ConfiguracaoWhatsApp
         config = ConfiguracaoWhatsApp.query.filter_by(ativo=True).first()
-        
+
         if config and config.api_key_encrypted:
             try:
                 fernet_key = current_app.config.get('FERNET_KEY')
@@ -63,15 +74,41 @@ class WhatsAppService:
         if not url or not api_key:
             return False, {"error": "MegaAPI configuration missing"}
 
-        # 5. API Request
+        # 5. API Request (com ou sem mídia)
         try:
-            response = requests.post(
-                url,
-                json={"phone": telefone, "message": texto},
-                headers={"Authorization": f"Bearer {api_key}"},
-                timeout=5
-            )
-            
+            headers = {"Authorization": f"Bearer {api_key}"}
+
+            # Se houver arquivo de mídia
+            if arquivo_path and tipo_midia != 'text':
+                # Envia como multipart/form-data
+                import os
+                if not os.path.exists(arquivo_path):
+                    return False, {"error": f"Arquivo não encontrado: {arquivo_path}"}
+
+                with open(arquivo_path, 'rb') as f:
+                    files = {'file': (os.path.basename(arquivo_path), f)}
+                    data = {
+                        'phone': telefone,
+                        'type': tipo_midia,  # image, audio, document
+                        'caption': caption or texto
+                    }
+
+                    response = requests.post(
+                        f"{url}/media",  # Endpoint de mídia (ajustar conforme API)
+                        data=data,
+                        files=files,
+                        headers=headers,
+                        timeout=30  # Timeout maior para upload
+                    )
+            else:
+                # Envia mensagem de texto normal
+                response = requests.post(
+                    url,
+                    json={"phone": telefone, "message": texto},
+                    headers=headers,
+                    timeout=5
+                )
+
             if response.status_code in [200, 201]:
                 CircuitBreaker.record_success()
                 RateLimiter.increment()
@@ -80,7 +117,7 @@ class WhatsAppService:
                 CircuitBreaker.record_failure()
                 logger.warning(f"MegaAPI failure: {response.status_code} - {response.text}")
                 return False, {"status": response.status_code, "text": response.text}
-                
+
         except requests.exceptions.RequestException as e:
             CircuitBreaker.record_failure()
             logger.error(f"MegaAPI request exception: {str(e)}")

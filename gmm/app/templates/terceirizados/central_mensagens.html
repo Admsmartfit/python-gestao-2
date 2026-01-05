@@ -1030,16 +1030,21 @@ async function enviarAudio(audioBlob) {
 
     const formData = new FormData();
     formData.append('audio', audioBlob, 'audio.webm');
-    formData.append('chamado_id', conversaAtivaId);
 
     try {
-        // TODO: Implementar rota no backend para receber áudio
-        // const res = await fetch('/terceirizados/chamados/' + conversaAtivaId + '/enviar-audio', {
-        //     method: 'POST',
-        //     body: formData
-        // });
+        const res = await fetch('/terceirizados/chamados/' + conversaAtivaId + '/enviar-audio', {
+            method: 'POST',
+            body: formData
+        });
 
-        ToastModule.show('Funcionalidade de áudio será implementada no backend em breve', 'info');
+        const data = await res.json();
+
+        if (data.success) {
+            ToastModule.show(data.msg, 'success');
+            carregarMensagens(); // Recarrega mensagens para mostrar o áudio
+        } else {
+            ToastModule.show(data.msg || 'Erro ao enviar áudio', 'danger');
+        }
     } catch (error) {
         console.error('Erro ao enviar áudio:', error);
         ToastModule.show('Erro ao enviar áudio', 'danger');
@@ -1091,17 +1096,23 @@ async function enviarComArquivo(legenda) {
     if (legenda) formData.append('legenda', legenda);
 
     try {
-        // TODO: Implementar rota no backend para receber arquivos
-        // const res = await fetch('/terceirizados/chamados/' + conversaAtivaId + '/enviar-arquivo', {
-        //     method: 'POST',
-        //     body: formData
-        // });
+        const res = await fetch('/terceirizados/chamados/' + conversaAtivaId + '/enviar-arquivo', {
+            method: 'POST',
+            body: formData
+        });
 
-        ToastModule.show('Funcionalidade de envio de arquivos será implementada no backend em breve', 'info');
+        const data = await res.json();
 
-        // Limpa
-        cancelarArquivo();
-        document.getElementById('inputMsg').value = '';
+        if (data.success) {
+            ToastModule.show(data.msg, 'success');
+            carregarMensagens(); // Recarrega mensagens para mostrar o arquivo
+
+            // Limpa
+            cancelarArquivo();
+            document.getElementById('inputMsg').value = '';
+        } else {
+            ToastModule.show(data.msg || 'Erro ao enviar arquivo', 'danger');
+        }
     } catch (error) {
         console.error('Erro ao enviar arquivo:', error);
         ToastModule.show('Erro ao enviar arquivo', 'danger');

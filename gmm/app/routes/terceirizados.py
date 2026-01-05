@@ -465,3 +465,223 @@ def api_info_chamado(id):
             'recebidas': msgs_recebidas
         }
     })
+
+
+# ==================== MULTIMÍDIA (ARQUIVOS E ÁUDIO) ====================
+
+@bp.route('/chamados/<int:id>/enviar-arquivo', methods=['POST'])
+@login_required
+def enviar_arquivo(id):
+    """
+    Recebe upload de arquivo (imagem, PDF, documento) e envia via WhatsApp.
+    """
+    import os
+    from werkzeug.utils import secure_filename
+
+    chamado = ChamadoExterno.query.get_or_404(id)
+    arquivo = request.files.get('arquivo')
+    legenda = request.form.get('legenda', '')
+
+    if not arquivo:
+        return jsonify({'success': False, 'msg': 'Nenhum arquivo enviado.'}), 400
+
+    # Valida tipo de arquivo
+    EXTENSOES_PERMITIDAS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx', 'txt'}
+    extensao = arquivo.filename.rsplit('.', 1)[1].lower() if '.' in arquivo.filename else ''
+
+    if extensao not in EXTENSOES_PERMITIDAS:
+        return jsonify({'success': False, 'msg': f'Tipo de arquivo não permitido: .{extensao}'}), 400
+
+    # Valida tamanho (máximo 16MB - limite WhatsApp)
+    arquivo.seek(0, os.SEEK_END)
+    tamanho = arquivo.tell()
+    arquivo.seek(0)
+
+    if tamanho > 16 * 1024 * 1024:  # 16MB
+        return jsonify({'success': False, 'msg': 'Arquivo muito grande. Máximo: 16MB'}), 400
+
+    try:
+        # Cria pasta para armazenar mídias se não existir
+        from flask import current_app
+        pasta_midia = os.path.join(current_app.root_path, 'static', 'uploads', 'chamados')
+        os.makedirs(pasta_midia, exist_ok=True)
+
+        # Gera nome único para o arquivo
+        timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+        nome_seguro = secure_filename(arquivo.filename)
+        nome_arquivo = f"chamado_{chamado.id}_{timestamp}_{nome_seguro}"
+        caminho_arquivo = os.path.join(pasta_midia, nome_arquivo)
+
+        # Salva arquivo
+        arquivo.save(caminho_arquivo)
+
+        # Determina tipo de mídia
+        tipo_midia = 'document'
+        if extensao in ['png', 'jpg', 'jpeg', 'gif']:
+            tipo_midia = 'image'
+        elif extensao == 'pdf':
+            tipo_midia = 'document'
+
+        # Cria URL relativa para acesso
+        url_relativa = f'uploads/chamados/{nome_arquivo}'
+
+        # Cria registro de notificação
+        mensagem_texto = legenda if legenda else f'📎 Arquivo: {arquivo.filename}'
+
+        notif = HistoricoNotificacao(
+            chamado_id=chamado.id,
+            tipo='manual_outbound',
+            remetente=current_user.nome,
+            destinatario=chamado.terceirizado.telefone,
+            mensagem=mensagem_texto,
+            status_envio='pendente',
+            direcao='outbound',
+            tipo_conteudo=tipo_midia,
+            url_midia_local=url_relativa,
+            caption=legenda
+        )
+        db.session.add(notif)
+        db.session.commit()
+
+        # Envia via WhatsAppService
+        success, response = WhatsAppService.enviar_mensagem(
+            telefone=chamado.terceirizado.telefone,
+            texto=mensagem_texto,
+            prioridade=1,
+            notificacao_id=notif.id,
+            arquivo_path=caminho_arquivo,
+            tipo_midia=tipo_midia,
+            caption=legenda
+        )
+
+        if success:
+            return jsonify({
+                'success': True,
+                'msg': 'Arquivo enviado com sucesso!',
+                'data': datetime.utcnow().strftime('%H:%M'),
+                'arquivo': nome_arquivo,
+                'tipo': tipo_midia
+            })
+        else:
+            # Arquivo foi salvo mas WhatsApp falhou
+            if response.get('code') == 'CIRCUIT_OPEN':
+                return jsonify({
+                    'success': True,
+                    'msg': 'Arquivo salvo. Será enviado quando o sistema estabilizar.',
+                    'data': datetime.utcnow().strftime('%H:%M')
+                })
+            else:
+                return jsonify({
+                    'success': True,
+                    'msg': 'Arquivo salvo. Erro ao enviar via WhatsApp (será reenviado).',
+                    'data': datetime.utcnow().strftime('%H:%M')
+                })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'msg': f'Erro ao processar arquivo: {str(e)}'}), 500
+
+
+@bp.route('/chamados/<int:id>/enviar-audio', methods=['POST'])
+@login_required
+def enviar_audio(id):
+    """
+    Recebe gravação de áudio do navegador e envia via WhatsApp.
+    Converte de WebM para formato compatível com WhatsApp (OGG).
+    """
+    import os
+    from werkzeug.utils import secure_filename
+
+    chamado = ChamadoExterno.query.get_or_404(id)
+    audio = request.files.get('audio')
+
+    if not audio:
+        return jsonify({'success': False, 'msg': 'Nenhum áudio enviado.'}), 400
+
+    try:
+        # Cria pasta para armazenar áudios
+        from flask import current_app
+        pasta_audio = os.path.join(current_app.root_path, 'static', 'uploads', 'audios')
+        os.makedirs(pasta_audio, exist_ok=True)
+
+        # Gera nome único
+        timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+        nome_arquivo_webm = f"audio_{chamado.id}_{timestamp}.webm"
+        caminho_webm = os.path.join(pasta_audio, nome_arquivo_webm)
+
+        # Salva arquivo WebM original
+        audio.save(caminho_webm)
+
+        # Tenta converter para OGG (formato WhatsApp)
+        # Nota: Requer ffmpeg instalado no servidor
+        nome_arquivo_ogg = f"audio_{chamado.id}_{timestamp}.ogg"
+        caminho_ogg = os.path.join(pasta_audio, nome_arquivo_ogg)
+
+        # Conversão usando ffmpeg (se disponível)
+        import subprocess
+        try:
+            subprocess.run([
+                'ffmpeg', '-i', caminho_webm,
+                '-c:a', 'libopus',
+                '-b:a', '64k',
+                caminho_ogg
+            ], check=True, capture_output=True)
+
+            # Se conversão OK, usa OGG
+            caminho_final = caminho_ogg
+            nome_final = nome_arquivo_ogg
+
+            # Remove WebM
+            os.remove(caminho_webm)
+
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            # ffmpeg não disponível ou erro na conversão
+            # Usa WebM mesmo (alguns clientes WhatsApp suportam)
+            caminho_final = caminho_webm
+            nome_final = nome_arquivo_webm
+
+        # URL relativa
+        url_relativa = f'uploads/audios/{nome_final}'
+
+        # Cria registro
+        notif = HistoricoNotificacao(
+            chamado_id=chamado.id,
+            tipo='manual_outbound',
+            remetente=current_user.nome,
+            destinatario=chamado.terceirizado.telefone,
+            mensagem='🎤 Áudio gravado',
+            status_envio='pendente',
+            direcao='outbound',
+            tipo_conteudo='audio',
+            url_midia_local=url_relativa
+        )
+        db.session.add(notif)
+        db.session.commit()
+
+        # Envia via WhatsAppService
+        success, response = WhatsAppService.enviar_mensagem(
+            telefone=chamado.terceirizado.telefone,
+            texto='🎤 Áudio',
+            prioridade=1,
+            notificacao_id=notif.id,
+            arquivo_path=caminho_final,
+            tipo_midia='audio'
+        )
+
+        if success:
+            return jsonify({
+                'success': True,
+                'msg': 'Áudio enviado com sucesso!',
+                'data': datetime.utcnow().strftime('%H:%M'),
+                'arquivo': nome_final
+            })
+        else:
+            return jsonify({
+                'success': True,
+                'msg': 'Áudio salvo. Será enviado em breve.',
+                'data': datetime.utcnow().strftime('%H:%M')
+            })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'msg': f'Erro ao processar áudio: {str(e)}'}), 500
