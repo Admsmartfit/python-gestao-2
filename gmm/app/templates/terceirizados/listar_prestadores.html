@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="h4 fw-bold text-dark mb-0">Gestão de Prestadores</h2>
+            <p class="text-muted small mb-0">Gerencie técnicos externos e empresas parceiras</p>
+        </div>
+        <button class="btn btn-primary" onclick="abrirModalNovoPrestador()">
+            <i class="bi bi-plus-lg me-1"></i> Novo Prestador
+        </button>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="ps-4">Nome / Empresa</th>
+                            <th>Contato</th>
+                            <th>Status</th>
+                            <th>Último Serviço</th>
+                            <th class="text-end pe-4">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in prestadores %}
+                        <tr>
+                            <td class="ps-4">
+                                <div class="fw-bold text-dark">{{ p.nome }}</div>
+                                <div class="text-muted small">{{ p.empresa or 'Autônomo' }}</div>
+                            </td>
+                            <td>
+                                <div class="d-flex flex-column">
+                                    <span class="small"><i class="bi bi-whatsapp text-success me-1"></i> {{ p.telefone
+                                        }}</span>
+                                    <span class="small text-muted">{{ p.email or '' }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                {% if p.ativo %}
+                                <span class="badge bg-success bg-opacity-10 text-success rounded-pill">Ativo</span>
+                                {% else %}
+                                <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill">Inativo</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="text-muted small">-</span>
+                            </td>
+                            <td class="text-end pe-4">
+                                <div class="btn-group">
+                                    <a href="#" class="btn btn-sm btn-light text-primary" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{{ url_for('terceirizados.listar_chamados', prestador_id=p.id) }}"
+                                        class="btn btn-sm btn-light text-dark" title="Ver Chamados">
+                                        <i class="bi bi-list-task"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                <i class="bi bi-people fs-1 d-block mb-2 opacity-25"></i>
+                                Nenhum prestador cadastrado.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function abrirModalNovoPrestador() {
+        alert("Funcionalidade de cadastro rápido a ser implementada na Fase 2.");
+    }
+</script>
+{% endblock %}

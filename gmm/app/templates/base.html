@@ -88,7 +88,8 @@
                         <i class="bi bi-list-task"></i> Lista de Chamados
                     </a>
                     {% if current_user.tipo in ['admin', 'gerente'] %}
-                    <a href="{{ url_for('admin.dashboard', tab='terceirizados') }}" class="nav-link-saas">
+                    <a href="{{ url_for('terceirizados.listar_prestadores') }}"
+                        class="nav-link-saas {{ 'active' if request.endpoint == 'terceirizados.listar_prestadores' }}">
                         <i class="bi bi-people"></i> Prestadores
                     </a>
                     {% endif %}

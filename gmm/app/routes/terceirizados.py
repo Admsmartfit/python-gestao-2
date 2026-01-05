@@ -319,6 +319,20 @@ def api_listar_conversas():
     return jsonify(lista)
 
 
+@bp.route('/gerenciar', methods=['GET'])
+@login_required
+def listar_prestadores():
+    # Apenas admin/gerente devem acessar
+    if current_user.tipo not in ['admin', 'gerente']:
+        flash('Acesso não autorizado.', 'danger')
+        return redirect(url_for('ponto.index'))
+
+    # Busca todos os terceirizados
+    prestadores = Terceirizado.query.order_by(Terceirizado.nome).all()
+    
+    return render_template('terceirizados/listar_prestadores.html', 
+                         prestadores=prestadores)
+
 @bp.route('/api/conversas/<int:id>/mensagens', methods=['GET'])
 @login_required
 def api_obter_mensagens(id):
