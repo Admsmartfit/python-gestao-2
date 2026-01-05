@@ -314,6 +314,85 @@ def buscar_pecas():
     pecas = Estoque.query.filter(Estoque.nome.ilike(f'%{termo}%')).limit(10).all()
     return jsonify([{'id': p.id, 'nome': p.nome, 'unidade': p.unidade_medida, 'saldo': float(p.quantidade_atual)} for p in pecas])
 
+
+@bp.route('/api/pecas/<int:peca_id>/disponibilidade')
+@login_required
+def verificar_disponibilidade_peca(peca_id):
+    """
+    Verifica disponibilidade global de uma peça em todas as unidades.
+    Retorna informações para decidir entre Transferência ou Compra.
+
+    Returns:
+        {
+            'tem_estoque_local': bool,
+            'saldo_local': float,
+            'tem_estoque_outras_unidades': bool,
+            'outras_unidades': [
+                {
+                    'unidade_id': int,
+                    'unidade_nome': str,
+                    'saldo': float
+                }
+            ],
+            'saldo_global_total': float,
+            'recomendacao': 'consumir' | 'transferir' | 'comprar'
+        }
+    """
+    try:
+        # Busca a peça principal
+        peca = Estoque.query.get_or_404(peca_id)
+
+        # Saldo na unidade atual (da peça selecionada)
+        saldo_local = float(peca.quantidade_atual)
+        unidade_local_id = peca.unidade_id
+
+        # Busca saldos em outras unidades (mesmo nome de peça)
+        outras_unidades = []
+        saldo_global = 0
+
+        # Query: Busca todas as peças com mesmo nome em outras unidades
+        pecas_outras_unidades = Estoque.query.filter(
+            Estoque.nome == peca.nome,
+            Estoque.unidade_id != unidade_local_id,
+            Estoque.quantidade_atual > 0
+        ).all()
+
+        for p in pecas_outras_unidades:
+            saldo = float(p.quantidade_atual)
+            saldo_global += saldo
+            outras_unidades.append({
+                'unidade_id': p.unidade_id,
+                'unidade_nome': p.unidade.nome,
+                'saldo': saldo,
+                'estoque_id': p.id
+            })
+
+        # Determina recomendação
+        if saldo_local > 0:
+            recomendacao = 'consumir'
+        elif saldo_global > 0:
+            recomendacao = 'transferir'
+        else:
+            recomendacao = 'comprar'
+
+        return jsonify({
+            'success': True,
+            'tem_estoque_local': saldo_local > 0,
+            'saldo_local': saldo_local,
+            'tem_estoque_outras_unidades': len(outras_unidades) > 0,
+            'outras_unidades': outras_unidades,
+            'saldo_global_total': saldo_global,
+            'recomendacao': recomendacao,
+            'peca_nome': peca.nome,
+            'unidade_atual': peca.unidade.nome if peca.unidade else 'N/A'
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'erro': str(e)
+        }), 500
+
 @bp.route('/estoque/painel')
 @login_required
 def painel_estoque():

@@ -547,7 +547,7 @@
         });
     });
 
-    function selecionarPecaUnificada(peca) {
+    async function selecionarPecaUnificada(peca) {
         sugestoesDiv.innerHTML = '';
         buscaInput.value = peca.nome;
 
@@ -558,25 +558,94 @@
 
         cardAcao.classList.remove('d-none');
 
-        // Lógica de Estado (Estoque vs Compra)
+        // Lógica de Estado INTELIGENTE (Estoque Local → Transferência → Compra)
         if (peca.saldo > 0) {
-            // Tem estoque -> Fluxo de Consumo
+            // 1. TEM ESTOQUE LOCAL → Fluxo de Consumo Direto
             statusBadge.innerText = 'Em Estoque';
             statusBadge.className = 'badge bg-success';
 
             btnConsumir.classList.remove('d-none');
-            btnCompra.classList.add('d-none');
+            btnConsumir.classList.add('d-none'); // Hide outros botões
             msgCompra.classList.add('d-none');
-            qtdField.max = peca.saldo; // Trava a qtd no saldo
-        } else {
-            // Sem estoque -> Fluxo de Compra
-            statusBadge.innerText = 'Indisponível';
-            statusBadge.className = 'badge bg-danger';
+            qtdField.max = peca.saldo;
 
-            btnCompra.classList.remove('d-none');
+            btnConsumir.classList.remove('d-none');
+        } else {
+            // 2. SEM ESTOQUE LOCAL → Verificar outras unidades
+            statusBadge.innerText = 'Verificando...';
+            statusBadge.className = 'badge bg-warning';
+            msgCompra.innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div> Verificando disponibilidade...';
             msgCompra.classList.remove('d-none');
-            msgCompra.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Estoque insuficiente. Deseja solicitar compra?';
-            qtdField.removeAttribute('max'); // Compra é livre
+
+            try {
+                const res = await fetch(`/os/api/pecas/${peca.id}/disponibilidade`);
+                const disponibilidade = await res.json();
+
+                if (!disponibilidade.success) {
+                    throw new Error(disponibilidade.erro || 'Erro ao verificar disponibilidade');
+                }
+
+                if (disponibilidade.recomendacao === 'transferir') {
+                    // 2a. EXISTE EM OUTRAS UNIDADES → Solicitar Transferência
+                    statusBadge.innerText = 'Disponível em Outras Unidades';
+                    statusBadge.className = 'badge bg-info';
+
+                    // Esconde botão de consumo, mostra botão de transferência
+                    btnConsumir.classList.add('d-none');
+                    btnCompra.classList.add('d-none');
+
+                    // Cria botão de transferência se não existir
+                    let btnTransferencia = document.getElementById('btnSolicitarTransferencia');
+                    if (!btnTransferencia) {
+                        btnTransferencia = document.createElement('button');
+                        btnTransferencia.id = 'btnSolicitarTransferencia';
+                        btnTransferencia.className = 'btn btn-primary flex-grow-1';
+                        btnTransferencia.innerHTML = '<i class="bi bi-arrow-left-right me-2"></i> Solicitar Transferência';
+                        btnTransferencia.onclick = () => abrirModalTransferencia(disponibilidade);
+                        document.querySelector('.d-flex.gap-2.mt-3').appendChild(btnTransferencia);
+                    }
+                    btnTransferencia.classList.remove('d-none');
+
+                    // Monta mensagem com unidades disponíveis
+                    const unidadesHtml = disponibilidade.outras_unidades.map(u =>
+                        `<li><strong>${u.unidade_nome}</strong>: ${u.saldo} ${peca.unidade}</li>`
+                    ).join('');
+
+                    msgCompra.innerHTML = `
+                        <i class="bi bi-info-circle text-info"></i>
+                        <strong>Peça não disponível nesta unidade.</strong><br>
+                        Disponível em:<ul class="mb-0 mt-2">${unidadesHtml}</ul>
+                        <div class="mt-2 small text-muted">Clique em "Solicitar Transferência" para requisitar de outra unidade.</div>
+                    `;
+                    msgCompra.classList.remove('d-none');
+                    qtdField.removeAttribute('max');
+
+                } else if (disponibilidade.recomendacao === 'comprar') {
+                    // 2b. NÃO EXISTE EM NENHUMA UNIDADE → Solicitar Compra
+                    statusBadge.innerText = 'Indisponível no Sistema';
+                    statusBadge.className = 'badge bg-danger';
+
+                    btnConsumir.classList.add('d-none');
+                    const btnTransf = document.getElementById('btnSolicitarTransferencia');
+                    if (btnTransf) btnTransf.classList.add('d-none');
+
+                    btnCompra.classList.remove('d-none');
+                    msgCompra.innerHTML = `
+                        <i class="bi bi-exclamation-triangle text-danger"></i>
+                        <strong>Peça indisponível em todas as unidades.</strong><br>
+                        <span class="small">É necessário solicitar a compra deste item.</span>
+                    `;
+                    msgCompra.classList.remove('d-none');
+                    qtdField.removeAttribute('max');
+                }
+
+            } catch (error) {
+                console.error('Erro ao verificar disponibilidade:', error);
+                statusBadge.innerText = 'Erro';
+                statusBadge.className = 'badge bg-danger';
+                msgCompra.innerHTML = `<i class="bi bi-x-circle text-danger"></i> ${error.message}`;
+                msgCompra.classList.remove('d-none');
+            }
         }
     }
 
@@ -772,6 +841,47 @@
     function prepararTransferencia(data) {
         // Alias para a função solicitada no Prompt 6 se necessário, mas vou usar abrirTransferenciaContexto
         abrirTransferenciaContexto(data);
+    }
+
+    function abrirModalTransferencia(disponibilidade) {
+        // Abre modal de transferência quando peça está disponível em outras unidades.
+        // Recebe objeto de disponibilidade da API /api/pecas/<id>/disponibilidade
+
+        // Preenche dados básicos
+        document.getElementById('transfNomeItem').value = disponibilidade.peca_nome;
+        document.getElementById('transfDestinoNome').value = disponibilidade.unidade_atual;
+        document.getElementById('transfDestinoId').value = '{{ os.unidade_id }}';
+        document.getElementById('transfEstoqueId').value = idPecaField.value;
+
+        // Popula select de origem com unidades que têm saldo
+        const selectOrigem = document.getElementById('transfOrigemId');
+        selectOrigem.innerHTML = '<option value="" disabled selected>Selecione a unidade origem...</option>';
+
+        disponibilidade.outras_unidades.forEach(unidade => {
+            const opt = document.createElement('option');
+            opt.value = unidade.estoque_id; // ID do estoque na unidade origem
+            opt.dataset.unidadeId = unidade.unidade_id;
+            opt.dataset.saldo = unidade.saldo;
+            opt.innerText = `${unidade.unidade_nome} (Disponível: ${unidade.saldo})`;
+            selectOrigem.appendChild(opt);
+        });
+
+        // Atualiza limite de quantidade quando origem muda
+        selectOrigem.onchange = function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const saldoMax = parseFloat(selectedOption.dataset.saldo);
+            document.getElementById('transfQtd').max = saldoMax;
+            document.getElementById('transfQtd').placeholder = `Máximo: ${saldoMax}`;
+        };
+
+        // Limpa campos
+        document.getElementById('transfQtd').value = '';
+        document.getElementById('transfResponsavel').value = '';
+        document.getElementById('checkTransfWhats').checked = false;
+
+        // Abre modal
+        const modal = new bootstrap.Modal(document.getElementById('modalTransferencia'));
+        modal.show();
     }
 
     // [MODIFICADO] Função confirmarTransferencia para enviar notificação

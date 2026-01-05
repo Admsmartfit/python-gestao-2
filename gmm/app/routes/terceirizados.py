@@ -5,6 +5,7 @@ from app.extensions import db
 from app.models.terceirizados_models import Terceirizado, ChamadoExterno, HistoricoNotificacao
 from app.models.estoque_models import OrdemServico
 from app.tasks import enviar_whatsapp_task
+from app.services.whatsapp_service import WhatsAppService
 
 bp = Blueprint('terceirizados', __name__, url_prefix='/terceirizados')
 
@@ -100,10 +101,25 @@ def criar_chamado():
             )
             db.session.add(notif)
             db.session.commit()
-            
-            # Envia assíncrono
-            enviar_whatsapp_task.delay(notif.id)
-            flash('Chamado criado e notificação enviada.', 'success')
+
+            # Envia via WhatsAppService (com Circuit Breaker e Rate Limiter)
+            success, response = WhatsAppService.enviar_mensagem(
+                telefone=terceirizado.telefone,
+                texto=msg,
+                prioridade=1,  # Prioridade normal
+                notificacao_id=notif.id
+            )
+
+            if success:
+                if response.get('status') == 'enfileirado':
+                    flash('Chamado criado. Mensagem enfileirada (limite de taxa atingido).', 'info')
+                else:
+                    flash('Chamado criado e notificação enviada.', 'success')
+            else:
+                if response.get('code') == 'CIRCUIT_OPEN':
+                    flash('Chamado criado. Mensagem será enviada quando API estabilizar.', 'warning')
+                else:
+                    flash(f'Chamado criado, mas falha no envio: {response.get("error", "Erro desconhecido")}', 'warning')
         else:
             flash('Chamado criado com sucesso.', 'success')
         
@@ -153,10 +169,23 @@ def cobrar_terceirizado(id):
     )
     db.session.add(notif)
     db.session.commit()
-    
+
     try:
-        enviar_whatsapp_task.delay(notif.id)
-        return jsonify({'success': True, 'msg': 'Cobrança enviada com sucesso!'})
+        # Envia via WhatsAppService com prioridade alta (cobrança é urgente)
+        success, response = WhatsAppService.enviar_mensagem(
+            telefone=chamado.terceirizado.telefone,
+            texto=msg,
+            prioridade=2,  # Prioridade alta - ignora rate limit
+            notificacao_id=notif.id
+        )
+
+        if success:
+            return jsonify({'success': True, 'msg': 'Cobrança enviada com sucesso!'})
+        else:
+            if response.get('code') == 'CIRCUIT_OPEN':
+                return jsonify({'success': False, 'msg': 'Sistema temporariamente indisponível. Tente novamente em alguns minutos.'}), 503
+            else:
+                return jsonify({'success': False, 'msg': f'Erro ao enviar: {response.get("error", "Erro desconhecido")}'}), 500
     except Exception as e:
         return jsonify({'success': False, 'msg': f'Erro ao enviar: {str(e)}'}), 500
 
@@ -185,14 +214,39 @@ def responder_manual(id):
         db.session.add(notif)
         db.session.commit()
 
-        enviar_whatsapp_task.delay(notif.id)
+        # Envia via WhatsAppService
+        success, response = WhatsAppService.enviar_mensagem(
+            telefone=chamado.terceirizado.telefone,
+            texto=mensagem,
+            prioridade=1,  # Prioridade normal
+            notificacao_id=notif.id
+        )
 
-        return jsonify({
-            'success': True,
-            'msg': 'Mensagem enviada!',
-            'data': datetime.utcnow().strftime('%H:%M'),
-            'texto': mensagem
-        })
+        if success:
+            return jsonify({
+                'success': True,
+                'msg': 'Mensagem enviada!',
+                'data': datetime.utcnow().strftime('%H:%M'),
+                'texto': mensagem
+            })
+        else:
+            if response.get('code') == 'CIRCUIT_OPEN':
+                return jsonify({
+                    'success': False,
+                    'msg': 'Sistema temporariamente indisponível. A mensagem será enviada automaticamente quando o sistema estabilizar.'
+                }), 503
+            elif response.get('status') == 'enfileirado':
+                return jsonify({
+                    'success': True,
+                    'msg': 'Mensagem enfileirada (limite de taxa). Será enviada em breve.',
+                    'data': datetime.utcnow().strftime('%H:%M'),
+                    'texto': mensagem
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'msg': f'Erro ao enviar: {response.get("error", "Erro desconhecido")}'
+                }), 500
     except Exception as e:
         return jsonify({'success': False, 'msg': str(e)}), 500
 
@@ -206,6 +260,23 @@ def central_mensagens():
     return render_template('terceirizados/central_mensagens.html')
 
 
+@bp.route('/api/terceirizados', methods=['GET'])
+@login_required
+def api_listar_terceirizados():
+    """
+    Retorna lista de terceirizados ativos para o select do modal.
+    Usado pela Central de Mensagens.
+    """
+    terceirizados = Terceirizado.query.filter_by(ativo=True).order_by(Terceirizado.nome).all()
+
+    return jsonify([{
+        'id': t.id,
+        'nome': t.nome,
+        'empresa': t.empresa,
+        'telefone': t.telefone
+    } for t in terceirizados])
+
+
 @bp.route('/api/conversas', methods=['GET'])
 @login_required
 def api_listar_conversas():
@@ -213,8 +284,8 @@ def api_listar_conversas():
     Retorna lista de chamados com resumo da última mensagem para a sidebar.
     Usado pela Central de Mensagens para exibir conversas ativas.
     """
-    # Busca chamados ordenados pela última atualização
-    chamados = ChamadoExterno.query.order_by(ChamadoExterno.updated_at.desc()).all()
+    # Busca chamados ordenados pela data de criação (mais recentes primeiro)
+    chamados = ChamadoExterno.query.order_by(ChamadoExterno.criado_em.desc()).all()
 
     lista = []
     for c in chamados:
@@ -328,13 +399,25 @@ def api_finalizar_chamado(id):
         db.session.add(notif)
         db.session.commit()
 
-        # Envia assíncrono
-        enviar_whatsapp_task.delay(notif.id)
+        # Envia via WhatsAppService
+        success, response = WhatsAppService.enviar_mensagem(
+            telefone=chamado.terceirizado.telefone,
+            texto=msg_finalizacao,
+            prioridade=1,
+            notificacao_id=notif.id
+        )
 
-        return jsonify({
-            'success': True,
-            'msg': 'Chamado finalizado com sucesso!'
-        })
+        if success:
+            return jsonify({
+                'success': True,
+                'msg': 'Chamado finalizado com sucesso!'
+            })
+        else:
+            # Mesmo com erro de envio, o chamado foi finalizado
+            return jsonify({
+                'success': True,
+                'msg': 'Chamado finalizado. Mensagem de agradecimento será enviada automaticamente.'
+            })
 
     except Exception as e:
         db.session.rollback()

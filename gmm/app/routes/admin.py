@@ -143,6 +143,8 @@ def editar_tecnico(): # Mantive o nome da função para compatibilidade, mas ser
 @bp.route('/usuario/excluir/<int:id>')
 @login_required
 def excluir_tecnico(id):
+    from app.models.estoque_models import OrdemServico
+
     user = Usuario.query.get(id)
     # Impede que o admin exclua a si mesmo acidentalmente
     if user.id == current_user.id:
@@ -150,6 +152,12 @@ def excluir_tecnico(id):
         return redirect(url_for('admin.dashboard', tab='tecnicos'))
 
     if user:
+        # Verifica se o usuário tem ordens de serviço associadas
+        ordens_count = OrdemServico.query.filter_by(tecnico_id=user.id).count()
+        if ordens_count > 0:
+            flash(f'Não é possível excluir este usuário. Existem {ordens_count} ordem(ns) de serviço associada(s) a ele. Desative o usuário ao invés de excluí-lo.', 'danger')
+            return redirect(url_for('admin.dashboard', tab='tecnicos'))
+
         db.session.delete(user)
         db.session.commit()
         flash('Usuário removido com sucesso.', 'success')

@@ -4,7 +4,11 @@
       "Bash(python -m py_compile:*)",
       "Bash(dir:*)",
       "Bash(findstr:*)",
-      "Bash(py -m py_compile:*)"
+      "Bash(py -m py_compile:*)",
+      "Bash(py run.py:*)",
+      "Bash(curl:*)",
+      "Bash(flask db:*)",
+      "Bash(py -m flask db:*)"
     ]
   }
 }

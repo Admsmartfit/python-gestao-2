@@ -362,7 +362,7 @@
         <!-- ==================== SIDEBAR: LISTA DE CONVERSAS ==================== -->
         <div class="chat-sidebar">
             <div class="sidebar-header">
-                <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex justify-content-between align-items-center mb-2">
                     <div>
                         <h5 class="mb-1"><i class="bi bi-whatsapp me-2"></i>Central GMM</h5>
                         <small style="opacity: 0.9;">Atendimento a Terceirizados</small>
@@ -371,6 +371,9 @@
                         <i class="bi bi-arrow-clockwise"></i>
                     </button>
                 </div>
+                <button class="btn btn-light w-100 btn-sm" onclick="abrirModalNovoChamado()">
+                    <i class="bi bi-plus-circle me-1"></i> Novo Chamado
+                </button>
             </div>
 
             <div class="sidebar-search">
@@ -454,13 +457,82 @@
     </div>
 </div>
 
+<!-- ==================== MODAL: NOVO CHAMADO ==================== -->
+<div class="modal fade" id="modalNovoChamado" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-plus-circle me-2"></i>Criar Novo Chamado
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formNovoChamado" onsubmit="criarChamado(event)">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Prestador/Terceirizado *</label>
+                            <select class="form-select" id="terceirizadoSelect" required>
+                                <option value="">Selecione...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Prioridade *</label>
+                            <select class="form-select" id="prioridadeSelect" required>
+                                <option value="baixa">Baixa</option>
+                                <option value="media" selected>Média</option>
+                                <option value="alta">Alta</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Prazo *</label>
+                            <input type="datetime-local" class="form-control" id="prazoInput" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Título do Chamado *</label>
+                            <input type="text" class="form-control" id="tituloInput"
+                                   placeholder="Ex: Manutenção do Ar Condicionado - Sala 201" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Descrição Detalhada *</label>
+                            <textarea class="form-control" id="descricaoInput" rows="4"
+                                      placeholder="Descreva o problema ou serviço solicitado..." required></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Ordem de Serviço (Opcional)</label>
+                            <input type="number" class="form-control" id="osIdInput"
+                                   placeholder="ID da OS relacionada">
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check mt-4 pt-2">
+                                <input class="form-check-input" type="checkbox" id="enviarWhatsappCheck" checked>
+                                <label class="form-check-label" for="enviarWhatsappCheck">
+                                    <i class="bi bi-whatsapp text-success"></i> Enviar notificação via WhatsApp
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btnCriarChamado">
+                        <i class="bi bi-check-circle me-1"></i> Criar Chamado
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
 let intervaloPolling = null;
 let conversaAtivaId = null;
 let todasConversas = [];
+let todosTerceirizados = [];
 
 document.addEventListener('DOMContentLoaded', () => {
     carregarConversas();
+    carregarTerceirizados();
     // Atualiza a lista de conversas a cada 30 segundos
     setInterval(carregarConversas, 30000);
 });
@@ -737,6 +809,99 @@ async function finalizarChamado() {
     } catch (e) {
         ToastModule.show('Erro ao finalizar chamado', 'danger');
         console.error(e);
+    }
+}
+
+// ==================== NOVO CHAMADO ====================
+async function carregarTerceirizados() {
+    // Carrega lista de terceirizados ativos para o select
+    try {
+        const res = await fetch('/terceirizados/api/terceirizados');
+        todosTerceirizados = await res.json();
+
+        const select = document.getElementById('terceirizadoSelect');
+        select.innerHTML = '<option value="">Selecione...</option>';
+
+        todosTerceirizados.forEach(t => {
+            const option = document.createElement('option');
+            option.value = t.id;
+            option.textContent = `${t.nome} - ${t.empresa || 'Sem empresa'}`;
+            select.appendChild(option);
+        });
+    } catch (e) {
+        console.error('Erro ao carregar terceirizados', e);
+    }
+}
+
+function abrirModalNovoChamado() {
+    // Abre modal e define prazo padrão para 24h a partir de agora
+    // Define prazo padrão: 24 horas a partir de agora
+    const agora = new Date();
+    agora.setHours(agora.getHours() + 24);
+    const prazoFormatado = agora.toISOString().slice(0, 16);
+    document.getElementById('prazoInput').value = prazoFormatado;
+
+    // Limpa formulário
+    document.getElementById('formNovoChamado').reset();
+    document.getElementById('prazoInput').value = prazoFormatado;
+
+    // Abre modal
+    const modal = new bootstrap.Modal(document.getElementById('modalNovoChamado'));
+    modal.show();
+}
+
+async function criarChamado(event) {
+    // Envia formulário de criação de chamado
+    event.preventDefault();
+
+    const btn = document.getElementById('btnCriarChamado');
+    const btnText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Criando...';
+
+    try {
+        const formData = new FormData();
+        formData.append('terceirizado_id', document.getElementById('terceirizadoSelect').value);
+        formData.append('prioridade', document.getElementById('prioridadeSelect').value);
+        formData.append('prazo', document.getElementById('prazoInput').value);
+        formData.append('titulo', document.getElementById('tituloInput').value);
+        formData.append('descricao', document.getElementById('descricaoInput').value);
+        formData.append('os_id', document.getElementById('osIdInput').value || '');
+
+        if (document.getElementById('enviarWhatsappCheck').checked) {
+            formData.append('enviar_whatsapp', 'on');
+        }
+
+        const res = await fetch('/terceirizados/chamados/criar', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (res.ok) {
+            // Fecha modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalNovoChamado'));
+            modal.hide();
+
+            // Atualiza lista
+            await carregarConversas();
+
+            ToastModule.show('Chamado criado com sucesso!', 'success');
+
+            // Se houver conversas, abre a primeira (que será o novo chamado)
+            if (todasConversas.length > 0) {
+                const novoChamado = todasConversas[0];
+                abrirConversa(novoChamado.id, novoChamado.prestador, novoChamado.numero, novoChamado.telefone);
+            }
+        } else {
+            const errorText = await res.text();
+            ToastModule.show('Erro ao criar chamado: ' + errorText, 'danger');
+        }
+    } catch (e) {
+        ToastModule.show('Erro ao criar chamado', 'danger');
+        console.error(e);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = btnText;
     }
 }
 
