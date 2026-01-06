@@ -50,9 +50,11 @@
                                 <span class="text-muted small">-</span>
                             </td>
                             <td class="text-end pe-4">
-                                <button class="btn btn-sm btn-light text-primary"
-                                    onclick="editarTerceirizado('{{ p.id }}', '{{ p.nome }}', '{{ p.nome_empresa or '' }}', '{{ p.cnpj or '' }}', '{{ p.telefone }}', '{{ p.email or '' }}', '{{ p.especialidades or '' }}', {{ 'true' if p.abrangencia_global else 'false' }}, [{% for u in p.unidades %}'{{ u.id }}'{% if not loop.last %},{% endif %}{% endfor %}])"
-                                    title="Editar">
+                                <button class="btn btn-sm btn-light text-primary" data-id="{{ p.id }}"
+                                    data-nome="{{ p.nome }}" data-empresa="{{ p.nome_empresa or '' }}"
+                                    data-cnpj="{{ p.cnpj or '' }}" data-telefone="{{ p.telefone }}"
+                                    data-email="{{ p.email or '' }}" data-especialidades="{{ p.especialidades or '' }}"
+                                    onclick="editarTerceirizado(this)" title="Editar">
                                     <i class="bi bi-pencil"></i>
                                 </button>
                                 <a href="{{ url_for('terceirizados.listar_chamados', prestador_id=p.id) }}"
@@ -178,14 +180,15 @@
 </div>
 
 <script>
-    function editarTerceirizado(id, nome, empresa, cnpj, telefone, email, especialidades, global, unidades) {
-        document.getElementById('editTercId').value = id;
-        document.getElementById('editTercNome').value = nome;
-        document.getElementById('editTercEmpresa').value = empresa;
-        document.getElementById('editTercCnpj').value = cnpj;
-        document.getElementById('editTercTelefone').value = telefone;
-        document.getElementById('editTercEmail').value = email;
-        document.getElementById('editTercEspec').value = especialidades;
+    function editarTerceirizado(el) {
+        const d = el.dataset;
+        document.getElementById('editTercId').value = d.id;
+        document.getElementById('editTercNome').value = d.nome;
+        document.getElementById('editTercEmpresa').value = d.empresa;
+        document.getElementById('editTercCnpj').value = d.cnpj;
+        document.getElementById('editTercTelefone').value = d.telefone;
+        document.getElementById('editTercEmail').value = d.email;
+        document.getElementById('editTercEspec').value = d.especialidades;
 
         new bootstrap.Modal(document.getElementById('modalEditarTerceirizado')).show();
     }
