@@ -1,237 +1,221 @@
-"""
-PDF Generator Service
-Generates PDF documents for purchase orders using ReportLab
-"""
-from io import BytesIO
+from weasyprint import HTML
+from jinja2 import Template
+from flask import current_app
+import os
 from datetime import datetime
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.units import cm
-from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.enums import TA_CENTER, TA_RIGHT
-
 
 class PDFGeneratorService:
-    """Service for generating PDF documents"""
+    """Service for generating PDF documents using WeasyPrint and Jinja2 templates"""
 
     @staticmethod
-    def gerar_pdf_pedido_compra(pedido):
+    def gerar_pdf_pedido(pedido_id):
         """
-        Generates a purchase order PDF document.
+        Gera PDF profissional de pedido de compra.
 
         Args:
-            pedido: PedidoCompra model instance
+            pedido_id: ID do pedido
 
         Returns:
-            BytesIO: PDF file buffer
+            str: Caminho do arquivo PDF gerado
         """
-        buffer = BytesIO()
-        doc = SimpleDocTemplate(
-            buffer,
-            pagesize=A4,
-            rightMargin=2*cm,
-            leftMargin=2*cm,
-            topMargin=2*cm,
-            bottomMargin=2*cm
-        )
+        from app.models.estoque_models import PedidoCompra
 
-        # Container for elements
-        elements = []
-        styles = getSampleStyleSheet()
+        # 1. Buscar pedido completo
+        pedido = PedidoCompra.query.get(pedido_id)
+        if not pedido:
+            raise ValueError(f"Pedido {pedido_id} não encontrado")
 
-        # Custom styles
-        title_style = ParagraphStyle(
-            'CustomTitle',
-            parent=styles['Heading1'],
-            fontSize=18,
-            textColor=colors.HexColor('#1a5490'),
-            spaceAfter=30,
-            alignment=TA_CENTER
-        )
+        # 2. Template HTML
+        template_html = """
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            font-size: 11pt;
+            line-height: 1.4;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 15px;
+        }
+        .header h1 {
+            color: #007bff;
+            margin: 10px 0;
+            font-size: 24pt;
+        }
+        .info-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .info-box {
+            background-color: #f8f9fa;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 5px solid #007bff;
+            width: 100%;
+        }
+        .info-box h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #007bff;
+            font-size: 12pt;
+            text-transform: uppercase;
+        }
+        .info-box p {
+            margin: 5px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+        }
+        td {
+            border-bottom: 1px solid #dee2e6;
+            padding: 10px;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        .total-row {
+            background-color: #e9ecef !important;
+            font-weight: bold;
+            font-size: 13pt;
+        }
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 9pt;
+            color: #6c757d;
+            border-top: 1px solid #dee2e6;
+            padding-top: 15px;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .status-stamp {
+            position: absolute;
+            top: 50px;
+            right: 50px;
+            border: 4px solid #28a745;
+            color: #28a745;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 18pt;
+            font-weight: bold;
+            transform: rotate(15deg);
+            opacity: 0.8;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    {% if pedido.status == 'aprovado' or pedido.status == 'pedido' %}
+    <div class="status-stamp">Aprovado</div>
+    {% endif %}
 
-        subtitle_style = ParagraphStyle(
-            'CustomSubTitle',
-            parent=styles['Normal'],
-            fontSize=10,
-            textColor=colors.grey,
-            alignment=TA_CENTER,
-            spaceAfter=20
-        )
+    <div class="header">
+        <h1>PEDIDO DE COMPRA</h1>
+        <p><strong>Número:</strong> {{ pedido.numero_pedido or pedido.id }}</p>
+        <p><strong>Data de Emissão:</strong> {{ pedido.data_solicitacao.strftime('%d/%m/%Y %H:%M') }}</p>
+    </div>
 
-        # Title
-        title = Paragraph("PEDIDO DE COMPRA", title_style)
-        elements.append(title)
+    <div class="info-box">
+        <h3>Fornecedor</h3>
+        <p><strong>{{ pedido.fornecedor.nome if pedido.fornecedor else 'N/A' }}</strong></p>
+        {% if pedido.fornecedor and pedido.fornecedor.cnpj %}
+        <p>CNPJ: {{ pedido.fornecedor.cnpj }}</p>
+        {% endif %}
+        {% if pedido.fornecedor and pedido.fornecedor.endereco %}
+        <p>Endereço: {{ pedido.fornecedor.endereco }}</p>
+        {% endif %}
+        <p>Telefone: {{ (pedido.fornecedor.telefone or pedido.fornecedor.whatsapp) if pedido.fornecedor else 'N/A' }}</p>
+        <p>Email: {{ pedido.fornecedor.email if pedido.fornecedor else 'N/A' }}</p>
+    </div>
 
-        # Subtitle with ID and date
-        subtitle_text = f"Pedido #{pedido.id} | Gerado em {datetime.now().strftime('%d/%m/%Y às %H:%M')}"
-        subtitle = Paragraph(subtitle_text, subtitle_style)
-        elements.append(subtitle)
+    <div class="info-box">
+        <h3>Dados do Pedido</h3>
+        <p><strong>Solicitante:</strong> {{ pedido.solicitante.nome if pedido.solicitante else 'N/A' }}</p>
+        <p><strong>Unidade de Destino:</strong> {{ pedido.unidade_destino.nome if pedido.unidade_destino else 'Não especificada' }}</p>
+        {% if pedido.aprovador %}
+        <p><strong>Aprovado por:</strong> {{ pedido.aprovador.nome }} em {{ pedido.data_aprovacao.strftime('%d/%m/%Y %H:%M') if pedido.data_aprovacao else 'N/A' }}</p>
+        {% endif %}
+    </div>
 
-        elements.append(Spacer(1, 0.5*cm))
+    <h3>Itens do Pedido</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Código</th>
+                <th>Descrição</th>
+                <th class="text-right">Quantidade</th>
+                <th class="text-right">Valor Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{ pedido.peca.codigo }}</td>
+                <td>{{ pedido.peca.nome }}</td>
+                <td class="text-right">{{ pedido.quantidade }} {{ pedido.peca.unidade_medida }}</td>
+                <td class="text-right">R$ {{ "%.2f"|format(pedido.valor_total or 0) }}</td>
+            </tr>
+            <tr class="total-row">
+                <td colspan="3" class="text-right">TOTAL DO PEDIDO</td>
+                <td class="text-right">R$ {{ "%.2f"|format(pedido.valor_total or 0) }}</td>
+            </tr>
+        </tbody>
+    </table>
 
-        # Purchase order info table
-        data_info = [
-            ['Status:', pedido.status.replace('_', ' ').title()],
-            ['Data Solicitação:', pedido.data_solicitacao.strftime('%d/%m/%Y %H:%M')],
-            ['Solicitante:', pedido.solicitante.nome if pedido.solicitante else 'N/A'],
-            ['Aprovador:', pedido.aprovador.nome if pedido.aprovador else 'Pendente'],
-        ]
+    {% if pedido.justificativa %}
+    <div class="info-box">
+        <h3>Justificativa / Observações</h3>
+        <p>{{ pedido.justificativa }}</p>
+    </div>
+    {% endif %}
 
-        table_info = Table(data_info, colWidths=[5*cm, 12*cm])
-        table_info.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f0f0')),
-            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
-            ('ALIGN', (0, 0), (0, -1), 'RIGHT'),
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-            ('TOPPADDING', (0, 0), (-1, -1), 8),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-        ]))
-
-        elements.append(table_info)
-        elements.append(Spacer(1, 1*cm))
-
-        # Item details
-        item_title = Paragraph("<b>DETALHES DO ITEM</b>", styles['Heading2'])
-        elements.append(item_title)
-        elements.append(Spacer(1, 0.3*cm))
-
-        # Calculate values
-        valor_unitario = float(pedido.peca.valor_unitario) if pedido.peca.valor_unitario else 0.0
-        quantidade = float(pedido.quantidade)
-        valor_total = valor_unitario * quantidade
-
-        data_item = [
-            ['Código', 'Nome', 'Unidade', 'Qtd', 'Valor Unit.', 'Valor Total'],
-            [
-                pedido.peca.codigo,
-                pedido.peca.nome,
-                pedido.peca.unidade_medida,
-                f'{quantidade:.2f}',
-                f'R$ {valor_unitario:.2f}',
-                f'R$ {valor_total:.2f}'
-            ]
-        ]
-
-        table_item = Table(data_item, colWidths=[3*cm, 5*cm, 2*cm, 2*cm, 2.5*cm, 2.5*cm])
-        table_item.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a5490')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('FONTSIZE', (0, 1), (-1, -1), 9),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-            ('TOPPADDING', (0, 0), (-1, -1), 10),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f5f5f5')]),
-        ]))
-
-        elements.append(table_item)
-        elements.append(Spacer(1, 0.5*cm))
-
-        # Total summary (aligned right)
-        total_style = ParagraphStyle(
-            'TotalStyle',
-            parent=styles['Normal'],
-            fontSize=12,
-            fontName='Helvetica-Bold',
-            alignment=TA_RIGHT,
-            textColor=colors.HexColor('#1a5490')
-        )
-        total_text = f"VALOR TOTAL: R$ {valor_total:.2f}"
-        total_paragraph = Paragraph(total_text, total_style)
-        elements.append(total_paragraph)
-
-        elements.append(Spacer(1, 1*cm))
-
-        # Supplier info (if available)
-        if pedido.fornecedor:
-            fornecedor_title = Paragraph("<b>FORNECEDOR</b>", styles['Heading2'])
-            elements.append(fornecedor_title)
-            elements.append(Spacer(1, 0.3*cm))
-
-            data_fornecedor = [
-                ['Nome:', pedido.fornecedor.nome],
-                ['Email:', pedido.fornecedor.email],
-                ['Telefone:', pedido.fornecedor.telefone or 'N/A'],
-                ['Prazo Médio:', f'{pedido.fornecedor.prazo_medio_entrega_dias:.0f} dias'],
-            ]
-
-            table_fornecedor = Table(data_fornecedor, colWidths=[5*cm, 12*cm])
-            table_fornecedor.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f0f0')),
-                ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
-                ('ALIGN', (0, 0), (0, -1), 'RIGHT'),
-                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, -1), 9),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                ('TOPPADDING', (0, 0), (-1, -1), 6),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ]))
-
-            elements.append(table_fornecedor)
-            elements.append(Spacer(1, 1*cm))
-
-        # Justification (if exists)
-        if pedido.justificativa:
-            justif_title = Paragraph("<b>JUSTIFICATIVA</b>", styles['Heading2'])
-            elements.append(justif_title)
-            elements.append(Spacer(1, 0.3*cm))
-
-            justif_text = Paragraph(pedido.justificativa, styles['Normal'])
-            elements.append(justif_text)
-            elements.append(Spacer(1, 1*cm))
-
-        # Footer with signatures (if approved)
-        if pedido.status == 'aprovado':
-            elements.append(Spacer(1, 2*cm))
-
-            signature_data = [
-                ['_' * 40, '_' * 40],
-                ['Solicitante', 'Aprovador'],
-                [
-                    pedido.solicitante.nome if pedido.solicitante else 'N/A',
-                    pedido.aprovador.nome if pedido.aprovador else 'N/A'
-                ]
-            ]
-
-            signature_table = Table(signature_data, colWidths=[8*cm, 8*cm])
-            signature_table.setStyle(TableStyle([
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('FONTSIZE', (0, 0), (-1, -1), 9),
-                ('FONTNAME', (0, 1), (-1, 1), 'Helvetica-Bold'),
-                ('TOPPADDING', (0, 1), (-1, -1), 10),
-            ]))
-
-            elements.append(signature_table)
-
-        # Build PDF
-        doc.build(elements)
-        buffer.seek(0)
-
-        return buffer
-
-    @staticmethod
-    def salvar_pdf_pedido(pedido, caminho):
+    <div class="footer">
+        <p>Este é um documento eletrônico gerado automaticamente pelo Sistema GMM</p>
+        <p>Data de geração: {{ datetime.now().strftime('%d/%m/%Y %H:%M:%S') }}</p>
+    </div>
+</body>
+</html>
         """
-        Saves purchase order PDF to a file.
 
-        Args:
-            pedido: PedidoCompra model instance
-            caminho: Full file path to save PDF
+        # 3. Renderizar template
+        template = Template(template_html)
+        html_content = template.render(
+            pedido=pedido,
+            datetime=datetime
+        )
 
-        Returns:
-            bool: True if successful
-        """
-        try:
-            buffer = PDFGeneratorService.gerar_pdf_pedido_compra(pedido)
-            with open(caminho, 'wb') as f:
-                f.write(buffer.getvalue())
-            return True
-        except Exception as e:
-            from flask import current_app
-            current_app.logger.error(f"Error saving PDF: {e}")
-            return False
+        # 4. Garantir que pasta existe
+        pasta_pedidos = os.path.join(
+            current_app.root_path,
+            'static', 'uploads', 'pedidos'
+        )
+        os.makedirs(pasta_pedidos, exist_ok=True)
+
+        # 5. Gerar PDF
+        filename = f"PEDIDO_{pedido.numero_pedido or pedido.id}.pdf"
+        filepath = os.path.join(pasta_pedidos, filename)
+
+        HTML(string=html_content).write_pdf(filepath)
+
+        return filepath

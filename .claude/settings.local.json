@@ -9,7 +9,8 @@
       "Bash(curl:*)",
       "Bash(flask db:*)",
       "Bash(py -m flask db:*)",
-      "Bash(py -c:*)"
+      "Bash(py -c:*)",
+      "Bash(ls:*)"
     ]
   }
 }

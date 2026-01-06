@@ -18,7 +18,9 @@ class RoteamentoService:
         Main routing logic.
         Returns a dict with 'acao', 'resposta', etc.
         """
-        
+        from app.models.whatsapp_models import EstadoConversa
+        from app.services.whatsapp_service import WhatsAppService
+
         # 1. Identify Sender
         terceirizado = Terceirizado.query.filter_by(telefone=remetente).first()
         if not terceirizado:
@@ -35,13 +37,29 @@ class RoteamentoService:
         
         # Determine if state is still valid (e.g., < 24h)
         if estado and (datetime.utcnow() - estado.updated_at).total_seconds() < 86400: # 24h
+            # Verificar se usuário está respondendo confirmação de OS via NLP
+            import json
+            ctx = json.loads(estado.contexto) if isinstance(estado.contexto, str) else estado.contexto
+            if ctx.get('fluxo') == 'confirmar_os_nlp':
+                resposta = RoteamentoService._processar_confirmacao_os_nlp(terceirizado, texto)
+                return {'acao': 'responder', 'resposta': resposta}
+
             resultado_estado = EstadoService.processar_resposta_com_estado(estado, texto)
             if resultado_estado['sucesso']:
                 return {'acao': 'responder', 'resposta': resultado_estado['resposta']}
-            # If not processed successfully by state (e.g. invalid input), fall through or return help
-            # For now, let's allow fallthrough to Commands if Input was not 'SIM'/'NAO'
         
         # 3. Parse Command
+        if texto.upper().startswith('EQUIP:'):
+            return RoteamentoService._processar_comando_equip(terceirizado, texto)
+
+        # US-012: Gatilhos informais
+        texto_up = texto.upper()
+        if "ESTOQUE POSITIVO" in texto_up or "ABUNDANTE" in texto_up:
+            return RoteamentoService._consultar_estoque(terceirizado)
+        
+        if "PRECISO DE" in texto_up or "SOLICITAR" in texto_up:
+            return RoteamentoService._iniciar_fluxo_solicitacao_peca(terceirizado)
+
         comando = ComandoParser.parse(texto)
         if comando:
             cmd_key = comando['comando']
@@ -98,12 +116,8 @@ class RoteamentoService:
              
              return {'acao': 'responder', 'resposta': res_texto}
 
-        # 6. Fallback (Forward to Manager)
-        return {
-            'acao': 'encaminhar',
-            'destino': 'gerente',
-            'mensagem': f"Mensagem de {terceirizado.nome}: {texto}"
-        }
+        # 6. Fallback (Interactive Menu instead of simple forward)
+        return RoteamentoService._exibir_menu_inicial(terceirizado)
     
     @staticmethod
     def _match_regra(regra: RegrasAutomacao, texto: str) -> bool:
@@ -172,11 +186,57 @@ class RoteamentoService:
             os_id = int(resposta_id.split('_')[2])
             return RoteamentoService._aceitar_os(os_id, terceirizado)
 
+        elif resposta_id.startswith('abrir_os_'):
+            equip_id = int(resposta_id.split('_')[2])
+            return RoteamentoService._abrir_os_equipamento(terceirizado, equip_id)
+
+        elif resposta_id.startswith('historico_'):
+            equip_id = int(resposta_id.split('_')[1])
+            return RoteamentoService._exibir_historico_equipamento(terceirizado, equip_id)
+
+        elif resposta_id.startswith('dados_tecnicos_'):
+            equip_id = int(resposta_id.split('_')[2])
+            return RoteamentoService._exibir_dados_tecnicos(terceirizado, equip_id)
+
+        elif resposta_id == 'voltar_menu':
+            from app.extensions import db
+            EstadoConversa.query.filter_by(telefone=terceirizado.telefone).delete()
+            db.session.commit()
+            return {'acao': 'responder', 'resposta': "Contexto limpo. Como posso ajudar?"}
+
         # Se não reconheceu o ID, retorna menu padrão
-        return {
-            'acao': 'responder',
-            'resposta': "Opção não reconhecida. Digite #AJUDA para ver o menu."
-        }
+        return RoteamentoService._exibir_menu_inicial(terceirizado)
+
+    @staticmethod
+    def _exibir_menu_inicial(terceirizado):
+        """US-015: Menu interativo principal."""
+        from app.services.whatsapp_service import WhatsAppService
+        
+        sections = [
+            {
+                "title": "Minhas Atividades",
+                "rows": [
+                    {"id": "minhas_os", "title": "📋 Ver Minhas OSs", "description": "Listar chamados sob sua responsabilidade"},
+                    {"id": "abrir_os", "title": "🆕 Abrir Chamado", "description": "Registrar novo problema"}
+                ]
+            },
+            {
+                "title": "Materiais e Peças",
+                "rows": [
+                    {"id": "consultar_estoque", "title": "📊 Consultar Estoque", "description": "Verificar disponibilidade de itens"},
+                    {"id": "solicitar_peca", "title": "📦 Solicitar Peça", "description": "Pedir item para manutenção"}
+                ]
+            }
+        ]
+
+        WhatsAppService.send_list_message(
+            phone=terceirizado.telefone,
+            header="🤖 ASSISTENTE GMM",
+            body=f"Olá {terceirizado.nome}! Como posso ajudar você hoje?",
+            button_text="Ver Opções",
+            sections=sections
+        )
+        return {'acao': 'aguardar_interacao'}
 
     @staticmethod
     def _listar_minhas_os(terceirizado):
@@ -378,3 +438,191 @@ O solicitante foi notificado."""
             mensagem += "_Status atualizado para: Em Andamento_"
 
         return {'acao': 'enviar_mensagem', 'telefone': terceirizado.telefone, 'mensagem': mensagem}
+
+    # ==================== MÉTODOS GAPS - SPRINT 1 ====================
+
+    @staticmethod
+    def _processar_confirmacao_os_nlp(terceirizado, texto):
+        """Processa confirmação de criação de OS por voz."""
+        from app.models.whatsapp_models import EstadoConversa
+        from app.models.estoque_models import Equipamento, OrdemServico
+        from app.models.models import Unidade
+        from app.extensions import db
+        import json
+
+        estado = EstadoConversa.query.filter_by(
+            telefone=terceirizado.telefone
+        ).filter(EstadoConversa.contexto.like('%confirmar_os_nlp%')).order_by(EstadoConversa.updated_at.desc()).first()
+
+        if not estado:
+            return "Não há solicitação de OS pendente."
+
+        contexto = json.loads(estado.contexto)
+        dados = contexto['dados']
+
+        texto_lower = texto.lower().strip()
+        confirmacoes = ['sim', 's', 'yes', 'confirmar', 'ok']
+        cancelamentos = ['nao', 'não', 'n', 'no', 'cancelar']
+
+        if texto_lower in cancelamentos:
+            db.session.delete(estado)
+            db.session.commit()
+            return "❌ Solicitação de OS cancelada."
+
+        if texto_lower not in confirmacoes:
+            return "Por favor, responda SIM para confirmar ou NÃO para cancelar."
+
+        # Equipamento
+        equipamento = Equipamento.query.filter(
+            Equipamento.nome.ilike(f"%{dados['equipamento']}%"),
+            Equipamento.ativo == True
+        ).first()
+
+        # Unidade
+        unidade_id = None
+        if dados.get('local'):
+            unidade = Unidade.query.filter(Unidade.nome.ilike(f"%{dados['local']}%")).first()
+            if unidade:
+                unidade_id = unidade.id
+        
+        if not unidade_id:
+            # Fallback: usar unidade_padrao do usuario (terceirizado pode ser Usuario)
+            from app.models.models import Usuario
+            usuario = Usuario.query.filter_by(telefone=terceirizado.telefone).first()
+            if usuario:
+                unidade_id = usuario.unidade_padrao_id
+
+        # Criar OS
+        numero_os = f"OS-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        nova_os = OrdemServico(
+            numero_os=numero_os,
+            equipamento_id=equipamento.id if equipamento else None,
+            unidade_id=unidade_id,
+            tecnico_id=terceirizado.id, # Assumindo que terceirizado.id é o que vai em tecnico_id
+            tipo_manutencao='corretiva', # Default para voz
+            titulo=f"Problema em {dados.get('equipamento', 'equipamento não identificado')}",
+            descricao_problema=dados.get('resumo', 'Criado por reconhecimento de voz'),
+            prioridade=dados.get('urgencia', 'media'),
+            origem_criacao='whatsapp_bot',
+            status='aberta'
+        )
+        
+        # US-005: Calcular SLA
+        from app.services.os_service import OSService
+        nova_os.prazo_conclusao = OSService.calcular_sla(nova_os.prioridade)
+        nova_os.data_prevista = nova_os.prazo_conclusao
+
+        db.session.add(nova_os)
+        db.session.delete(estado)
+        db.session.commit()
+
+        return f"""✅ *OS CRIADA COM SUCESSO*
+
+*Número:* {nova_os.numero_os}
+*Equipamento:* {equipamento.nome if equipamento else 'Não encontrado'}
+*Local:* {dados.get('local', 'Não especificado')}
+*Prioridade:* {nova_os.prioridade.upper()}
+
+Você pode acompanhar o andamento pelo sistema."""
+
+    @staticmethod
+    def _processar_comando_equip(terceirizado, texto):
+        """Processa comando EQUIP:{id} de QR Code."""
+        from app.models.estoque_models import Equipamento
+        from app.services.whatsapp_service import WhatsAppService
+        try:
+            equip_id = int(texto.split(':')[1].strip())
+        except (IndexError, ValueError):
+            return {'acao': 'responder', 'resposta': "❌ Formato inválido. Use: EQUIP:ID"}
+
+        equipamento = Equipamento.query.filter_by(id=equip_id, ativo=True).first()
+        if not equipamento:
+            return {'acao': 'responder', 'resposta': f"❌ Equipamento #{equip_id} não encontrado ou inativo."}
+
+        # Salvar estado
+        EstadoService.criar_ou_atualizar_estado(
+            telefone=terceirizado.telefone,
+            contexto={
+                'fluxo': 'contexto_equipamento',
+                'equipamento_id': equip_id,
+                'equipamento_nome': equipamento.nome
+            }
+        )
+
+        # Menu Interativo
+        sections = [
+            {
+                "title": "Ordens de Serviço",
+                "rows": [
+                    {"id": f"abrir_os_{equip_id}", "title": "🆕 Abrir Chamado", "description": f"Criar OS para {equipamento.nome}"},
+                    {"id": f"historico_{equip_id}", "title": "📋 Ver Histórico", "description": "Últimas OSs deste equipamento"}
+                ]
+            },
+            {
+                "title": "Informações",
+                "rows": [
+                    {"id": f"dados_tecnicos_{equip_id}", "title": "⚙️ Dados Técnicos", "description": "Informações do equipamento"},
+                    {"id": "voltar_menu", "title": "↩️ Voltar ao Menu", "description": "Limpar contexto"}
+                ]
+            }
+        ]
+
+        WhatsAppService.send_list_message(
+            phone=terceirizado.telefone,
+            header=f"📟 {equipamento.nome}",
+            body=f"""*Código:* {equipamento.codigo or 'N/A'}
+*Unidade:* {equipamento.unidade.nome}
+*Status:* {'🟢 Operacional' if equipamento.status == 'operacional' else '🔴 Manutenção'}
+
+Escolha uma opção:""",
+            sections=sections,
+            button_text="Ações"
+        )
+        return {'acao': 'aguardar_interacao'}
+
+    @staticmethod
+    def _abrir_os_equipamento(terceirizado, equipamento_id):
+        """Inicia fluxo de abertura de OS para equipamento específico."""
+        from app.models.estoque_models import Equipamento
+        equipamento = Equipamento.query.get(equipamento_id)
+        EstadoService.criar_ou_atualizar_estado(
+            telefone=terceirizado.telefone,
+            contexto={'fluxo': 'abrir_os', 'etapa': 'aguardando_descricao', 'equipamento_id': equipamento_id}
+        )
+        msg = f"📝 *Criar OS para {equipamento.nome}*\n\nDescreva o problema encontrado:"
+        return {'acao': 'responder', 'resposta': msg}
+
+    @staticmethod
+    def _exibir_historico_equipamento(terceirizado, equipamento_id):
+        """Exibe últimas 5 OSs do equipamento."""
+        from app.models.estoque_models import Equipamento, OrdemServico
+        equipamento = Equipamento.query.get(equipamento_id)
+        oss = OrdemServico.query.filter_by(equipamento_id=equipamento_id).order_by(OrdemServico.data_abertura.desc()).limit(5).all()
+
+        if not oss:
+            msg = f"📋 *Histórico: {equipamento.nome}*\n\nNenhuma OS registrada."
+        else:
+            msg = f"📋 *Histórico: {equipamento.nome}*\n\nÚltimas OSs:\n\n"
+            for os in oss:
+                emoji = {'aberta': '🔴', 'em_andamento': '🟡', 'concluida': '🟢'}.get(os.status, '⚪')
+                msg += f"{emoji} *{os.numero_os}*\n   {os.titulo}\n   Data: {os.data_abertura.strftime('%d/%m/%Y')}\n\n"
+        
+        return {'acao': 'responder', 'resposta': msg}
+
+    @staticmethod
+    def _exibir_dados_tecnicos(terceirizado, equipamento_id):
+        """Exibe informações técnicas do equipamento."""
+        from app.models.estoque_models import Equipamento
+        equip = Equipamento.query.get(equipamento_id)
+        msg = f"""⚙️ *Dados Técnicos*
+
+*Nome:* {equip.nome}
+*Código:* {equip.codigo or 'N/A'}
+*Unidade:* {equip.unidade.nome}
+*Status:* {equip.status.upper()}
+*Data Aquisição:* {equip.data_aquisicao.strftime('%d/%m/%Y') if equip.data_aquisicao else 'N/A'}
+*Custo:* R$ {equip.custo_aquisicao or 0:.2f}
+
+*Descrição:*
+{equip.descricao or 'Sem descrição.'}"""
+        return {'acao': 'responder', 'resposta': msg}

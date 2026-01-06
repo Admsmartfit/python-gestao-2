@@ -52,10 +52,21 @@ def enviar_morning_briefing_task():
     total_abertas = OrdemServico.query.filter(OrdemServico.status != 'concluida').count()
     compras_pendentes = PedidoCompra.query.filter_by(status='solicitado').count()
     
-    # OSs críticas (prioridade alta e não concluída)
+    # OSs críticas (prioridade alta/urgente e não concluída)
     criticas = OrdemServico.query.filter(
         OrdemServico.status != 'concluida',
-        OrdemServico.prioridade == 'alta'
+        OrdemServico.prioridade.in_(['alta', 'urgente'])
+    ).count()
+
+    # Peças críticas
+    from app.models.estoque_models import Estoque
+    itens_criticos = Estoque.query.filter(Estoque.quantidade_atual <= Estoque.quantidade_minima).count()
+
+    # Concluídas ontem
+    ontem = hoje - timedelta(days=1)
+    concluidas_ontem = OrdemServico.query.filter(
+        OrdemServico.status == 'concluida',
+        OrdemServico.data_conclusao >= ontem
     ).count()
     
     # 2. Monta mensagem
@@ -64,6 +75,8 @@ def enviar_morning_briefing_task():
     resumo += f"📊 *Resumo Operacional:*\n"
     resumo += f"• OSs em aberto: {total_abertas}\n"
     resumo += f"• OSs prioritárias: {criticas}\n"
+    resumo += f"• OSs concluídas ontem: {concluidas_ontem}\n"
+    resumo += f"• Itens abaixo do estoque mínimo: {itens_criticos}\n"
     resumo += f"• Pedidos de compra pendentes: {compras_pendentes}\n\n"
     resumo += "🛠️ Tenha uma excelente jornada de trabalho!"
     
@@ -78,3 +91,68 @@ def enviar_morning_briefing_task():
         WhatsAppService.enviar_mensagem(g.telefone, resumo, prioridade=1)
         
     return {"status": "success", "notified": len(gerentes)}
+
+@shared_task
+def verificar_estoque_critico_task():
+    """US-009: Alerta proativo de estoque crítico."""
+    from app.models.estoque_models import Estoque
+    from app.models.models import Usuario
+    from app.services.whatsapp_service import WhatsAppService
+
+    itens = Estoque.query.filter(Estoque.quantidade_atual <= Estoque.quantidade_minima).all()
+    
+    if not itens:
+        return {"status": "no_items"}
+
+    msg = "⚠️ *ALERTA: ESTOQUE CRÍTICO*\n\nOs seguintes itens atingiram o nível mínimo:\n\n"
+    for item in itens:
+        msg += f"• *{item.nome}*: {item.quantidade_atual} {item.unidade_medida} (Mín: {item.quantidade_minima})\n"
+    
+    msg += "\nPor favor, providencie a reposição."
+
+    # Notifica compradores e admins
+    destinatarios = Usuario.query.filter(
+        Usuario.tipo.in_(['admin', 'comprador', 'gerente']),
+        Usuario.telefone != ''
+    ).all()
+
+    for d in destinatarios:
+        WhatsAppService.enviar_mensagem(d.telefone, msg, prioridade=1)
+
+    return {"status": "success", "items_alerted": len(itens)}
+
+@shared_task
+def detectar_anomalias_equipamentos_task():
+    """US-008: Alertas preditivos de equipamentos."""
+    from app.models.estoque_models import Equipamento, OrdemServico
+    from app.models.models import Usuario
+    from app.services.whatsapp_service import WhatsAppService
+
+    # RF-017: Equipamento sem manutenção há mais de 30 dias
+    limite = datetime.utcnow() - timedelta(days=30)
+    
+    anomalias = []
+    equipamentos = Equipamento.query.filter_by(ativo=True).all()
+
+    for eq in equipamentos:
+        ultima_os = OrdemServico.query.filter_by(equipamento_id=eq.id, status='concluida').order_by(OrdemServico.data_conclusao.desc()).first()
+        
+        if not ultima_os or ultima_os.data_conclusao < limite:
+            anomalias.append(eq)
+
+    if not anomalias:
+        return {"status": "no_anomalies"}
+
+    msg = "🔍 *ANALISADOR PREDITIVO: ALERTAS*\n\nEquipamentos sem manutenção recente (>30 dias):\n\n"
+    for eq in anomalias:
+        msg += f"• *{eq.nome}* ({eq.unidade.nome})\n"
+    
+    msg += "\nRecomenda-se agendar uma revisão preventiva."
+
+    # Notifica gestores
+    gestores = Usuario.query.filter(Usuario.tipo.in_(['admin', 'gerente'])).all()
+    for g in gestores:
+        if g.telefone:
+            WhatsAppService.enviar_mensagem(g.telefone, msg)
+
+    return {"status": "success", "anomalies_found": len(anomalias)}

@@ -94,3 +94,32 @@ class OSService:
                     continue
         
         return caminhos_json
+    @staticmethod
+    def calcular_sla(prioridade, eh_terceirizado=False):
+        " \\US-005: Cálculo dinâmico de SLA baseado na prioridade.\\\
+ from datetime import timedelta
+ sla_base = {
+ \urgente\: 4, # 4 horas
+ \alta\: 24, # 1 dia
+ \media\: 72, # 3 dias
+ \baixa\: 168 # 7 dias
+ }
+
+ horas = sla_base.get(prioridade.lower(), 72)
+
+ if eh_terceirizado:
+ # Acréscimo de 50% para prestadores externos
+ horas = int(horas * 1.5)
+
+ return datetime.now() + timedelta(hours=horas)
+
+ @staticmethod
+ def registrar_inicio_os(os_id):
+ \\\Registra a data de início da OS se ainda não registrada.\\\
+ os_obj = OrdemServico.query.get(os_id)
+ if os_obj and not os_obj.data_inicio:
+ os_obj.data_inicio = datetime.now()
+ db.session.commit()
+ return True
+ return False
+

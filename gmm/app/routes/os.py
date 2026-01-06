@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify
+﻿from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify
 from flask_login import login_required, current_user
 from datetime import datetime
 from app.extensions import db
@@ -30,8 +30,13 @@ def nova_os():
                 tipo_manutencao=request.form.get('tipo_manutencao'),
                 prioridade=request.form.get('prioridade'),
                 descricao_problema=request.form.get('descricao_problema'),
-                status='aberta'
+                status='aberta',
+                origem_criacao='web'
             )
+
+            # US-005: Se o prazo não foi informado manualmente, calcula pelo SLA
+            if not nova_os.prazo_conclusao:
+                nova_os.prazo_conclusao = OSService.calcular_sla(nova_os.prioridade)
             
             db.session.add(nova_os)
             db.session.commit() # Commit para gerar o ID da OS
@@ -84,6 +89,29 @@ def detalhes(id):
                          terceirizados=terceirizados,
                          usuarios=usuarios)
 
+@bp.route('/<int:id>/iniciar', methods=['POST'])
+@login_required
+def iniciar_os(id):
+    """US-004: Registra o início da execução da OS."""
+    os_obj = OrdemServico.query.get_or_404(id)
+    
+    if os_obj.status != 'aberta':
+        flash('Esta OS já foi iniciada ou concluída.', 'warning')
+        return redirect(url_for('os.detalhes', id=id))
+
+    os_obj.status = 'em_andamento'
+    os_obj.data_inicio = datetime.now()
+    db.session.commit()
+    
+    # US-010: Notificar solicitante que OS começou
+    from app.services.whatsapp_service import WhatsAppService
+    if os_obj.unidade and os_obj.unidade.telefone_responsavel:
+        msg = f"🛠️ *OS INICIADA*\n\nA OS #{os_obj.numero_os} ({os_obj.titulo or os_obj.equipamento_rel.nome}) foi iniciada pelo técnico."
+        WhatsAppService.enviar_mensagem(os_obj.unidade.telefone_responsavel, msg)
+
+    flash('OS iniciada! O tempo de execução está sendo contabilizado.', 'success')
+    return redirect(url_for('os.detalhes', id=id))
+
 @bp.route('/<int:id>/concluir', methods=['POST'])
 @login_required
 def concluir_os(id):
@@ -101,11 +129,24 @@ def concluir_os(id):
         caminhos = OSService.processar_fotos(fotos, os_obj.id, tipo='foto_depois')
         os_obj.fotos_depois = caminhos
 
+    # US-004: Calcular tempo de execução em minutos
+    if os_obj.data_inicio:
+        delta = datetime.now() - os_obj.data_inicio
+        minutos = int(delta.total_seconds() / 60)
+        os_obj.tempo_execucao_minutos = (os_obj.tempo_execucao_minutos or 0) + minutos
+
     os_obj.descricao_solucao = solucao
     os_obj.status = 'concluida'
-    os_obj.data_conclusao = datetime.utcnow()
+    os_obj.data_conclusao = datetime.now()
     
     db.session.commit()
+
+    # US-010: Notificar conclusão
+    from app.services.whatsapp_service import WhatsAppService
+    if os_obj.unidade and os_obj.unidade.telefone_responsavel:
+        msg = f"✅ *OS CONCLUÍDA*\n\nA OS #{os_obj.numero_os} foi finalizada.\n\n*Solução:* {solucao}"
+        WhatsAppService.enviar_mensagem(os_obj.unidade.telefone_responsavel, msg)
+
     flash('Ordem de Serviço concluída com sucesso!', 'success')
     return redirect(url_for('os.detalhes', id=id))
 
@@ -201,13 +242,29 @@ def solicitar_compra_peca(id):
                 return jsonify({'success': False, 'erro': 'Nenhum fornecedor cadastrado no sistema.'}), 400
             fornecedor_id = f.id
 
+        # US-006: Cálculo de valor e Aprovação Automática
+        valor_unitario = float(item.valor_unitario or 0)
+        valor_total = valor_unitario * float(quantidade)
+        
+        status_inicial = 'pendente'
+        aprovador_id = None
+        data_aprovacao = None
+
+        if valor_total <= 500:
+            status_inicial = 'aprovado'
+            aprovador_id = 0 # ID 0 ou ID do sistema para aprovacao automatica
+            data_aprovacao = datetime.now()
+
         novo_pedido = PedidoCompra(
             fornecedor_id=fornecedor_id,
             estoque_id=estoque_id,
             quantidade=quantidade,
-            status='pendente',
-            data_solicitacao=datetime.utcnow(),
-            solicitante_id=current_user.id
+            valor_total=valor_total,
+            status=status_inicial,
+            data_solicitacao=datetime.now(),
+            solicitante_id=current_user.id,
+            aprovador_id=aprovador_id,
+            data_aprovacao=data_aprovacao
         )
         
         db.session.add(novo_pedido)
@@ -445,12 +502,21 @@ def solicitar_compra():
             else:
                 return jsonify({'success': False, 'erro': 'Nenhum fornecedor cadastrado no sistema.'}), 400
 
+        # US-006: Aprovação Automática no Painel de Compras
+        valor_unitario = float(item.valor_unitario or 0)
+        valor_total = valor_unitario * float(quantidade)
+        
+        status_inicial = 'pendente'
+        if valor_total <= 500:
+            status_inicial = 'aprovado'
+
         pedido = PedidoCompra(
             estoque_id=estoque_id,
             fornecedor_id=fornecedor_id,
             quantidade=quantidade,
-            status='pendente',
-            data_solicitacao=datetime.utcnow(),
+            valor_total=valor_total,
+            status=status_inicial,
+            data_solicitacao=datetime.now(),
             solicitante_id=current_user.id
         )
 
@@ -694,20 +760,21 @@ def cancelar_os_route(id):
         db.session.rollback()
         flash(f'Erro ao cancelar OS: {str(e)}', 'danger')
         
-    return redirect(url_for('os.detalhes', id=id))@ b p . r o u t e ( ' / < i n t : i d > / f e e d b a c k ' ,   m e t h o d s = [ ' P O S T ' ] ) 
- @ l o g i n _ r e q u i r e d 
- d e f   s a l v a r _ f e e d b a c k ( i d ) : 
-         o s _ o b j   =   O r d e m S e r v i c o . q u e r y . g e t _ o r _ 4 0 4 ( i d ) 
-         r a t i n g   =   r e q u e s t . j s o n . g e t ( ' r a t i n g ' ) 
-         c o m e n t a r i o   =   r e q u e s t . j s o n . g e t ( ' c o m e n t a r i o ' ) 
-         
-         i f   n o t   r a t i n g : 
-                 r e t u r n   j s o n i f y ( { ' s u c c e s s ' :   F a l s e ,   ' m s g ' :   ' R a t i n g   o b r i g a t � r i o ' } ) ,   4 0 0 
-                 
-         o s _ o b j . f e e d b a c k _ r a t i n g   =   i n t ( r a t i n g ) 
-         i f   c o m e n t a r i o : 
-                 o s _ o b j . f e e d b a c k _ c o m e n t a r i o   =   c o m e n t a r i o 
-                 
-         d b . s e s s i o n . c o m m i t ( ) 
-         r e t u r n   j s o n i f y ( { ' s u c c e s s ' :   T r u e ,   ' m s g ' :   ' A v a l i a � � o   s a l v a   c o m   s u c e s s o ' } )  
- 
+    return redirect(url_for('os.detalhes', id=id))@bp.route('/<int:id>/feedback', methods=['POST'])
+@login_required
+def salvar_feedback(id):
+    os_obj = OrdemServico.query.get_or_404(id)
+    rating = request.json.get('rating')
+    comentario = request.json.get('comentario')
+    
+    if not rating:
+        return jsonify({'success': False, 'msg': 'Rating obrigat�rio'}), 400
+        
+    os_obj.feedback_rating = int(rating)
+    if comentario:
+        os_obj.feedback_comentario = comentario
+        
+    db.session.commit()
+    return jsonify({'success': True, 'msg': 'Avalia��o salva com sucesso'})
+
+

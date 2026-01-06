@@ -35,3 +35,24 @@ class Config:
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER')
     PURCHASE_EMAIL = os.environ.get('PURCHASE_EMAIL') # Email do setor de compras
+
+    # Celery Beat Schedule
+    from celery.schedules import crontab
+    CELERY_BEAT_SCHEDULE = {
+        'morning-briefing-diario': {
+            'task': 'app.tasks.system_tasks.enviar_morning_briefing_task',
+            'schedule': crontab(hour=8, minute=0),
+        },
+        'verificar-estoque-critico': {
+            'task': 'app.tasks.system_tasks.verificar_estoque_critico_task',
+            'schedule': crontab(hour=9, minute=0),
+        },
+        'lembretes-chamados-externos': {
+            'task': 'app.tasks.system_tasks.lembretes_automaticos_task',
+            'schedule': crontab(hour=14, minute=0),
+        },
+        'anomalias-equipamentos': {
+            'task': 'app.tasks.system_tasks.detectar_anomalias_equipamentos_task',
+            'schedule': crontab(hour=10, minute=0, day_of_week='mon'),
+        },
+    }

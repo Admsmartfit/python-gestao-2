@@ -269,3 +269,55 @@ def transcrever_audio_task(self, notificacao_id):
             delay = 60 * (5 ** self.request.retries)
             raise self.retry(exc=exc, countdown=delay)
         return {"status": "failed", "error": str(exc)}
+@shared_task(bind=True, max_retries=3)
+def enviar_pedido_fornecedor(self, pedido_id):
+    """Gera PDF do pedido e envia para fornecedor via WhatsApp e Email."""
+    from app.models.estoque_models import PedidoCompra
+    from app.services.pdf_generator_service import PDFGeneratorService
+    from app.services.whatsapp_service import WhatsAppService
+    from app.services.email_service import EmailService
+    from app.extensions import db
+
+    try:
+        pedido = PedidoCompra.query.get(pedido_id)
+        if not pedido:
+            return {"error": "Pedido não encontrado"}
+
+        # 1. Gerar PDF
+        pdf_path = PDFGeneratorService.gerar_pdf_pedido(pedido_id)
+
+        # 2. Enviar via WhatsApp (se fornecedor tem whatsapp)
+        if pedido.fornecedor and pedido.fornecedor.whatsapp:
+            mensagem = f"📦 *PEDIDO DE COMPRA*\n\n*Número:* {pedido.numero_pedido or pedido.id}\n*Data:* {pedido.data_solicitacao.strftime('%d/%m/%Y')}\n*Valor Total:* R$ {pedido.valor_total or 0:.2f}\n\nSegue em anexo o pedido completo."
+            WhatsAppService.enviar_mensagem(
+                telefone=pedido.fornecedor.whatsapp,
+                texto=mensagem,
+                prioridade=1,
+                arquivo_path=pdf_path,
+                tipo_midia="document",
+                caption=f"Pedido {pedido.numero_pedido or pedido.id}"
+            )
+
+        # 3. Enviar via Email (se fornecedor tem email)
+        if pedido.fornecedor and pedido.fornecedor.email:
+            try:
+                EmailService.enviar_email(
+                    destinatario=pedido.fornecedor.email,
+                    assunto=f"Pedido de Compra {pedido.numero_pedido or pedido.id}",
+                    corpo=f"Prezado(a) {pedido.fornecedor.nome},\n\nSegue em anexo o Pedido de Compra {pedido.numero_pedido or pedido.id}.\n\nValor Total: R$ {pedido.valor_total or 0:.2f}\n\nPor favor, confirme o recebimento.",
+                    anexos=[pdf_path]
+                )
+            except Exception as e:
+                logger.error(f"Erro ao enviar email para fornecedor: {e}")
+
+        # 4. Atualizar status do pedido
+        pedido.status = "pedido"
+        db.session.commit()
+        return {"status": "success"}
+
+    except Exception as exc:
+        logger.error(f"Erro ao enviar pedido para fornecedor: {exc}")
+        if self.request.retries < self.max_retries:
+            delay = 60 * (5 ** self.request.retries)
+            raise self.retry(exc=exc, countdown=delay)
+        return {"status": "failed", "error": str(exc)}

@@ -37,18 +37,38 @@ def novo():
                 flash("Peça e quantidade são obrigatórios.", "warning")
                 return redirect(url_for('compras.novo'))
 
+            item = Estoque.query.get(estoque_id)
+            valor_unitario = float(item.valor_unitario or 0)
+            valor_total = valor_unitario * quantidade
+
+            status_inicial = 'solicitado'
+            aprovador_id = None
+            if valor_total <= 500:
+                status_inicial = 'aprovado'
+                aprovador_id = 0 # Sistema
+
             pedido = PedidoCompra(
                 estoque_id=estoque_id,
                 quantidade=quantidade,
+                valor_total=valor_total,
                 fornecedor_id=fornecedor_id if fornecedor_id else None,
                 unidade_destino_id=unidade_id if unidade_id else None,
                 solicitante_id=current_user.id,
-                status='solicitado'
+                status=status_inicial,
+                aprovador_id=aprovador_id
             )
             db.session.add(pedido)
             db.session.commit()
             
-            flash(f"Pedido #{pedido.id} criado com sucesso!", "success")
+            # Se aprovado automaticamente, já pode disparar o envio
+            if pedido.status == 'aprovado':
+                from app.tasks.whatsapp_tasks import enviar_pedido_fornecedor
+                enviar_pedido_fornecedor.delay(pedido.id)
+                msg_adic = " (Aprovado automaticamente)"
+            else:
+                msg_adic = ""
+
+            flash(f"Pedido #{pedido.id} criado com sucesso!{msg_adic}", "success")
             return redirect(url_for('compras.listar'))
         except Exception as e:
             db.session.rollback()
@@ -89,12 +109,48 @@ def aprovar(id):
     pedido.aprovador_id = current_user.id
     db.session.commit()
     
-    # Trigger email to supplier if configured
-    from app.services.email_service import EmailService
-    if pedido.fornecedor and pedido.fornecedor.email:
-         EmailService.enviar_pedido_fornecedor(pedido)
-         flash(f"Pedido #{id} aprovado e enviado para {pedido.fornecedor.nome}.", "success")
-    else:
-         flash(f"Pedido #{id} aprovado. (Fornecedor sem e-mail cadastrado)", "success")
+    # Trigger PDF generation and sending via Celery
+    from app.tasks.whatsapp_tasks import enviar_pedido_fornecedor
+    enviar_pedido_fornecedor.delay(pedido.id)
+    
+    flash(f"Pedido #{id} aprovado. O processamento do PDF e envio foi iniciado.", "success")
          
+    return redirect(url_for('compras.detalhes', id=id))
+
+@bp.route('/<int:id>/receber', methods=['POST'])
+@login_required
+def receber(id):
+    """US-011: Registra recebimento da compra e notifica solicitante."""
+    pedido = PedidoCompra.query.get_or_404(id)
+    
+    if pedido.status == 'recebido':
+        flash("Este pedido já foi recebido.", "info")
+        return redirect(url_for('compras.detalhes', id=id))
+
+    # 1. Atualiza Estoque
+    from app.services.estoque_service import EstoqueService
+    try:
+        EstoqueService.repor_estoque(
+            estoque_id=pedido.estoque_id,
+            quantidade=pedido.quantidade,
+            usuario_id=current_user.id,
+            motivo=f"Recebimento Pedido #{pedido.id}",
+            unidade_id=pedido.unidade_destino_id
+        )
+    except Exception as e:
+        flash(f"Erro ao atualizar estoque: {e}", "danger")
+        return redirect(url_for('compras.detalhes', id=id))
+
+    # 2. Atualiza Pedido
+    pedido.status = 'recebido'
+    pedido.data_recebimento = datetime.now()
+    db.session.commit()
+
+    # 3. Notifica Solicitante (US-011)
+    from app.services.whatsapp_service import WhatsAppService
+    if pedido.solicitante and pedido.solicitante.telefone:
+        msg = f"📦 *CHEGOU!*\n\nO item *{pedido.estoque.nome}* do seu pedido #{pedido.id} acaba de ser recebido no estoque."
+        WhatsAppService.enviar_mensagem(pedido.solicitante.telefone, msg)
+
+    flash(f"Pedido #{id} marcado como recebido. Estoque atualizado e solicitante notificado.", "success")
     return redirect(url_for('compras.detalhes', id=id))

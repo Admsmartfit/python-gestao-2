@@ -134,7 +134,7 @@ class WhatsAppService:
     # ==================== MÉTODOS V3.1 - MENSAGENS INTERATIVAS ====================
 
     @classmethod
-    def send_list_message(cls, phone: str, header: str, body: str, sections: list):
+    def send_list_message(cls, phone: str, header: str, body: str, sections: list, button_text: str = "Ver Opções"):
         """
         Envia mensagem com lista interativa (menu nativo do WhatsApp).
 
@@ -173,7 +173,7 @@ class WhatsAppService:
                 "header": {"type": "text", "text": header},
                 "body": {"text": body},
                 "action": {
-                    "button": "Ver Opções",
+                    "button": button_text,
                     "sections": sections
                 }
             }
