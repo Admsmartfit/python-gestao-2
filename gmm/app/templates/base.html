@@ -26,7 +26,7 @@
     <div class="app-shell">
         <!-- Sidebar Offcanvas -->
         <aside class="offcanvas-lg offcanvas-start app-sidebar" tabindex="-1" id="sidebar"
-            aria-labelledby="sidebarLabel">
+            aria-labelledby="sidebarLabel" data-bs-scroll="true">
             <div class="sidebar-header">
                 <a class="text-white text-decoration-none d-flex align-items-center gap-2"
                     href="{{ url_for('ponto.index') }}">
@@ -202,17 +202,23 @@
         </div>
     </div>
 
-    <!-- Floating Action Button for Mobile -->
-    <div class="d-lg-none position-fixed bottom-0 end-0 p-3" style="z-index: 1040;">
-        <button class="btn btn-white border shadow-sm text-nowrap bg-white" onclick="abrirScannerQR()">
-            <i class="bi bi-qr-code-scan me-2 text-primary"></i>Escanear Etiqueta
-        </button>
-        <a href="{{ url_for('os.painel_estoque') }}" class="btn btn-white border shadow-sm text-nowrap bg-white">
-            <i class="bi bi-box-seam me-2 text-primary"></i>Estoque
+    <!-- Bottom Navigation for Mobile -->
+    <div class="mobile-nav d-lg-none">
+        <a href="{{ url_for('os.nova_os') }}"
+            class="mobile-nav-item {{ 'active' if request.endpoint == 'os.nova_os' }}">
+            <i class="bi bi-plus-circle-fill fs-3"></i>
+            <span>Nova OS</span>
         </a>
-        <a href="{{ url_for('os.nova_os') }}" class="btn btn-primary rounded-circle shadow-lg"
-            style="width: 56px; height: 56px;">
-            <i class="bi bi-plus-lg fs-4"></i>
+        <a href="javascript:void(0)" class="mobile-nav-item" onclick="abrirScannerQR()">
+            <div class="mobile-nav-fab">
+                <i class="bi bi-qr-code-scan"></i>
+            </div>
+            <span>Escanear</span>
+        </a>
+        <a href="{{ url_for('os.painel_estoque') }}"
+            class="mobile-nav-item {{ 'active' if request.endpoint == 'os.painel_estoque' }}">
+            <i class="bi bi-box-seam-fill fs-3"></i>
+            <span>Estoque</span>
         </a>
     </div>
 
@@ -328,6 +334,23 @@
                         ToastModule.show(msg.message, msg.category);
                     });
                 } catch (e) { console.error("Flash msg parse error", e); }
+            }
+
+            // Fix offcanvas sidebar scroll issues on mobile
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) {
+                sidebar.addEventListener('hidden.bs.offcanvas', () => {
+                    // Ensure body is scrollable after offcanvas closes
+                    document.body.style.overflow = '';
+                    document.body.style.paddingRight = '';
+                    document.body.classList.remove('overflow-hidden');
+
+                    // Remove any lingering backdrop
+                    setTimeout(() => {
+                        const backdrops = document.querySelectorAll('.offcanvas-backdrop');
+                        backdrops.forEach(b => b.remove());
+                    }, 100);
+                });
             }
         });
 
@@ -529,15 +552,90 @@
                     stop();
                     bootstrap.Modal.getInstance(document.getElementById(modalId)).hide();
 
-                    // Validação simples de URL
-                    if (decodedText.includes('/os/detalhes/') || decodedText.includes('/equipamento/detalhe/')) {
-                        window.location.href = decodedText;
-                    } else {
-                        ToastModule.show("QR Code reconhecido, mas não é uma URL de equipamento/OS válida.", "warning");
-                    }
+                    // Processar diferentes formatos de QR Code
+                    processQRCode(decodedText);
                 }).catch(err => {
                     console.error("Erro ao iniciar câmera:", err);
                     ToastModule.show("Não foi possível acessar a câmera.", "danger");
+                });
+            }
+
+            function processQRCode(decodedText) {
+                // 1. URL direta para OS
+                if (decodedText.includes('/os/detalhes/')) {
+                    window.location.href = decodedText;
+                    return;
+                }
+
+                // 2. URL direta para equipamento (ex: /equipamentos/123)
+                const equipUrlMatch = decodedText.match(/\/equipamentos\/(\d+)/);
+                if (equipUrlMatch) {
+                    window.location.href = decodedText;
+                    return;
+                }
+
+                // 3. QR Code de WhatsApp com EQUIP:ID (formato gerado pelo sistema)
+                const equipMatch = decodedText.match(/EQUIP[:\s]*(\d+)/i);
+                if (equipMatch) {
+                    const equipId = equipMatch[1];
+                    showEquipmentOptions(equipId);
+                    return;
+                }
+
+                // 4. Apenas número (pode ser ID de equipamento)
+                if (/^\d+$/.test(decodedText.trim())) {
+                    showEquipmentOptions(decodedText.trim());
+                    return;
+                }
+
+                // Não reconhecido
+                ToastModule.show("QR Code reconhecido, mas não é uma URL de equipamento/OS válida.", "warning");
+            }
+
+            function showEquipmentOptions(equipId) {
+                // Criar e mostrar modal de opções
+                const modalHtml = `
+                    <div class="modal fade" id="modalEquipOptions" tabindex="-1">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title"><i class="bi bi-hdd-network me-2"></i>Equipamento #${equipId}</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p class="text-muted mb-4">O que deseja fazer com este equipamento?</p>
+                                    <div class="d-grid gap-2">
+                                        <a href="/equipamentos/${equipId}" class="btn btn-outline-primary d-flex align-items-center justify-content-between">
+                                            <span><i class="bi bi-eye me-2"></i>Ver Detalhes do Equipamento</span>
+                                            <i class="bi bi-chevron-right"></i>
+                                        </a>
+                                        <a href="/os/nova?equipamento_id=${equipId}" class="btn btn-primary d-flex align-items-center justify-content-between">
+                                            <span><i class="bi bi-plus-circle me-2"></i>Criar Nova OS</span>
+                                            <i class="bi bi-chevron-right"></i>
+                                        </a>
+                                        <a href="/equipamentos/${equipId}#historico-os" class="btn btn-outline-secondary d-flex align-items-center justify-content-between">
+                                            <span><i class="bi bi-clock-history me-2"></i>Ver Histórico de OS</span>
+                                            <i class="bi bi-chevron-right"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Remover modal anterior se existir
+                const existingModal = document.getElementById('modalEquipOptions');
+                if (existingModal) existingModal.remove();
+
+                // Inserir e mostrar o novo modal
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+                const modal = new bootstrap.Modal(document.getElementById('modalEquipOptions'));
+                modal.show();
+
+                // Limpar ao fechar
+                document.getElementById('modalEquipOptions').addEventListener('hidden.bs.modal', function () {
+                    this.remove();
                 });
             }
 

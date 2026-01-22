@@ -38,29 +38,40 @@ class ChamadoExterno(db.Model):
     numero_chamado = db.Column(db.String(20), unique=True, nullable=False)
     os_id = db.Column(db.Integer, db.ForeignKey('ordens_servico.id'), nullable=True)
     terceirizado_id = db.Column(db.Integer, db.ForeignKey('terceirizados.id'), nullable=False)
-    
+
     titulo = db.Column(db.String(200), nullable=False)
     descricao = db.Column(db.Text, nullable=False)
     prioridade = db.Column(db.String(20), default='media')
-    status = db.Column(db.String(20), default='aguardando') # aguardando, aceito, concluido...
-    
+    status = db.Column(db.String(20), default='aguardando')  # aguardando, aceito, em_andamento, agendado, pausado, concluido, cancelado
+
     prazo_combinado = db.Column(db.DateTime, nullable=False)
     data_inicio = db.Column(db.DateTime)
     data_conclusao = db.Column(db.DateTime)
-    
+
     valor_orcado = db.Column(db.Numeric(10, 2))
     valor_final = db.Column(db.Numeric(10, 2))
-    
+
     avaliacao = db.Column(db.Integer)
     feedback = db.Column(db.Text)
-    
+
     criado_por = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     criado_em = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
+    # Novos campos para WhatsApp
+    solicitante_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)  # Quem solicitou o serviço
+    atualizado_em = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    concluido_em = db.Column(db.DateTime, nullable=True)
+    observacao_conclusao = db.Column(db.Text, nullable=True)
+    motivo_recusa = db.Column(db.Text, nullable=True)
+    data_agendamento = db.Column(db.DateTime, nullable=True)
+    endereco = db.Column(db.String(300), nullable=True)
+    cliente_nome = db.Column(db.String(150), nullable=True)
+
     # Relacionamentos
     terceirizado = db.relationship('Terceirizado', backref='chamados')
     os_origem = db.relationship('OrdemServico', backref='chamados_externos')
-    autor = db.relationship('Usuario', backref='chamados_criados')
+    autor = db.relationship('Usuario', foreign_keys=[criado_por], backref='chamados_criados')
+    solicitante = db.relationship('Usuario', foreign_keys=[solicitante_id], backref='chamados_solicitados')
     notificacoes = db.relationship('HistoricoNotificacao', backref='chamado', lazy=True)
 
 class HistoricoNotificacao(db.Model):

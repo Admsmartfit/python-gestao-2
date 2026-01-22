@@ -27,9 +27,9 @@
                     <label class="form-label">Unidade</label>
                     <select name="unidade_id" id="selectUnidade" class="form-select" required
                         onchange="carregarEquipamentos()">
-                        <option value="" disabled selected>Selecione...</option>
+                        <option value="" disabled {% if not equipamento_preselect %}selected{% endif %}>Selecione...</option>
                         {% for u in unidades %}
-                        <option value="{{ u.id }}">{{ u.nome }}</option>
+                        <option value="{{ u.id }}" {% if equipamento_preselect and equipamento_preselect.unidade_id == u.id %}selected{% endif %}>{{ u.nome }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -59,9 +59,16 @@
                 </div>
                 <div class="col-md-8">
                     <label class="form-label">Equipamento</label>
-                    <select name="equipamento_id" id="selectEquipamento" class="form-select" required disabled>
+                    <select name="equipamento_id" id="selectEquipamento" class="form-select" required {% if not equipamento_preselect %}disabled{% endif %}>
+                        {% if equipamento_preselect %}
+                        <option value="{{ equipamento_preselect.id }}" selected>{{ equipamento_preselect.nome }}</option>
+                        {% else %}
                         <option value="">Selecione a Unidade primeiro...</option>
+                        {% endif %}
                     </select>
+                    {% if equipamento_preselect %}
+                    <input type="hidden" id="equipamentoPreselect" value="{{ equipamento_preselect.id }}">
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -112,8 +119,33 @@
 
             <div class="mb-3">
                 <label class="form-label">Fotos Iniciais</label>
-                <input type="file" name="fotos_antes" class="form-control" multiple accept="image/*" id="inputFotos">
-                <div id="previewFotos" class="d-flex mt-3 gap-2 overflow-auto pb-2"></div>
+
+                <!-- Botões de ação para fotos -->
+                <div class="d-flex gap-2 mb-3 flex-wrap">
+                    <button type="button" class="btn btn-outline-primary flex-grow-1" onclick="tirarFoto()">
+                        <i class="bi bi-camera-fill me-2"></i>Tirar Foto
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary flex-grow-1" onclick="escolherArquivos()">
+                        <i class="bi bi-image me-2"></i>Galeria
+                    </button>
+                </div>
+
+                <!-- Input oculto para câmera (capture) -->
+                <input type="file" id="inputCamera" accept="image/*" capture="environment" class="d-none" onchange="adicionarFotoCapturada(this)">
+
+                <!-- Input oculto para galeria (múltiplos) -->
+                <input type="file" id="inputGaleria" accept="image/*" multiple class="d-none" onchange="adicionarFotosGaleria(this)">
+
+                <!-- Input real que será enviado no form -->
+                <input type="file" name="fotos_antes" id="inputFotos" multiple accept="image/*" class="d-none">
+
+                <!-- Preview das fotos -->
+                <div id="previewFotos" class="row g-2"></div>
+
+                <!-- Contador de fotos -->
+                <div id="contadorFotos" class="text-muted small mt-2 d-none">
+                    <i class="bi bi-images me-1"></i><span id="numFotos">0</span> foto(s) selecionada(s)
+                </div>
             </div>
         </div>
     </div>
@@ -127,7 +159,7 @@
 
 <script>
     // Lógica de equipamentos (AJAX) - Mantida funcionalidade, ajustada UI
-    async function carregarEquipamentos() {
+    async function carregarEquipamentos(preselectId = null) {
         const unidadeId = document.getElementById('selectUnidade').value;
         const categoria = document.getElementById('selectCategoria').value;
         const selectEquip = document.getElementById('selectEquipamento');
@@ -148,7 +180,7 @@
             const response = await fetch(url);
             const equipamentos = await response.json();
 
-            selectEquip.innerHTML = '<option value="" selected disabled>Escolha o equipamento...</option>';
+            selectEquip.innerHTML = '<option value="" disabled>Escolha o equipamento...</option>';
             if (equipamentos.length === 0) {
                 selectEquip.innerHTML += '<option value="" disabled>Nenhum equipamento encontrado.</option>';
             } else {
@@ -156,8 +188,16 @@
                     const option = document.createElement('option');
                     option.value = eq.id;
                     option.text = eq.nome;
+                    // Pré-selecionar se houver ID
+                    if (preselectId && eq.id == preselectId) {
+                        option.selected = true;
+                    }
                     selectEquip.appendChild(option);
                 });
+                // Se não houver pré-seleção, selecionar a primeira opção vazia
+                if (!preselectId) {
+                    selectEquip.querySelector('option[value=""]').selected = true;
+                }
             }
             selectEquip.disabled = false;
         } catch (error) {
@@ -166,24 +206,162 @@
         }
     }
 
-    // Preview de Fotos
-    document.getElementById('inputFotos').addEventListener('change', function (e) {
-        const container = document.getElementById('previewFotos');
-        container.innerHTML = '';
-        for (let file of this.files) {
-            let reader = new FileReader();
-            reader.onload = function (event) {
-                let img = document.createElement('img');
-                img.src = event.target.result;
-                img.className = 'rounded border shadow-sm';
-                img.style.height = '80px';
-                img.style.width = '80px';
-                img.style.objectFit = 'cover';
-                container.appendChild(img);
+    // Carregar equipamentos automaticamente se houver pré-seleção (QR Code)
+    document.addEventListener('DOMContentLoaded', function() {
+        const preselectInput = document.getElementById('equipamentoPreselect');
+        if (preselectInput) {
+            const unidadeId = document.getElementById('selectUnidade').value;
+            if (unidadeId) {
+                carregarEquipamentos(preselectInput.value);
             }
-            reader.readAsDataURL(file);
         }
     });
+
+    // === SISTEMA DE FOTOS COM CÂMERA ===
+    const FotosModule = (function() {
+        let fotosArray = []; // Array para armazenar os arquivos de foto
+
+        function tirarFoto() {
+            document.getElementById('inputCamera').click();
+        }
+
+        function escolherArquivos() {
+            document.getElementById('inputGaleria').click();
+        }
+
+        function adicionarFotoCapturada(input) {
+            if (input.files && input.files[0]) {
+                adicionarFoto(input.files[0]);
+                input.value = ''; // Reset para permitir tirar outra foto
+            }
+        }
+
+        function adicionarFotosGaleria(input) {
+            if (input.files) {
+                for (let file of input.files) {
+                    adicionarFoto(file);
+                }
+                input.value = ''; // Reset
+            }
+        }
+
+        function adicionarFoto(file) {
+            // Adicionar ao array
+            const index = fotosArray.length;
+            fotosArray.push(file);
+
+            // Criar preview
+            const container = document.getElementById('previewFotos');
+            const col = document.createElement('div');
+            col.className = 'col-4 col-md-3 col-lg-2';
+            col.id = `foto-preview-${index}`;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                col.innerHTML = `
+                    <div class="position-relative">
+                        <img src="${e.target.result}" class="img-fluid rounded border shadow-sm"
+                             style="width: 100%; aspect-ratio: 1; object-fit: cover; cursor: pointer;"
+                             onclick="FotosModule.ampliarFoto('${e.target.result}')">
+                        <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1 rounded-circle p-0"
+                                style="width: 24px; height: 24px; line-height: 1;"
+                                onclick="FotosModule.removerFoto(${index})">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                `;
+            };
+            reader.readAsDataURL(file);
+            container.appendChild(col);
+
+            // Atualizar o input real do formulário
+            atualizarInputForm();
+            atualizarContador();
+        }
+
+        function removerFoto(index) {
+            // Marcar como null (não removemos para manter índices)
+            fotosArray[index] = null;
+
+            // Remover preview
+            const preview = document.getElementById(`foto-preview-${index}`);
+            if (preview) preview.remove();
+
+            // Atualizar input
+            atualizarInputForm();
+            atualizarContador();
+        }
+
+        function atualizarInputForm() {
+            // Criar um novo DataTransfer para simular FileList
+            const dt = new DataTransfer();
+            fotosArray.forEach(file => {
+                if (file) dt.items.add(file);
+            });
+
+            // Atualizar o input real
+            document.getElementById('inputFotos').files = dt.files;
+        }
+
+        function atualizarContador() {
+            const count = fotosArray.filter(f => f !== null).length;
+            const contador = document.getElementById('contadorFotos');
+            const numFotos = document.getElementById('numFotos');
+
+            if (count > 0) {
+                contador.classList.remove('d-none');
+                numFotos.textContent = count;
+            } else {
+                contador.classList.add('d-none');
+            }
+        }
+
+        function ampliarFoto(src) {
+            // Criar modal de ampliação
+            const modalHtml = `
+                <div class="modal fade" id="modalAmpliarFoto" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered modal-lg">
+                        <div class="modal-content bg-dark">
+                            <div class="modal-header border-0">
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body p-0 text-center">
+                                <img src="${src}" class="img-fluid" style="max-height: 80vh;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Remover modal anterior se existir
+            const existing = document.getElementById('modalAmpliarFoto');
+            if (existing) existing.remove();
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            const modal = new bootstrap.Modal(document.getElementById('modalAmpliarFoto'));
+            modal.show();
+
+            document.getElementById('modalAmpliarFoto').addEventListener('hidden.bs.modal', function() {
+                this.remove();
+            });
+        }
+
+        return {
+            tirarFoto,
+            escolherArquivos,
+            adicionarFotoCapturada,
+            adicionarFotosGaleria,
+            removerFoto,
+            ampliarFoto
+        };
+    })();
+
+    // Expor funções globalmente para os botões
+    window.tirarFoto = FotosModule.tirarFoto;
+    window.escolherArquivos = FotosModule.escolherArquivos;
+    window.adicionarFotoCapturada = FotosModule.adicionarFotoCapturada;
+    window.adicionarFotosGaleria = FotosModule.adicionarFotosGaleria;
+    window.FotosModule = FotosModule;
 
     // Reconhecimento de Voz (UI Feedback melhorado)
     function iniciarDitado(targetId) {

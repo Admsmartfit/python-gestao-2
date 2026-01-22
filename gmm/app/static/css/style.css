@@ -91,10 +91,16 @@ p {
     border-right: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     flex-direction: column;
-    position: fixed;
     height: 100vh;
-    z-index: 1030;
     transition: var(--transition);
+}
+
+/* Desktop: sidebar is fixed position */
+@media (min-width: 992px) {
+    .app-sidebar {
+        position: fixed;
+        z-index: 1030;
+    }
 }
 
 .sidebar-header {
@@ -185,6 +191,21 @@ p {
 
     .main-wrapper {
         margin-left: 0;
+    }
+
+    /* Let Bootstrap handle offcanvas positioning on mobile */
+    .app-sidebar.offcanvas-lg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: var(--sidebar-width);
+        max-width: 85vw;
+    }
+
+    /* Ensure content is scrollable */
+    .content-inner {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
 }
 
@@ -401,12 +422,30 @@ p {
     position: fixed;
     top: 1rem;
     right: 1rem;
+    left: auto;
     z-index: 1080;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
     width: 320px;
     max-width: calc(100vw - 2rem);
+}
+
+@media (max-width: 576px) {
+    #toast-container {
+        left: 1rem;
+        right: 1rem;
+        width: auto;
+        max-width: none;
+    }
+
+    .gmm-toast {
+        word-wrap: break-word;
+    }
+
+    .gmm-toast-msg {
+        font-size: 0.75rem;
+    }
 }
 
 .gmm-toast {
@@ -744,4 +783,131 @@ p {
 
 .card {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+/* --- MOBILE BOTTOM NAVIGATION --- */
+.mobile-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 70px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding-bottom: env(safe-area-inset-bottom);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+    z-index: 1040;
+}
+
+.mobile-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: var(--text-muted);
+    font-size: 0.65rem;
+    font-weight: 600;
+    transition: var(--transition);
+    gap: 4px;
+    width: 33%;
+}
+
+.mobile-nav-item i {
+    font-size: 1.4rem;
+    color: var(--text-muted);
+}
+
+.mobile-nav-item.active {
+    color: var(--accent);
+}
+
+.mobile-nav-item.active i {
+    color: var(--accent);
+}
+
+.mobile-nav-fab {
+    width: 58px;
+    height: 58px;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: -35px;
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+    border: 4px solid var(--bg-surface);
+}
+
+.mobile-nav-fab i {
+    font-size: 1.5rem;
+    color: #fff;
+}
+
+/* Add padding to content-inner on mobile so nav doesn't cover content */
+@media (max-width: 991.98px) {
+    .content-inner {
+        padding-bottom: 90px;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    /* Ensure page scrolls normally */
+    html, body {
+        overflow-x: hidden;
+        overflow-y: auto !important;
+        height: auto !important;
+        position: relative !important;
+    }
+
+    /* Cards should not overflow */
+    .card {
+        max-width: 100%;
+        overflow: hidden;
+    }
+
+    /* Buttons in cards should wrap */
+    .card .btn {
+        white-space: normal;
+        word-wrap: break-word;
+    }
+
+    /* Fix toast positioning on mobile */
+    #toast-container {
+        left: 1rem;
+        right: 1rem;
+        width: auto;
+    }
+
+    /* Ensure main-wrapper allows scrolling */
+    .main-wrapper {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        min-height: 100vh;
+    }
+}
+
+/* Extra small devices */
+@media (max-width: 576px) {
+    .content-inner {
+        padding: 1rem;
+        padding-bottom: 100px;
+    }
+
+    h2 {
+        font-size: 1.5rem;
+    }
+
+    h3 {
+        font-size: 1.25rem;
+    }
+
+    .btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.8rem;
+    }
 }

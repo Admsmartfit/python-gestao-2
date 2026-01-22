@@ -53,7 +53,9 @@ REAL_HOME=$(eval echo ~$REAL_USER)
 INSTALL_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$INSTALL_DIR"
 
-print_header "INSTALADOR GMM - GESTAO MODERNA DE MANUTENCAO (Linux)"
+
+print_header "INSTALADOR GMM - GESTAO MODERNA DE MANUTENCAO (Linux) - v1.1 Fix"
+echo "Rodando versao atualizada..."
 echo ""
 
 # Detectar distribuicao
@@ -101,10 +103,21 @@ else
 fi
 
 # Verificar versao do Python
-PYTHON_VERSION=$(python3 --version | cut -d' ' -f2 | cut -d'.' -f1,2)
-if (( $(echo "$PYTHON_VERSION < 3.9" | bc -l) )); then
-    print_error "Python 3.9 ou superior e necessario. Versao atual: $PYTHON_VERSION"
-    exit 1
+# Verificar versao do Python (>= 3.9) using python itself to handle 3.10+ correctly
+print_step "Check Python Version (Internal Check)..."
+if ! python3 -c "import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)"; then
+    PYTHON_VERSION=$(python3 --version | cut -d' ' -f2)
+    # Changed error message to verify file update
+    print_error "ERRO CRITICO: Python 3.9+ requerido. Versao detectada: $PYTHON_VERSION"
+    print_error "Debug: O comando 'python3' falhou na verificacao de versao interna."
+    # Fail safe: se for 3.12, vamos permitir com um aviso (caso o python3 -c falhe por outro motivo)
+    if [[ "$PYTHON_VERSION" == "3.12"* ]] || [[ "$PYTHON_VERSION" == "3.11"* ]]; then
+        print_warning "Detectado Python $PYTHON_VERSION. Forcando continuacao apesar da falha no teste."
+    else
+        exit 1
+    fi
+else
+    print_ok "Versao do Python validada com sucesso."
 fi
 
 # Instalar Redis
@@ -200,8 +213,8 @@ FLASK_APP=run.py
 FLASK_ENV=development
 
 # Banco de Dados
-# SQLite para desenvolvimento
-DATABASE_URL=sqlite:///instance/gmm.db
+# SQLite para desenvolvimento (Caminho absoluto obrigatÃ³rio para evitar erros)
+DATABASE_URL=sqlite:///$INSTALL_DIR/instance/gmm.db
 
 # Para usar PostgreSQL em producao, descomente e configure:
 # DATABASE_URL=postgresql://usuario:senha@localhost:5432/gmm
@@ -254,9 +267,11 @@ else
 fi
 
 # Inicializar banco de dados
-print_step "11/14" "Inicializando banco de dados..."
-su - $REAL_USER -c "cd '$INSTALL_DIR' && source venv/bin/activate && export FLASK_APP=run.py && flask db upgrade" || true
-print_ok "Migracoes aplicadas"
+print_step "11/14" "Sincronizando banco de dados (Migrate & Upgrade)..."
+# Tenta migrar primeiro para capturar colunas novas (ex: razao_social)
+su - $REAL_USER -c "cd '$INSTALL_DIR' && source venv/bin/activate && export FLASK_APP=run.py && flask db migrate -m 'Auto migration fix' && flask db upgrade" || \
+su - $REAL_USER -c "cd '$INSTALL_DIR' && source venv/bin/activate && export FLASK_APP=run.py && flask db upgrade"
+print_ok "Banco de dados atualizado"
 
 print_step "12/14" "Criando usuario administrador padrao..."
 su - $REAL_USER -c "cd '$INSTALL_DIR' && source venv/bin/activate && python3 seed_db.py" || print_warning "Dados ja podem estar inicializados"

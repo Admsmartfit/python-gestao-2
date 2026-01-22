@@ -62,7 +62,17 @@ def nova_os():
 
     unidades = Unidade.query.filter_by(ativa=True).all()
     tecnicos = Usuario.query.filter(Usuario.tipo.in_(['tecnico', 'admin'])).all()
-    return render_template('os_nova.html', unidades=unidades, tecnicos=tecnicos)
+
+    # Suporte para pré-seleção via query string (QR Code)
+    equipamento_id = request.args.get('equipamento_id', type=int)
+    equipamento_preselect = None
+    if equipamento_id:
+        equipamento_preselect = Equipamento.query.get(equipamento_id)
+
+    return render_template('os_nova.html',
+                          unidades=unidades,
+                          tecnicos=tecnicos,
+                          equipamento_preselect=equipamento_preselect)
     
 @bp.route('/<int:id>', methods=['GET'])
 @login_required

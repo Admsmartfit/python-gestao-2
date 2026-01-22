@@ -50,11 +50,23 @@ class EstadoConversa(db.Model):
     contexto = db.Column(db.Text) # JSON String
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    # Novos campos para identificação do usuário
+    usuario_tipo = db.Column(db.String(20), nullable=True)  # 'terceirizado', 'usuario', 'admin', 'tecnico', 'comum'
+    usuario_id = db.Column(db.Integer, nullable=True)  # ID do terceirizado ou usuário
+    ordem_servico_id = db.Column(db.Integer, db.ForeignKey('ordens_servico.id'), nullable=True)  # Para fluxos de OS
+
     def set_contexto(self, data):
         self.contexto = json.dumps(data)
 
     def get_contexto(self):
         return json.loads(self.contexto) if self.contexto else {}
+
+    def limpar_estado(self):
+        """Limpa o estado da conversa para o estado inicial."""
+        self.estado_atual = 'inicio'
+        self.contexto = None
+        self.chamado_id = None
+        self.ordem_servico_id = None
 
 class ConfiguracaoWhatsApp(db.Model):
     __tablename__ = 'whatsapp_configuracao'

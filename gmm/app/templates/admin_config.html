@@ -709,7 +709,45 @@
 
 <script>
     function abrirCatalogo(id, nome) {
-        // ... (remaining implementation unchanged)
+        // Definir o ID do fornecedor no formulário de vincular peça
+        document.getElementById('inputFornecedorId').value = id;
+
+        // Atualizar título do modal
+        document.getElementById('tituloCatalogo').textContent = 'Catálogo - ' + nome;
+
+        // Mostrar loading na tabela
+        const tabela = document.getElementById('tabelaPecasFornecedor');
+        tabela.innerHTML = '<tr><td colspan="4" class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary" role="status"></div> Carregando...</td></tr>';
+
+        // Abrir o modal
+        const modal = new bootstrap.Modal(document.getElementById('modalGerenciarCatalogo'));
+        modal.show();
+
+        // Buscar peças do fornecedor via API
+        fetch('/admin/api/fornecedores/' + id + '/pecas')
+            .then(response => response.json())
+            .then(data => {
+                if (data.length === 0) {
+                    tabela.innerHTML = '<tr><td colspan="4" class="text-center py-3 text-muted">Nenhuma peça vinculada a este fornecedor.</td></tr>';
+                } else {
+                    let html = '';
+                    data.forEach((item, index) => {
+                        html += `
+                            <tr>
+                                <td>${index + 1}</td>
+                                <td>${item.nome}</td>
+                                <td>R$ ${parseFloat(item.preco).toFixed(2).replace('.', ',')}</td>
+                                <td>${item.prazo} dias</td>
+                            </tr>
+                        `;
+                    });
+                    tabela.innerHTML = html;
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao buscar peças:', error);
+                tabela.innerHTML = '<tr><td colspan="4" class="text-center py-3 text-danger">Erro ao carregar peças.</td></tr>';
+            });
     }
 
     function editarTerceirizado(id, nome, empresa, cnpj, telefone, email, especialidades, global, unidades) {

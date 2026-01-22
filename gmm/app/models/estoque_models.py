@@ -58,6 +58,7 @@ class OrdemServico(db.Model):
     
     data_abertura = db.Column(db.DateTime, default=datetime.utcnow)
     data_conclusao = db.Column(db.DateTime, nullable=True)
+    origem_criacao = db.Column(db.String(20), default='web') # web, whatsapp_bot
     
     # Feedback (RF-014)
     feedback_rating = db.Column(db.Integer, nullable=True) # 1-5
@@ -199,6 +200,27 @@ class PedidoCompra(db.Model):
     recebedor = db.relationship('Usuario', foreign_keys=[recebedor_id])
     unidade_destino = db.relationship('Unidade', foreign_keys=[unidade_destino_id])
 
+class SolicitacaoPeca(db.Model):
+    """Solicitação de peça para OS via WhatsApp"""
+    __tablename__ = 'solicitacoes_peca'
+    id = db.Column(db.Integer, primary_key=True)
+    ordem_servico_id = db.Column(db.Integer, db.ForeignKey('ordens_servico.id'), nullable=False)
+    estoque_id = db.Column(db.Integer, db.ForeignKey('estoque.id'), nullable=False)
+    quantidade = db.Column(db.Numeric(10, 3), nullable=False)
+    status = db.Column(db.String(30), default='aguardando_separacao')  # aguardando_separacao, separado, entregue, cancelado
+    solicitante_id = db.Column(db.Integer, nullable=True)  # ID do terceirizado
+
+    # Rastreamento
+    criado_em = db.Column(db.DateTime, default=datetime.utcnow)
+    separado_em = db.Column(db.DateTime, nullable=True)
+    separado_por_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    entregue_em = db.Column(db.DateTime, nullable=True)
+
+    ordem_servico = db.relationship('OrdemServico', backref='solicitacoes_peca')
+    estoque = db.relationship('Estoque')
+    separado_por = db.relationship('Usuario', foreign_keys=[separado_por_id])
+
+
 class MovimentacaoEstoque(db.Model):
     __tablename__ = 'movimentacoes_estoque'
     id = db.Column(db.Integer, primary_key=True)
@@ -206,8 +228,8 @@ class MovimentacaoEstoque(db.Model):
     estoque_id = db.Column(db.Integer, db.ForeignKey('estoque.id'), nullable=False)
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     # [NOVO] Rastrear onde ocorreu
-    unidade_id = db.Column(db.Integer, db.ForeignKey('unidades.id'), nullable=True) 
-    
+    unidade_id = db.Column(db.Integer, db.ForeignKey('unidades.id'), nullable=True)
+
     tipo_movimentacao = db.Column(db.String(20), nullable=False)
     quantidade = db.Column(db.Numeric(10, 3), nullable=False)
     observacao = db.Column(db.String(255), nullable=True)

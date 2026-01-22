@@ -307,7 +307,27 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Fotos do Resultado</label>
-                        <input type="file" name="fotos_depois" class="form-control" multiple accept="image/*">
+
+                        <!-- Botões de ação para fotos -->
+                        <div class="d-flex gap-2 mb-2">
+                            <button type="button" class="btn btn-outline-primary btn-sm flex-grow-1" onclick="FotosConclusao.tirarFoto()">
+                                <i class="bi bi-camera-fill me-1"></i>Câmera
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm flex-grow-1" onclick="FotosConclusao.escolherArquivos()">
+                                <i class="bi bi-image me-1"></i>Galeria
+                            </button>
+                        </div>
+
+                        <!-- Inputs ocultos -->
+                        <input type="file" id="inputCameraConclusao" accept="image/*" capture="environment" class="d-none" onchange="FotosConclusao.adicionarFotoCapturada(this)">
+                        <input type="file" id="inputGaleriaConclusao" accept="image/*" multiple class="d-none" onchange="FotosConclusao.adicionarFotosGaleria(this)">
+                        <input type="file" name="fotos_depois" id="inputFotosConclusao" multiple accept="image/*" class="d-none">
+
+                        <!-- Preview -->
+                        <div id="previewFotosConclusao" class="d-flex gap-2 flex-wrap mt-2"></div>
+                        <div id="contadorFotosConclusao" class="text-muted small mt-1 d-none">
+                            <i class="bi bi-images me-1"></i><span id="numFotosConclusao">0</span> foto(s)
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer border-0 pt-0">
@@ -1085,6 +1105,101 @@
             sugestoesDiv.innerHTML = '';
         }
     });
+
+    // === MÓDULO DE FOTOS PARA CONCLUSÃO ===
+    const FotosConclusao = (function() {
+        let fotosArray = [];
+
+        function tirarFoto() {
+            document.getElementById('inputCameraConclusao').click();
+        }
+
+        function escolherArquivos() {
+            document.getElementById('inputGaleriaConclusao').click();
+        }
+
+        function adicionarFotoCapturada(input) {
+            if (input.files && input.files[0]) {
+                adicionarFoto(input.files[0]);
+                input.value = '';
+            }
+        }
+
+        function adicionarFotosGaleria(input) {
+            if (input.files) {
+                for (let file of input.files) {
+                    adicionarFoto(file);
+                }
+                input.value = '';
+            }
+        }
+
+        function adicionarFoto(file) {
+            const index = fotosArray.length;
+            fotosArray.push(file);
+
+            const container = document.getElementById('previewFotosConclusao');
+            const wrapper = document.createElement('div');
+            wrapper.className = 'position-relative';
+            wrapper.id = `foto-conclusao-${index}`;
+            wrapper.style.cssText = 'width: 70px; height: 70px;';
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                wrapper.innerHTML = `
+                    <img src="${e.target.result}" class="rounded border shadow-sm"
+                         style="width: 100%; height: 100%; object-fit: cover;">
+                    <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 rounded-circle p-0"
+                            style="width: 20px; height: 20px; line-height: 1; font-size: 10px;"
+                            onclick="FotosConclusao.removerFoto(${index})">
+                        <i class="bi bi-x"></i>
+                    </button>
+                `;
+            };
+            reader.readAsDataURL(file);
+            container.appendChild(wrapper);
+
+            atualizarInputForm();
+            atualizarContador();
+        }
+
+        function removerFoto(index) {
+            fotosArray[index] = null;
+            const preview = document.getElementById(`foto-conclusao-${index}`);
+            if (preview) preview.remove();
+            atualizarInputForm();
+            atualizarContador();
+        }
+
+        function atualizarInputForm() {
+            const dt = new DataTransfer();
+            fotosArray.forEach(file => {
+                if (file) dt.items.add(file);
+            });
+            document.getElementById('inputFotosConclusao').files = dt.files;
+        }
+
+        function atualizarContador() {
+            const count = fotosArray.filter(f => f !== null).length;
+            const contador = document.getElementById('contadorFotosConclusao');
+            const numFotos = document.getElementById('numFotosConclusao');
+
+            if (count > 0) {
+                contador.classList.remove('d-none');
+                numFotos.textContent = count;
+            } else {
+                contador.classList.add('d-none');
+            }
+        }
+
+        return {
+            tirarFoto,
+            escolherArquivos,
+            adicionarFotoCapturada,
+            adicionarFotosGaleria,
+            removerFoto
+        };
+    })();
 </script>
 
 <div class="modal fade" id="modalEditarOS" tabindex="-1">
