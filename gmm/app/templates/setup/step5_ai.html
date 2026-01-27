@@ -1,0 +1,67 @@
+{% extends "base_setup.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="progress-steps mb-4">
+        <div class="step completed"><div class="step-circle"><i class="bi bi-check"></i></div><div class="step-label">Ambiente</div></div>
+        <div class="step completed"><div class="step-circle"><i class="bi bi-check"></i></div><div class="step-label">Segurança</div></div>
+        <div class="step completed"><div class="step-circle"><i class="bi bi-check"></i></div><div class="step-label">Banco</div></div>
+        <div class="step completed"><div class="step-circle"><i class="bi bi-check"></i></div><div class="step-label">Conectividade</div></div>
+        <div class="step active"><div class="step-circle">5</div><div class="step-label">IA</div></div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-cpu"></i> Etapa 5: Inteligência Artificial (Opcional)</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="alert alert-info">
+                            <i class="bi bi-lightbulb"></i>
+                            <strong>Esta etapa é opcional.</strong> Se não configurar agora,
+                            as seguintes funcionalidades não estarão disponíveis:
+                            <ul class="mb-0 mt-2">
+                                <li>Transcrição automática de áudios do WhatsApp</li>
+                                <li>Abertura de OS por comando de voz</li>
+                                <li>Chatbot inteligente para responder dúvidas</li>
+                            </ul>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="bi bi-cpu"></i> OpenAI API Key
+                            </label>
+                            <input type="password" class="form-control" name="openai_api_key"
+                                   id="openaiApiKey" placeholder="sk-proj-...">
+                            <small class="text-muted">
+                                Obtenha em: <a href="https://platform.openai.com/api-keys" target="_blank">
+                                platform.openai.com/api-keys
+                                </a>
+                            </small>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('setup.step4_connectivity') }}" class="btn btn-secondary">← Voltar</a>
+                            <button type="submit" class="btn btn-success">Finalizar Setup →</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Card de Preços -->
+            <div class="card mt-3 border-warning bg-white">
+                <div class="card-body">
+                    <h6 class="text-warning"><i class="bi bi-cash-coin"></i> Custos Estimados da OpenAI</h6>
+                    <table class="table table-sm mb-0">
+                        <tr><td>Transcrição de Áudio (Whisper)</td><td>$0.006 / minuto</td></tr>
+                        <tr><td>Chatbot (GPT-3.5 Turbo)</td><td>$0.002 / 1K tokens</td></tr>
+                        <tr><td colspan="2"><strong>Estimativa Mensal (100 áudios + 1000 msgs): ~$5-10 USD</strong></td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

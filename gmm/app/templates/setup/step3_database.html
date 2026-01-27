@@ -1,0 +1,115 @@
+{% extends "base_setup.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="progress-steps mb-4">
+        <div class="step completed"><div class="step-circle"><i class="bi bi-check"></i></div><div class="step-label">Ambiente</div></div>
+        <div class="step completed"><div class="step-circle"><i class="bi bi-check"></i></div><div class="step-label">Segurança</div></div>
+        <div class="step active"><div class="step-circle">3</div><div class="step-label">Banco</div></div>
+        <div class="step"><div class="step-circle">4</div><div class="step-label">Conectividade</div></div>
+        <div class="step"><div class="step-circle">5</div><div class="step-label">IA</div></div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-database"></i> Etapa 3: Banco de Dados</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="dbForm">
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Escolha o Banco de Dados</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="db_type" id="dbSqlite" value="sqlite" checked onchange="toggleDbFields()">
+                                <label class="form-check-label" for="dbSqlite">
+                                    <strong>SQLite</strong>
+                                    <small class="text-muted d-block">Ideal para desenvolvimento (até 50 usuários)</small>
+                                </label>
+                            </div>
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="radio" name="db_type" id="dbPostgres" value="postgresql" onchange="toggleDbFields()">
+                                <label class="form-check-label" for="dbPostgres">
+                                    <strong>PostgreSQL</strong>
+                                    <small class="text-muted d-block">Produção (alta concorrência, backups, replicação)</small>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div id="postgresFields" class="d-none">
+                            <div class="row">
+                                <div class="col-md-8 mb-3">
+                                    <label class="form-label">Host</label>
+                                    <input type="text" class="form-control" name="pg_host" placeholder="localhost" value="localhost">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Porta</label>
+                                    <input type="number" class="form-control" name="pg_port" placeholder="5432" value="5432">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Nome do Banco</label>
+                                <input type="text" class="form-control" name="pg_database" placeholder="gmm_producao">
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Usuário</label>
+                                    <input type="text" class="form-control" name="pg_user" placeholder="postgres">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Senha</label>
+                                    <input type="password" class="form-control" name="pg_password">
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-info btn-sm" onclick="testDatabaseConnection()">
+                                <i class="bi bi-plug"></i> Testar Conexão
+                            </button>
+                            <span id="testResult" class="ms-2"></span>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('setup.step2_security') }}" class="btn btn-secondary">← Voltar</a>
+                            <button type="submit" class="btn btn-primary">Avançar →</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleDbFields() {
+    const isPostgres = document.getElementById('dbPostgres').checked;
+    document.getElementById('postgresFields').classList.toggle('d-none', !isPostgres);
+}
+
+function testDatabaseConnection() {
+    const resultSpan = document.getElementById('testResult');
+    resultSpan.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Testando...';
+
+    const data = {
+        db_type: document.querySelector('input[name="db_type"]:checked').value,
+        host: document.querySelector('input[name="pg_host"]').value,
+        port: document.querySelector('input[name="pg_port"]').value,
+        user: document.querySelector('input[name="pg_user"]').value,
+        password: document.querySelector('input[name="pg_password"]').value,
+        database: document.querySelector('input[name="pg_database"]').value
+    };
+
+    fetch('{{ url_for("setup.test_database") }}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    })
+    .then(res => res.json())
+    .then(result => {
+        if (result.success) {
+            resultSpan.innerHTML = `<span class="badge bg-success">${result.message}</span>`;
+        } else {
+            resultSpan.innerHTML = `<span class="badge bg-danger">Erro: ${result.message}</span>`;
+        }
+    });
+}
+</script>
+{% endblock %}

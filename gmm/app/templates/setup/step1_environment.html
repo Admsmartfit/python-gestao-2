@@ -1,0 +1,109 @@
+{% extends "base_setup.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Progress Steps -->
+    <div class="progress-steps mb-4">
+        <div class="step active">
+            <div class="step-circle">1</div>
+            <div class="step-label">Ambiente</div>
+        </div>
+        <div class="step">
+            <div class="step-circle">2</div>
+            <div class="step-label">Segurança</div>
+        </div>
+        <div class="step">
+            <div class="step-circle">3</div>
+            <div class="step-label">Banco</div>
+        </div>
+        <div class="step">
+            <div class="step-circle">4</div>
+            <div class="step-label">Conectividade</div>
+        </div>
+        <div class="step">
+            <div class="step-circle">5</div>
+            <div class="step-label">IA</div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-laptop"></i> Etapa 1: Verificação de Ambiente</h4>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">Verificando pré-requisitos do sistema...</p>
+
+                    <!-- Checklist de Verificações -->
+                    <ul class="list-group">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-python"></i> Python 3.8+</span>
+                            {% if checks.python_version %}
+                            <span class="badge bg-success">✓ OK</span>
+                            {% else %}
+                            <span class="badge bg-danger">✗ Erro</span>
+                            {% endif %}
+                        </li>
+
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-shield-lock"></i> Permissão de Escrita</span>
+                            {% if checks.write_permission %}
+                            <span class="badge bg-success">✓ OK</span>
+                            {% else %}
+                            <span class="badge bg-danger">✗ Erro</span>
+                            <small class="text-danger d-block">Execute: chmod +w .</small>
+                            {% endif %}
+                        </li>
+
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-database"></i> Redis (Celery)</span>
+                            {% if checks.redis_running %}
+                            <span class="badge bg-success">✓ OK</span>
+                            {% else %}
+                            <span class="badge bg-warning">⚠ Opcional</span>
+                            <small class="text-muted d-block">Inicie: sudo systemctl start redis</small>
+                            {% endif %}
+                        </li>
+
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-hdd"></i> Espaço em Disco (1GB+)</span>
+                            {% if checks.disk_space %}
+                            <span class="badge bg-success">✓ OK</span>
+                            {% else %}
+                            <span class="badge bg-danger">✗ Insuficiente</span>
+                            {% endif %}
+                        </li>
+                    </ul>
+
+                    <!-- Botões de Navegação -->
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{{ url_for('setup.welcome') }}" class="btn btn-secondary">← Voltar</a>
+                        {% if checks.python_version and checks.write_permission %}
+                        <a href="{{ url_for('setup.step2_security') }}" class="btn btn-primary">Avançar →</a>
+                        {% else %}
+                        <button class="btn btn-primary" disabled>Corrija os erros para continuar</button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card de Ajuda -->
+            <div class="card mt-3 border-info bg-white">
+                <div class="card-body">
+                    <h6 class="text-info"><i class="bi bi-info-circle"></i> Comandos Úteis</h6>
+                    <pre class="bg-light p-2 rounded mb-0"><code># Verificar Python
+python --version
+
+# Instalar Redis (Linux)
+sudo apt-get install redis-server
+sudo systemctl start redis
+
+# Dar permissão de escrita
+chmod +w .</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

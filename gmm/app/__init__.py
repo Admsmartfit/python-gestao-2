@@ -1,9 +1,11 @@
-from flask import Flask, redirect, url_for
+from flask import Flask, redirect, url_for, request
 from app.extensions import db, login_manager, migrate
 from app.models.models import Usuario
 from celery import Celery
 from config import Config
 from datetime import datetime
+from pathlib import Path
+import os
 
 def make_celery(app):
     celery = Celery(
@@ -21,42 +23,69 @@ def make_celery(app):
 
 def create_app():
     app = Flask(__name__)
-    app.config.from_object('config.Config')
 
-    db.init_app(app)
-    login_manager.init_app(app)
-    migrate.init_app(app, db)
+    # VERIFICAÇÃO DE SETUP
+    env_file = Path(__file__).parent.parent / '.env'
+    setup_lock = Path(__file__).parent.parent / 'instance' / 'setup.lock'
 
-    # Inicializa Celery
-    app.celery = make_celery(app)
+    # Registrar blueprint de setup ANTES de verificar configurações
+    from app.routes import setup as setup_module
+    app.register_blueprint(setup_module.bp)
 
-    @app.context_processor
-    def inject_now():
-        return {'hoje': datetime.utcnow()}
+    # Configurar secret key temporária para o setup wizard
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'temporary-setup-key-change-me')
 
-    @login_manager.user_loader
-    def load_user(user_id):
-        return Usuario.query.get(int(user_id))
+    # Se .env não existe e não estamos na rota de setup, redirecionar
+    @app.before_request
+    def check_setup():
+        if not env_file.exists() and not request.path.startswith('/setup') and not request.path.startswith('/static'):
+            return redirect(url_for('setup.welcome'))
 
-    # Registrar Blueprints
-    # Importamos todos os módulos de rotas aqui para evitar erros de importação circular
-    from app.routes import (
-        auth,
-        ponto,
-        admin,
-        os,
-        terceirizados,
-        analytics,
-        whatsapp,
-        webhook,
-        admin_whatsapp,
-        equipamentos,
-        search,
-        notifications,
-        compras,
-        estoque,
-        manutencao
-    )
+        # Se setup já foi feito, bloquear acesso à rota /setup
+        if env_file.exists() and request.path.startswith('/setup'):
+            if setup_lock.exists():
+                return "Setup já foi concluído. Delete o arquivo .env para reconfigurar.", 403
+
+    # Se .env existe, carregar configurações normalmente
+    if env_file.exists():
+        from dotenv import load_dotenv
+        load_dotenv(env_file)
+        app.config.from_object('config.Config')
+
+        db.init_app(app)
+        login_manager.init_app(app)
+        migrate.init_app(app, db)
+
+        # Inicializa Celery
+        app.celery = make_celery(app)
+
+        @app.context_processor
+        def inject_now():
+            return {'hoje': datetime.utcnow()}
+
+        @login_manager.user_loader
+        def load_user(user_id):
+            return Usuario.query.get(int(user_id))
+
+        # Registrar Blueprints
+        # Importamos todos os módulos de rotas aqui para evitar erros de importação circular
+        from app.routes import (
+            auth,
+            ponto,
+            admin,
+            os,
+            terceirizados,
+            analytics,
+            whatsapp,
+            webhook,
+            admin_whatsapp,
+            equipamentos,
+            search,
+            notifications,
+            compras,
+            estoque,
+            manutencao
+        )
     
     app.register_blueprint(auth.bp)
     app.register_blueprint(ponto.bp)

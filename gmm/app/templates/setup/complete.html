@@ -1,0 +1,108 @@
+{% extends "base_setup.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            {% if env_path %}
+            <!-- Setup Concluído -->
+            <div class="card shadow-sm border-success">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0"><i class="bi bi-check-circle"></i> Setup Concluído!</h4>
+                </div>
+                <div class="card-body">
+                    <p class="lead">Configuração salva com sucesso em:</p>
+                    <code class="bg-light p-2 d-block rounded">{{ env_path }}</code>
+
+                    <div class="alert alert-warning mt-3">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>IMPORTANTE:</strong> Reinicie o servidor Flask para aplicar as mudanças.
+                    </div>
+
+                    <h5 class="mt-4">Próximos Passos:</h5>
+                    <ol>
+                        <li><strong>Reinicie o Flask:</strong>
+                            <pre class="bg-dark text-white p-2 rounded mt-2"><code># Pressione Ctrl+C e execute novamente:
+python run.py</code></pre>
+                        </li>
+                        <li><strong>Execute as migrações do banco:</strong>
+                            <pre class="bg-dark text-white p-2 rounded"><code>flask db upgrade</code></pre>
+                        </li>
+                        <li><strong>Crie o usuário admin inicial:</strong>
+                            <pre class="bg-dark text-white p-2 rounded"><code>flask create-admin</code></pre>
+                        </li>
+                        <li><strong>Acesse o sistema:</strong>
+                            <a href="/login" class="btn btn-primary mt-2">Ir para Login</a>
+                        </li>
+                    </ol>
+
+                    <div class="alert alert-info mt-4">
+                        <i class="bi bi-shield-lock"></i>
+                        <strong>Segurança:</strong> O setup está bloqueado. Para reconfigurar, delete o arquivo .env
+                    </div>
+                </div>
+            </div>
+
+            {% else %}
+            <!-- Confirmação Final -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-clipboard-check"></i> Revisão Final</h4>
+                </div>
+                <div class="card-body">
+                    <p>Confirme as configurações antes de salvar:</p>
+
+                    <table class="table table-bordered">
+                        <tr>
+                            <th>Banco de Dados</th>
+                            <td>
+                                <span class="badge bg-info">{{ summary.database.upper() }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>WhatsApp</th>
+                            <td>
+                                {% if summary.whatsapp %}
+                                <span class="badge bg-success">✓ Configurado</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Não configurado</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Email</th>
+                            <td>
+                                {% if summary.email %}
+                                <span class="badge bg-success">✓ Configurado</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Não configurado</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Inteligência Artificial</th>
+                            <td>
+                                {% if summary.ai %}
+                                <span class="badge bg-success">✓ Configurado</span>
+                                {% else %}
+                                <span class="badge bg-warning">Opcional - Não configurado</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+
+                    <form method="POST">
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('setup.step5_ai') }}" class="btn btn-secondary">← Voltar</a>
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="bi bi-save"></i> Salvar e Finalizar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

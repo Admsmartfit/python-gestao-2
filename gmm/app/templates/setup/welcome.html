@@ -1,0 +1,79 @@
+{% extends "base_setup.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-lg">
+                <div class="card-body p-5 text-center">
+                    <div class="mb-4">
+                        <i class="bi bi-rocket-takeoff" style="font-size: 5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                    </div>
+
+                    <h1 class="mb-3">Bem-vindo ao GMM!</h1>
+                    <p class="lead text-muted mb-4">
+                        Sistema de Gestão de Manutenção
+                    </p>
+
+                    <p class="text-muted mb-4">
+                        Este assistente irá guiá-lo através da configuração inicial do sistema.
+                        Você precisará configurar:
+                    </p>
+
+                    <div class="row g-3 mb-5">
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded">
+                                <i class="bi bi-shield-check text-primary fs-3"></i>
+                                <h6 class="mt-2 mb-0">Segurança</h6>
+                                <small class="text-muted">Chaves criptográficas</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded">
+                                <i class="bi bi-database text-success fs-3"></i>
+                                <h6 class="mt-2 mb-0">Banco de Dados</h6>
+                                <small class="text-muted">SQLite ou PostgreSQL</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded">
+                                <i class="bi bi-whatsapp text-success fs-3"></i>
+                                <h6 class="mt-2 mb-0">WhatsApp</h6>
+                                <small class="text-muted">Notificações via MegaAPI</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded">
+                                <i class="bi bi-envelope text-info fs-3"></i>
+                                <h6 class="mt-2 mb-0">Email</h6>
+                                <small class="text-muted">SMTP/IMAP</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info text-start">
+                        <i class="bi bi-clock"></i>
+                        <strong>Tempo estimado:</strong> 5-10 minutos
+                    </div>
+
+                    <a href="{{ url_for('setup.step1_environment') }}" class="btn btn-primary btn-lg px-5">
+                        <i class="bi bi-arrow-right-circle"></i> Começar Configuração
+                    </a>
+                </div>
+            </div>
+
+            <div class="card mt-3 bg-white bg-opacity-90">
+                <div class="card-body">
+                    <h6><i class="bi bi-info-circle"></i> Requisitos do Sistema</h6>
+                    <ul class="small mb-0">
+                        <li>Python 3.8 ou superior</li>
+                        <li>Permissão de escrita no diretório</li>
+                        <li>Redis (opcional, para tarefas assíncronas)</li>
+                        <li>1GB de espaço em disco</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
