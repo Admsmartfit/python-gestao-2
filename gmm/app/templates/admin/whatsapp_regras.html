@@ -141,9 +141,35 @@
                     </div>
 
                     <div class="mb-3 d-none bg-light p-3 rounded" id="campoFuncao">
-                        <label class="form-label small fw-bold">Nome da Função</label>
-                        <input type="text" class="form-control border-0" id="funcaoSistema"
-                            placeholder="Ex: criar_pedido">
+                        <label class="form-label small fw-bold">Função do Sistema</label>
+                        <select class="form-select border-0" id="funcaoSistema">
+                            <option value="">Selecione uma função</option>
+                            <optgroup label="📋 Menu">
+                                <option value="exibir_menu_principal">Exibir Menu Principal</option>
+                                <option value="exibir_ajuda">Exibir Ajuda/Comandos</option>
+                            </optgroup>
+                            <optgroup label="👨‍💼 Funções Administrativas">
+                                <option value="status_sistema">Ver Resumo do Sistema</option>
+                                <option value="listar_pedidos_pendentes">Listar Pedidos Pendentes</option>
+                                <option value="listar_chamados_abertos">Listar Chamados em Aberto</option>
+                                <option value="relatorio_sla">Relatório de SLA (Prazos)</option>
+                                <option value="listar_terceirizados_ativos">Listar Terceirizados Ativos</option>
+                            </optgroup>
+                            <optgroup label="🔧 Funções de Técnico">
+                                <option value="listar_minhas_os">Listar Minhas Ordens de Serviço</option>
+                                <option value="iniciar_solicitacao_peca">Iniciar Solicitação de Peça</option>
+                                <option value="consultar_estoque">Consultar Estoque</option>
+                                <option value="reportar_problema">Reportar Problema</option>
+                            </optgroup>
+                            <optgroup label="👤 Funções de Usuário">
+                                <option value="abrir_chamado">Abrir Novo Chamado</option>
+                                <option value="consultar_meus_chamados">Ver Meus Chamados</option>
+                                <option value="falar_com_suporte">Encaminhar para Suporte</option>
+                            </optgroup>
+                        </select>
+                        <div class="form-text small mt-2">
+                            <strong>Dica:</strong> A função será executada automaticamente quando a palavra-chave for detectada.
+                        </div>
                     </div>
                 </form>
             </div>

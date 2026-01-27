@@ -41,20 +41,21 @@ def create_app():
     # Registrar Blueprints
     # Importamos todos os módulos de rotas aqui para evitar erros de importação circular
     from app.routes import (
-        auth, 
-        ponto, 
-        admin, 
-        os, 
-        terceirizados, 
-        analytics, 
-        whatsapp, 
-        webhook, 
-        admin_whatsapp, 
-        equipamentos, 
-        search, 
+        auth,
+        ponto,
+        admin,
+        os,
+        terceirizados,
+        analytics,
+        whatsapp,
+        webhook,
+        admin_whatsapp,
+        equipamentos,
+        search,
         notifications,
         compras,
-        estoque
+        estoque,
+        manutencao
     )
     
     app.register_blueprint(auth.bp)
@@ -66,15 +67,16 @@ def create_app():
     app.register_blueprint(whatsapp.bp)
     app.register_blueprint(webhook.bp)
     app.register_blueprint(admin_whatsapp.bp)
-    
+
     # Novo Módulo de Equipamentos
     app.register_blueprint(equipamentos.bp)
-    
+
     # Módulos de Utilidade
     app.register_blueprint(search.bp)
     app.register_blueprint(notifications.bp)
     app.register_blueprint(compras.bp)
     app.register_blueprint(estoque.bp)
+    app.register_blueprint(manutencao.bp)
     
     # Rota Raiz
     @app.route('/')

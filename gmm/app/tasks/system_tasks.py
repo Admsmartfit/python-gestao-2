@@ -156,3 +156,100 @@ def detectar_anomalias_equipamentos_task():
             WhatsAppService.enviar_mensagem(g.telefone, msg)
 
     return {"status": "success", "anomalies_found": len(anomalias)}
+
+@shared_task
+def executar_manutencoes_preventivas_task():
+    """
+    Verifica planos de manutenção preventiva vencidos e cria OSs automaticamente.
+    Deve ser executada diariamente.
+    """
+    from app.models.estoque_models import PlanoManutencao, Equipamento, OrdemServico
+    from app.models.models import Usuario
+    from app.services.whatsapp_service import WhatsAppService
+
+    hoje = datetime.utcnow()
+    planos_ativos = PlanoManutencao.query.filter_by(ativo=True).all()
+
+    oss_criadas = []
+    planos_executados = []
+
+    for plano in planos_ativos:
+        # Verificar se o plano está vencido
+        if plano.ultima_execucao:
+            proxima_execucao = plano.ultima_execucao + timedelta(days=plano.frequencia_dias)
+            if proxima_execucao > hoje:
+                continue  # Ainda não venceu
+        # Se nunca foi executado, executar agora
+
+        # Determinar equipamentos afetados
+        equipamentos_afetados = []
+        if plano.equipamento_id:
+            equipamentos_afetados = [plano.equipamento]
+        elif plano.categoria_equipamento:
+            equipamentos_afetados = Equipamento.query.filter_by(
+                categoria=plano.categoria_equipamento,
+                ativo=True
+            ).all()
+
+        if not equipamentos_afetados:
+            continue
+
+        # Criar OSs para cada equipamento
+        for equipamento in equipamentos_afetados:
+            # Buscar um técnico responsável (admin ou gerente)
+            tecnico = Usuario.query.filter(
+                Usuario.tipo.in_(['admin', 'gerente', 'tecnico'])
+            ).first()
+
+            if not tecnico:
+                continue
+
+            os = OrdemServico(
+                tipo='preventiva',
+                prioridade='media',
+                status='aberta',
+                equipamento_id=equipamento.id,
+                unidade_id=equipamento.unidade_id,
+                descricao_problema=f"[MANUTENÇÃO PREVENTIVA] {plano.nome}",
+                observacoes=plano.descricao_procedimento,
+                tecnico_id=tecnico.id,
+                data_abertura=hoje
+            )
+
+            db.session.add(os)
+            oss_criadas.append({
+                'plano': plano.nome,
+                'equipamento': equipamento.nome,
+                'unidade': equipamento.unidade.nome if equipamento.unidade else 'N/A'
+            })
+
+        # Atualizar última execução
+        plano.ultima_execucao = hoje
+        planos_executados.append(plano.nome)
+
+    db.session.commit()
+
+    # Notificar gestores se houver OSs criadas
+    if oss_criadas:
+        msg = f"🔧 *MANUTENÇÕES PREVENTIVAS AGENDADAS*\n\n"
+        msg += f"Total de OSs criadas: {len(oss_criadas)}\n"
+        msg += f"Planos executados: {len(planos_executados)}\n\n"
+        msg += "*Planos:*\n"
+        for plano in set([os['plano'] for os in oss_criadas]):
+            count = len([os for os in oss_criadas if os['plano'] == plano])
+            msg += f"• {plano}: {count} OS(s)\n"
+
+        # Notificar gestores
+        gestores = Usuario.query.filter(
+            Usuario.tipo.in_(['admin', 'gerente']),
+            Usuario.telefone.isnot(None)
+        ).all()
+
+        for g in gestores:
+            WhatsAppService.enviar_mensagem(g.telefone, msg, prioridade=1)
+
+    return {
+        "status": "success",
+        "oss_criadas": len(oss_criadas),
+        "planos_executados": planos_executados
+    }

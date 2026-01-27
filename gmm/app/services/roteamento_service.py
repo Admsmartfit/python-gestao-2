@@ -1391,11 +1391,58 @@ Você receberá um lembrete 1 dia antes.
     @staticmethod
     def _executar_funcao_sistema(funcao_nome: str, entidade, is_usuario=False) -> dict:
         """Executa função do sistema por nome."""
+        # Menu Principal
         if funcao_nome == 'exibir_menu_principal':
             if is_usuario:
                 return RoteamentoService._exibir_menu_usuario(entidade)
             else:
                 return RoteamentoService._exibir_menu_terceirizado(entidade)
+
+        # Funções Administrativas
+        elif funcao_nome == 'status_sistema':
+            return RoteamentoService._status_sistema(entidade)
+        elif funcao_nome == 'listar_pedidos_pendentes':
+            return RoteamentoService._listar_pedidos_pendentes(entidade)
+        elif funcao_nome == 'listar_chamados_abertos':
+            return RoteamentoService._listar_chamados_abertos(entidade)
+        elif funcao_nome == 'relatorio_sla':
+            return RoteamentoService._relatorio_sla(entidade)
+        elif funcao_nome == 'listar_terceirizados_ativos':
+            return RoteamentoService._listar_terceirizados_ativos(entidade)
+
+        # Funções de Técnico/Usuário
+        elif funcao_nome == 'listar_minhas_os':
+            if is_usuario:
+                return RoteamentoService._listar_minhas_os_usuario(entidade)
+            else:
+                return RoteamentoService._listar_minhas_os(entidade)
+        elif funcao_nome == 'iniciar_solicitacao_peca':
+            if is_usuario:
+                return RoteamentoService._iniciar_fluxo_solicitacao_peca_usuario(entidade)
+            else:
+                return RoteamentoService._iniciar_fluxo_solicitacao_peca(entidade)
+        elif funcao_nome == 'consultar_estoque':
+            if is_usuario:
+                return RoteamentoService._consultar_estoque_usuario(entidade)
+            else:
+                return RoteamentoService._consultar_estoque(entidade)
+        elif funcao_nome == 'reportar_problema':
+            return RoteamentoService._reportar_problema(entidade)
+
+        # Funções de Usuário Comum
+        elif funcao_nome == 'abrir_chamado':
+            return RoteamentoService._iniciar_abertura_chamado(entidade)
+        elif funcao_nome == 'consultar_meus_chamados':
+            return RoteamentoService._consultar_meus_chamados(entidade)
+        elif funcao_nome == 'falar_com_suporte':
+            return RoteamentoService._falar_com_suporte(entidade)
+
+        # Ajuda
+        elif funcao_nome == 'exibir_ajuda':
+            if is_usuario:
+                return RoteamentoService._exibir_ajuda_usuario(entidade)
+            else:
+                return {'acao': 'responder', 'resposta': "❓ Digite MENU para ver as opções disponíveis."}
 
         return {'acao': 'responder', 'resposta': f"Função '{funcao_nome}' não implementada."}
 

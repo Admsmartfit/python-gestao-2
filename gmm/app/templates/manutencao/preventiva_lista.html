@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Manutenção Preventiva</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="h4 fw-bold text-dark mb-0">Planos de Manutenção Preventiva</h2>
+            <p class="text-muted small mb-0">Gerenciamento de manutenções recorrentes</p>
+        </div>
+        {% if current_user.tipo in ['admin', 'gerente'] %}
+        <a href="{{ url_for('manutencao.novo_plano') }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-2"></i>Novo Plano
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Alertas de Planos Vencidos -->
+    <div class="row mb-4">
+        {% set planos_vencidos = planos|selectattr('dias_restantes', 'lt', 0)|list %}
+        {% set planos_proximos = planos|selectattr('dias_restantes', 'ge', 0)|selectattr('dias_restantes', 'le', 3)|list %}
+
+        {% if planos_vencidos|length > 0 %}
+        <div class="col-md-6">
+            <div class="alert alert-danger border-0 shadow-sm">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-exclamation-triangle-fill fs-3 me-3"></i>
+                    <div>
+                        <strong>{{ planos_vencidos|length }} plano(s) vencido(s)</strong>
+                        <div class="small">Necessitam execução imediata</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if planos_proximos|length > 0 %}
+        <div class="col-md-6">
+            <div class="alert alert-warning border-0 shadow-sm">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-clock-fill fs-3 me-3"></i>
+                    <div>
+                        <strong>{{ planos_proximos|length }} plano(s) próximo(s)</strong>
+                        <div class="small">Vencem em até 3 dias</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Lista de Planos -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="ps-4">Status</th>
+                            <th>Plano</th>
+                            <th>Aplicação</th>
+                            <th>Frequência</th>
+                            <th>Última Execução</th>
+                            <th>Próxima Execução</th>
+                            <th class="text-end pe-4">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for plano in planos %}
+                        <tr>
+                            <td class="ps-4">
+                                <span class="badge bg-{{ 'success' if plano.ativo else 'secondary' }}">
+                                    {{ 'Ativo' if plano.ativo else 'Inativo' }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="fw-bold">{{ plano.nome }}</div>
+                                {% if plano.descricao_procedimento %}
+                                <div class="small text-muted text-truncate" style="max-width: 300px;">
+                                    {{ plano.descricao_procedimento[:80] }}...
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if plano.equipamento %}
+                                <span class="badge bg-info bg-opacity-10 text-info">
+                                    <i class="bi bi-gear"></i> {{ plano.equipamento.nome }}
+                                </span>
+                                {% elif plano.categoria_equipamento %}
+                                <span class="badge bg-primary bg-opacity-10 text-primary">
+                                    <i class="bi bi-collection"></i> Categoria: {{ plano.categoria_equipamento }}
+                                </span>
+                                {% else %}
+                                <span class="text-muted">Não definido</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>{{ plano.frequencia_dias }}</strong> dias
+                            </td>
+                            <td>
+                                {% if plano.ultima_execucao %}
+                                {{ plano.ultima_execucao.strftime('%d/%m/%Y') }}
+                                {% else %}
+                                <span class="text-muted">Nunca executado</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if plano.proxima_execucao %}
+                                    {% if plano.dias_restantes < 0 %}
+                                    <span class="badge bg-danger">
+                                        <i class="bi bi-exclamation-triangle"></i> Vencido há {{ plano.dias_restantes|abs }} dias
+                                    </span>
+                                    {% elif plano.dias_restantes <= 3 %}
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="bi bi-clock"></i> Em {{ plano.dias_restantes }} dia(s)
+                                    </span>
+                                    {% else %}
+                                    {{ plano.proxima_execucao.strftime('%d/%m/%Y') }}
+                                    <span class="small text-muted">({{ plano.dias_restantes }} dias)</span>
+                                    {% endif %}
+                                {% else %}
+                                <span class="badge bg-secondary">Pendente</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end pe-4">
+                                <button class="btn btn-sm btn-success me-1"
+                                        onclick="executarPlano({{ plano.id }})"
+                                        title="Executar agora (criar OS)">
+                                    <i class="bi bi-play-fill"></i>
+                                </button>
+                                {% if current_user.tipo in ['admin', 'gerente'] %}
+                                <a href="{{ url_for('manutencao.editar_plano', id=plano.id) }}"
+                                   class="btn btn-sm btn-link text-primary me-1"
+                                   title="Editar plano">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <button class="btn btn-sm btn-link text-{{ 'success' if plano.ativo else 'secondary' }} me-1"
+                                        onclick="togglePlano({{ plano.id }})"
+                                        title="{{ 'Desativar' if plano.ativo else 'Ativar' }}">
+                                    <i class="bi bi-toggle-{{ 'on' if plano.ativo else 'off' }}"></i>
+                                </button>
+                                <button class="btn btn-sm btn-link text-danger"
+                                        onclick="excluirPlano({{ plano.id }}, '{{ plano.nome }}')"
+                                        title="Excluir plano">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="bi bi-calendar-check fs-1 d-block mb-3 opacity-25"></i>
+                                <p>Nenhum plano de manutenção preventiva cadastrado</p>
+                                {% if current_user.tipo in ['admin', 'gerente'] %}
+                                <a href="{{ url_for('manutencao.novo_plano') }}" class="btn btn-outline-primary">
+                                    Criar Primeiro Plano
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function executarPlano(id) {
+    if (!confirm('Deseja executar este plano agora? Uma ou mais OSs de manutenção preventiva serão criadas.')) {
+        return;
+    }
+
+    try {
+        const res = await fetch(`/manutencao/preventiva/${id}/executar`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            let resumo = `<strong>${data.mensagem}</strong><br><br>`;
+            if (data.oss_criadas && data.oss_criadas.length > 0) {
+                resumo += '<strong>OSs criadas:</strong><ul>';
+                data.oss_criadas.forEach(os => {
+                    resumo += `<li>${os.equipamento} - ${os.unidade}</li>`;
+                });
+                resumo += '</ul>';
+            }
+
+            if (typeof ToastModule !== 'undefined') {
+                ToastModule.show(resumo, 'success');
+            } else {
+                alert(data.mensagem);
+            }
+
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            alert('Erro: ' + data.erro);
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Erro ao executar plano');
+    }
+}
+
+async function togglePlano(id) {
+    try {
+        const res = await fetch(`/manutencao/preventiva/${id}/toggle`, {
+            method: 'POST'
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Erro: ' + data.erro);
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Erro ao alterar status do plano');
+    }
+}
+
+async function excluirPlano(id, nome) {
+    if (!confirm(`Tem certeza que deseja excluir o plano "${nome}"?\n\nEsta ação não pode ser desfeita.`)) {
+        return;
+    }
+
+    try {
+        const res = await fetch(`/manutencao/preventiva/${id}/excluir`, {
+            method: 'POST'
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            if (typeof ToastModule !== 'undefined') {
+                ToastModule.show(data.mensagem, 'success');
+            }
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            alert('Erro: ' + data.erro);
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Erro ao excluir plano');
+    }
+}
+</script>
+{% endblock %}

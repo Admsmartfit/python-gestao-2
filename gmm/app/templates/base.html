@@ -61,6 +61,12 @@
                         class="nav-link-saas {{ 'active' if 'equipamentos' in request.endpoint }}">
                         <i class="bi bi-hdd-network"></i> Equipamentos
                     </a>
+                    {% if current_user.tipo in ['admin', 'gerente', 'tecnico'] %}
+                    <a href="{{ url_for('manutencao.listar_planos') }}"
+                        class="nav-link-saas {{ 'active' if 'manutencao' in request.endpoint }}">
+                        <i class="bi bi-calendar-check"></i> Manutenção Preventiva
+                    </a>
+                    {% endif %}
                     <a href="{{ url_for('os.painel_estoque') }}"
                         class="nav-link-saas {{ 'active' if 'estoque' in request.endpoint }}">
                         <i class="bi bi-box-seam"></i> Estoque Global

@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('manutencao.listar_planos') }}">Manutenção Preventiva</a></li>
+<li class="breadcrumb-item active">{{ 'Editar' if plano else 'Novo' }} Plano</li>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h4 class="fw-bold mb-0">
+                        {{ 'Editar' if plano else 'Novo' }} Plano de Manutenção Preventiva
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST">
+                        <!-- Nome do Plano -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Nome do Plano <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="nome"
+                                   value="{{ plano.nome if plano else '' }}"
+                                   placeholder="Ex: Lubrificação Semanal de Esteiras"
+                                   required>
+                            <div class="form-text">Nome descritivo para identificar o plano</div>
+                        </div>
+
+                        <!-- Tipo de Aplicação -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Aplicar em <span class="text-danger">*</span></label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="tipo_aplicacao"
+                                       id="tipoEquipamento" value="equipamento"
+                                       {% if plano and plano.equipamento_id %}checked{% elif not plano %}checked{% endif %}
+                                       onchange="toggleAplicacao()">
+                                <label class="form-check-label" for="tipoEquipamento">
+                                    <strong>Equipamento Específico</strong>
+                                    <div class="small text-muted">Aplica apenas a um equipamento</div>
+                                </label>
+                            </div>
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="radio" name="tipo_aplicacao"
+                                       id="tipoCategoria" value="categoria"
+                                       {% if plano and plano.categoria_equipamento %}checked{% endif %}
+                                       onchange="toggleAplicacao()">
+                                <label class="form-check-label" for="tipoCategoria">
+                                    <strong>Categoria de Equipamentos</strong>
+                                    <div class="small text-muted">Aplica a todos os equipamentos de uma categoria</div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Seletor de Equipamento -->
+                        <div class="mb-4" id="campoEquipamento">
+                            <label class="form-label fw-bold">Equipamento</label>
+                            <select class="form-select" name="equipamento_id">
+                                <option value="">Selecione um equipamento</option>
+                                {% for eq in equipamentos %}
+                                <option value="{{ eq.id }}"
+                                        {% if plano and plano.equipamento_id == eq.id %}selected{% endif %}>
+                                    {{ eq.nome }} - {{ eq.unidade.nome if eq.unidade else 'Sem unidade' }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Seletor de Categoria -->
+                        <div class="mb-4 d-none" id="campoCategoria">
+                            <label class="form-label fw-bold">Categoria</label>
+                            <input type="text" class="form-control" name="categoria_equipamento"
+                                   value="{{ plano.categoria_equipamento if plano else '' }}"
+                                   placeholder="Ex: Esteira, Bomba, Transformador">
+                            <div class="form-text">Digite a categoria (ex: Esteira, Bomba, Transformador)</div>
+                        </div>
+
+                        <!-- Frequência -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Frequência (dias) <span class="text-danger">*</span></label>
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <input type="number" class="form-control" name="frequencia_dias"
+                                           value="{{ plano.frequencia_dias if plano else 7 }}"
+                                           min="1" max="365" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm"
+                                                onclick="setFrequencia(7)">Semanal</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm"
+                                                onclick="setFrequencia(15)">Quinzenal</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm"
+                                                onclick="setFrequencia(30)">Mensal</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm"
+                                                onclick="setFrequencia(90)">Trimestral</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-text">Intervalo em dias entre cada execução</div>
+                        </div>
+
+                        <!-- Descrição do Procedimento -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Descrição do Procedimento</label>
+                            <textarea class="form-control" name="descricao_procedimento" rows="6"
+                                      placeholder="Descreva as etapas do procedimento de manutenção...">{{ plano.descricao_procedimento if plano else '' }}</textarea>
+                            <div class="form-text">
+                                Checklist ou instruções que serão incluídas na OS de manutenção.
+                                Pode usar formato de lista (- Item 1, - Item 2, etc.)
+                            </div>
+                        </div>
+
+                        <!-- Informações Adicionais -->
+                        {% if plano and plano.ultima_execucao %}
+                        <div class="alert alert-info">
+                            <strong><i class="bi bi-info-circle me-2"></i>Última Execução:</strong>
+                            {{ plano.ultima_execucao.strftime('%d/%m/%Y às %H:%M') }}
+                        </div>
+                        {% endif %}
+
+                        <!-- Botões -->
+                        <div class="d-flex gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-check-lg me-2"></i>{{ 'Salvar Alterações' if plano else 'Criar Plano' }}
+                            </button>
+                            <a href="{{ url_for('manutencao.listar_planos') }}" class="btn btn-outline-secondary">
+                                Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Card de Ajuda -->
+            <div class="card border-0 shadow-sm mt-4 bg-light">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3"><i class="bi bi-lightbulb me-2"></i>Dicas</h6>
+                    <ul class="small mb-0">
+                        <li><strong>Equipamento Específico:</strong> Use quando quiser manutenção em um equipamento único (ex: Compressor #1)</li>
+                        <li><strong>Categoria:</strong> Use quando quiser aplicar o mesmo plano a vários equipamentos similares (ex: todas as esteiras)</li>
+                        <li><strong>Frequência:</strong> Defina baseado nas recomendações do fabricante ou histórico de falhas</li>
+                        <li><strong>Execução Automática:</strong> O sistema pode criar OSs automaticamente quando o prazo vencer (configurar tarefa agendada)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleAplicacao() {
+    const tipoEquipamento = document.getElementById('tipoEquipamento').checked;
+    const campoEquipamento = document.getElementById('campoEquipamento');
+    const campoCategoria = document.getElementById('campoCategoria');
+
+    if (tipoEquipamento) {
+        campoEquipamento.classList.remove('d-none');
+        campoCategoria.classList.add('d-none');
+    } else {
+        campoEquipamento.classList.add('d-none');
+        campoCategoria.classList.remove('d-none');
+    }
+}
+
+function setFrequencia(dias) {
+    document.querySelector('input[name="frequencia_dias"]').value = dias;
+}
+
+// Inicializar ao carregar a página
+document.addEventListener('DOMContentLoaded', function() {
+    toggleAplicacao();
+});
+</script>
+{% endblock %}
