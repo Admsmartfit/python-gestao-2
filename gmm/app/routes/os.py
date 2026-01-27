@@ -782,4 +782,154 @@ def salvar_feedback(id):
     db.session.commit()
     return jsonify({'success': True, 'msg': 'Avalia��o salva com sucesso'})
 
+# [NOVO] Buscar Prestadores por Palavra-Chave (Especialidade)
+@bp.route('/buscar_prestadores', methods=['POST'])
+@login_required
+def buscar_prestadores():
+    """Busca prestadores por palavra-chave na especialidade"""
+    try:
+        import json
+        palavra_chave = request.json.get('palavra_chave', '').strip().lower()
+        unidade_id = current_user.unidade_id
+
+        if not palavra_chave:
+            return jsonify({'success': False, 'erro': 'Palavra-chave não informada'}), 400
+
+        # Buscar prestadores ativos com a palavra-chave nas especialidades
+        prestadores = Terceirizado.query.filter(
+            Terceirizado.ativo == True
+        ).all()
+
+        resultados = []
+        for p in prestadores:
+            # Verificar se o prestador atende a unidade (global ou específica)
+            atende_unidade = p.abrangencia_global or (unidade_id in [u.id for u in p.unidades])
+
+            if not atende_unidade:
+                continue
+
+            # Buscar palavra-chave nas especialidades (JSON array)
+            especialidades_list = json.loads(p.especialidades) if p.especialidades else []
+            especialidades_str = ' '.join(especialidades_list).lower()
+
+            if palavra_chave in especialidades_str:
+                resultados.append({
+                    'id': p.id,
+                    'nome': p.nome,
+                    'nome_empresa': p.nome_empresa,
+                    'telefone': p.telefone,
+                    'email': p.email,
+                    'especialidades': especialidades_list,
+                    'avaliacao_media': float(p.avaliacao_media or 0),
+                    'tem_whatsapp': bool(p.telefone),
+                    'tem_email': bool(p.email),
+                    'orientacao_contato': p.observacoes if not p.telefone and not p.email else None
+                })
+
+        return jsonify({
+            'success': True,
+            'prestadores': resultados,
+            'total': len(resultados)
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'erro': str(e)}), 500
+
+# [NOVO] Criar Chamados para Múltiplos Prestadores
+@bp.route('/criar_chamados_multiplos', methods=['POST'])
+@login_required
+def criar_chamados_multiplos():
+    """Cria chamado externo para múltiplos prestadores selecionados"""
+    try:
+        from datetime import timedelta
+
+        prestador_ids = request.json.get('prestador_ids', [])
+        os_id = request.json.get('os_id')
+        titulo = request.json.get('titulo')
+        descricao = request.json.get('descricao')
+        prioridade = request.json.get('prioridade', 'media')
+        prazo_dias = int(request.json.get('prazo_dias', 5))  # Default 5 dias
+
+        if not prestador_ids or not titulo or not descricao:
+            return jsonify({'success': False, 'erro': 'Dados incompletos'}), 400
+
+        prazo_combinado = datetime.now() + timedelta(days=prazo_dias)
+        chamados_criados = []
+
+        for prestador_id in prestador_ids:
+            prestador = Terceirizado.query.get(prestador_id)
+            if not prestador or not prestador.ativo:
+                continue
+
+            # Gerar número do chamado
+            ultimo_chamado = ChamadoExterno.query.order_by(ChamadoExterno.id.desc()).first()
+            numero = f"CH{(ultimo_chamado.id + 1):05d}" if ultimo_chamado else "CH00001"
+
+            chamado = ChamadoExterno(
+                numero_chamado=numero,
+                os_id=os_id,
+                terceirizado_id=prestador_id,
+                titulo=titulo,
+                descricao=descricao,
+                prioridade=prioridade,
+                prazo_combinado=prazo_combinado,
+                criado_por=current_user.id,
+                solicitante_id=current_user.id,
+                status='aguardando'
+            )
+
+            db.session.add(chamado)
+            db.session.flush()  # Para obter o ID
+
+            # Enviar notificação via WhatsApp se tiver telefone
+            if prestador.telefone:
+                mensagem = f"""🔧 *NOVA SOLICITAÇÃO DE SERVIÇO*
+
+Chamado: {numero}
+Título: {titulo}
+
+Descrição:
+{descricao}
+
+⏰ Prazo: {prazo_dias} dias
+📅 Data Limite: {prazo_combinado.strftime('%d/%m/%Y')}
+
+Por favor, envie seu orçamento até a data limite."""
+
+                # Criar notificação no histórico
+                notif = HistoricoNotificacao(
+                    chamado_id=chamado.id,
+                    tipo='criacao',
+                    destinatario=prestador.telefone,
+                    mensagem=mensagem,
+                    status_envio='pendente',
+                    direcao='outbound'
+                )
+                db.session.add(notif)
+
+                # Enfileirar envio
+                enviar_whatsapp_task.delay(prestador.telefone, mensagem)
+
+            # Enviar email se tiver e não tiver WhatsApp
+            elif prestador.email:
+                EmailService.enviar_notificacao_chamado(chamado, prestador)
+
+            chamados_criados.append({
+                'numero': numero,
+                'prestador': prestador.nome,
+                'canal': 'WhatsApp' if prestador.telefone else ('Email' if prestador.email else 'Contato Manual')
+            })
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'mensagem': f'{len(chamados_criados)} chamados criados com sucesso',
+            'chamados': chamados_criados
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'erro': str(e)}), 500
+
 

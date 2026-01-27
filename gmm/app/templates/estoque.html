@@ -235,7 +235,7 @@
 </div>
 
 <div class="modal fade" id="modalSolicitarCompra" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header border-0 pb-0">
                 <h5 class="modal-title fw-bold">Solicitar Compra de Peça</h5>
@@ -249,13 +249,52 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Quantidade para Reposição</label>
-                    <input type="number" step="0.01" class="form-control form-control-lg" id="compraQtd" required>
+                    <input type="number" class="form-control form-control-lg" id="compraQtd" required>
+                    <div class="form-text">
+                        <i class="bi bi-info-circle"></i> A quantidade será usada para todas as solicitações
+                    </div>
                 </div>
-                <div class="d-grid mt-4">
-                    <button type="button" onclick="confirmarSolicitacaoCompra()" class="btn btn-danger"
-                        id="btnConfirmarCompra">
-                        Confirmar Solicitação
+
+                <!-- Botão para buscar fornecedores -->
+                <div class="d-grid gap-2 mb-3">
+                    <button type="button" class="btn btn-outline-primary" onclick="buscarFornecedoresItem()">
+                        <i class="bi bi-search me-1"></i> Buscar Fornecedores para Este Item
                     </button>
+                </div>
+
+                <!-- Lista de Fornecedores -->
+                <div id="resultadosFornecedores" class="d-none">
+                    <hr>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            Selecione os Fornecedores (<span id="contadorFornecedoresSelecionados">0</span> selecionados)
+                        </label>
+                        <div id="listaFornecedores" class="border rounded p-2" style="max-height: 300px; overflow-y: auto;">
+                            <!-- Lista será preenchida via JavaScript -->
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info small mb-3">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Solicitações de orçamento serão enviadas automaticamente via WhatsApp ou Email.
+                        <strong>Compras até R$ 500 são aprovadas automaticamente.</strong>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="button" class="btn btn-success" onclick="enviarPedidosMultiplosFornecedores()">
+                            <i class="bi bi-cart-check me-1"></i> Criar Pedidos
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Botão original (fallback) -->
+                <div id="botaoCompraOriginal">
+                    <div class="d-grid mt-4">
+                        <button type="button" onclick="confirmarSolicitacaoCompra()" class="btn btn-danger"
+                            id="btnConfirmarCompra">
+                            Confirmar Solicitação
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -628,6 +667,12 @@
         document.getElementById('compraNomeItem').value = nome;
         document.getElementById('compraQtd').value = qtdMinima;
 
+        // Resetar interface de seleção múltipla
+        document.getElementById('resultadosFornecedores').classList.add('d-none');
+        document.getElementById('botaoCompraOriginal').classList.remove('d-none');
+        document.getElementById('listaFornecedores').innerHTML = '';
+        fornecedoresSelecionados = [];
+
         new bootstrap.Modal(document.getElementById('modalSolicitarCompra')).show();
     }
 
@@ -669,7 +714,144 @@
         }
     }
 
+    // === BUSCA E SELEÇÃO MÚLTIPLA DE FORNECEDORES ===
+    let fornecedoresSelecionados = [];
 
+    async function buscarFornecedoresItem() {
+        const estoqueId = document.getElementById('compraIdItem').value;
+        const qtd = document.getElementById('compraQtd').value;
+
+        if (!qtd || qtd <= 0) {
+            ToastModule.show("Informe a quantidade primeiro", "warning");
+            return;
+        }
+
+        try {
+            const res = await fetch('/compras/buscar_fornecedores', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ estoque_id: estoqueId })
+            });
+            const data = await res.json();
+
+            if (!data.success) {
+                ToastModule.show("Erro: " + data.erro, "danger");
+                return;
+            }
+
+            if (data.fornecedores.length === 0) {
+                ToastModule.show("Nenhum fornecedor cadastrado para este item", "info");
+                return;
+            }
+
+            // Mostrar resultados
+            document.getElementById('resultadosFornecedores').classList.remove('d-none');
+            document.getElementById('botaoCompraOriginal').classList.add('d-none');
+
+            const lista = document.getElementById('listaFornecedores');
+            lista.innerHTML = '';
+
+            data.fornecedores.forEach(forn => {
+                const item = document.createElement('div');
+                item.className = 'form-check p-2 border-bottom';
+
+                // Ícones de contato
+                let iconesContato = '';
+                if (forn.tem_whatsapp) {
+                    iconesContato += '<i class="bi bi-whatsapp text-success" title="WhatsApp"></i> ';
+                }
+                if (forn.tem_email) {
+                    iconesContato += '<i class="bi bi-envelope text-primary" title="Email"></i> ';
+                }
+                if (!forn.tem_whatsapp && !forn.tem_email) {
+                    iconesContato += '<i class="bi bi-telephone text-warning" title="Contato Manual"></i> ';
+                }
+
+                // Preço e prazo
+                const precoInfo = forn.preco_atual
+                    ? `<div class="small text-success">Preço: R$ ${forn.preco_atual.toFixed(2)}</div>`
+                    : '<div class="small text-muted">Preço não cadastrado</div>';
+                const prazoInfo = `<div class="small text-muted">Prazo: ${forn.prazo_dias} dias</div>`;
+
+                item.innerHTML = `
+                    <input class="form-check-input" type="checkbox" value="${forn.id}"
+                           id="forn${forn.id}" onchange="atualizarSelecaoFornecedores()">
+                    <label class="form-check-label w-100" for="forn${forn.id}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>${forn.nome}</strong>
+                                <div class="small">${iconesContato}</div>
+                                ${forn.endereco ? `<div class="small text-muted">${forn.endereco}</div>` : ''}
+                            </div>
+                            <div class="text-end">
+                                ${precoInfo}
+                                ${prazoInfo}
+                            </div>
+                        </div>
+                    </label>
+                `;
+
+                lista.appendChild(item);
+            });
+
+        } catch (e) {
+            console.error(e);
+            ToastModule.show("Erro de conexão", "danger");
+        }
+    }
+
+    function atualizarSelecaoFornecedores() {
+        fornecedoresSelecionados = Array.from(document.querySelectorAll('#listaFornecedores input:checked'))
+            .map(cb => parseInt(cb.value));
+
+        document.getElementById('contadorFornecedoresSelecionados').textContent = fornecedoresSelecionados.length;
+    }
+
+    async function enviarPedidosMultiplosFornecedores() {
+        if (fornecedoresSelecionados.length === 0) {
+            ToastModule.show("Selecione ao menos um fornecedor", "warning");
+            return;
+        }
+
+        const estoqueId = document.getElementById('compraIdItem').value;
+        const quantidade = document.getElementById('compraQtd').value;
+
+        try {
+            const res = await fetch('/compras/criar_pedidos_multiplos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fornecedor_ids: fornecedoresSelecionados,
+                    estoque_id: estoqueId,
+                    quantidade: parseInt(quantidade),
+                    unidade_destino_id: null  // ou pegar da unidade do usuário
+                })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                // Mostrar resumo
+                let resumo = '<div class="mt-2"><strong>Pedidos criados para:</strong><ul>';
+                data.pedidos.forEach(ped => {
+                    resumo += `<li>${ped.fornecedor} - ${ped.status} (${ped.canal})</li>`;
+                });
+                resumo += '</ul></div>';
+
+                ToastModule.show(data.mensagem + resumo, "success", true);
+
+                // Fechar modal e recarregar página
+                setTimeout(() => {
+                    bootstrap.Modal.getInstance(document.getElementById('modalSolicitarCompra')).hide();
+                    location.reload();
+                }, 3000);
+            } else {
+                ToastModule.show("Erro: " + data.erro, "danger");
+            }
+        } catch (e) {
+            console.error(e);
+            ToastModule.show("Erro de conexão", "danger");
+        }
+    }
 
     function abrirModalCompraGeral() {
         document.getElementById('pecaIdCompraGeral').value = '';

@@ -576,49 +576,114 @@
                     </div>
 
                     <div class="tab-pane fade" id="tabServico">
-                        <form action="{{ url_for('os.adicionar_tarefa_externa', id=os.id) }}" method="POST">
+                        <!-- Busca por Especialidade -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Buscar Prestadores por Especialidade</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="buscaEspecialidade"
+                                    placeholder="Ex: elétrico, hidráulico, pintura...">
+                                <button type="button" class="btn btn-primary" onclick="buscarPrestadores()">
+                                    <i class="bi bi-search me-1"></i> Buscar
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Resultados da Busca -->
+                        <div id="resultadosPrestadores" class="d-none">
                             <div class="mb-3">
-                                <label class="form-label">Prestador de Serviço</label>
-                                <select name="terceirizado_id" class="form-select" required>
-                                    <option value="" disabled selected>Selecione...</option>
-                                    {% for terc in terceirizados %}
-                                    <option value="{{ terc.id }}">{{ terc.nome }} ({{ terc.especialidades or 'Geral' }})
-                                    </option>
-                                    {% endfor %}
-                                </select>
+                                <label class="form-label fw-bold">
+                                    Selecione os Prestadores (<span id="contadorSelecionados">0</span> selecionados)
+                                </label>
+                                <div id="listaPrestadores" class="border rounded p-2" style="max-height: 300px; overflow-y: auto;">
+                                    <!-- Lista será preenchida via JavaScript -->
+                                </div>
+                            </div>
+
+                            <!-- Detalhes do Serviço -->
+                            <div class="mb-3">
+                                <label class="form-label">Título do Serviço</label>
+                                <input type="text" class="form-control" id="tituloServico"
+                                    placeholder="Ex: Manutenção Elétrica" required>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Descrição do Serviço</label>
-                                <input type="text" name="descricao" class="form-control" required
-                                    placeholder="Ex: Manutenção no motor...">
+                                <label class="form-label">Descrição Detalhada</label>
+                                <textarea class="form-control" id="descricaoServico" rows="3" required
+                                    placeholder="Descreva o serviço necessário..."></textarea>
                             </div>
                             <div class="row g-2 mb-3">
                                 <div class="col-6">
-                                    <label class="form-label">Prazo Combinado</label>
-                                    <input type="datetime-local" name="prazo" class="form-control" required>
+                                    <label class="form-label">Prioridade</label>
+                                    <select class="form-select" id="prioridadeServico">
+                                        <option value="baixa">Baixa</option>
+                                        <option value="media" selected>Média</option>
+                                        <option value="alta">Alta</option>
+                                        <option value="urgente">Urgente</option>
+                                    </select>
                                 </div>
                                 <div class="col-6">
-                                    <label class="form-label">Valor Orçado (R$)</label>
-                                    <input type="number" name="valor" step="0.01" class="form-control"
-                                        placeholder="Opcional">
+                                    <label class="form-label">Prazo (dias)</label>
+                                    <input type="number" class="form-control" id="prazoDias" value="5" min="1" max="30">
                                 </div>
                             </div>
 
-                            <div class="form-check bg-light p-3 rounded border mb-3">
-                                <input class="form-check-input" type="checkbox" name="enviar_whatsapp" id="checkWppTerc"
-                                    checked>
-                                <label class="form-check-label small fw-bold" for="checkWppTerc">
-                                    <i class="bi bi-whatsapp text-success me-1"></i> Notificar prestador via WhatsApp
-                                </label>
-                                <div class="form-text x-small mt-1">
-                                    Inclui dados da OS, Endereço da Unidade e seu Contato.
-                                </div>
+                            <div class="alert alert-info small mb-3">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Os prestadores receberão a solicitação via WhatsApp ou Email automaticamente.
                             </div>
 
-                            <div class="d-grid mt-4">
-                                <button type="submit" class="btn btn-primary">Agendar Serviço</button>
+                            <div class="d-grid">
+                                <button type="button" class="btn btn-success" onclick="enviarSolicitacoesPrestadores()">
+                                    <i class="bi bi-send me-1"></i> Enviar Solicitações
+                                </button>
                             </div>
-                        </form>
+                        </div>
+
+                        <!-- Fallback: Formulário Original (oculto por padrão) -->
+                        <div id="formularioOriginal" class="d-none">
+                            <form action="{{ url_for('os.adicionar_tarefa_externa', id=os.id) }}" method="POST">
+                                <div class="mb-3">
+                                    <label class="form-label">Prestador de Serviço</label>
+                                    <select name="terceirizado_id" class="form-select" required>
+                                        <option value="" disabled selected>Selecione...</option>
+                                        {% for terc in terceirizados %}
+                                        <option value="{{ terc.id }}">{{ terc.nome }} ({{ terc.especialidades or 'Geral' }})
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Descrição do Serviço</label>
+                                    <input type="text" name="descricao" class="form-control" required
+                                        placeholder="Ex: Manutenção no motor...">
+                                </div>
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6">
+                                        <label class="form-label">Prazo Combinado</label>
+                                        <input type="datetime-local" name="prazo" class="form-control" required>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label">Valor Orçado (R$)</label>
+                                        <input type="number" name="valor" step="0.01" class="form-control"
+                                            placeholder="Opcional">
+                                    </div>
+                                </div>
+
+                                <div class="form-check bg-light p-3 rounded border mb-3">
+                                    <input class="form-check-input" type="checkbox" name="enviar_whatsapp" id="checkWppTerc"
+                                        checked>
+                                    <label class="form-check-label small fw-bold" for="checkWppTerc">
+                                        <i class="bi bi-whatsapp text-success me-1"></i> Notificar prestador via WhatsApp
+                                    </label>
+                                    <div class="form-text x-small mt-1">
+                                        Inclui dados da OS, Endereço da Unidade e seu Contato.
+                                    </div>
+                                </div>
+
+                                <div class="d-grid mt-4">
+                                    <button type="submit" class="btn btn-primary">Agendar Serviço</button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1381,6 +1446,158 @@
             ToastModule.show("Erro ao salvar avaliação", "danger");
         }
     }
+
+    // === BUSCA E SELEÇÃO MÚLTIPLA DE PRESTADORES ===
+    let prestadoresSelecionados = [];
+
+    async function buscarPrestadores() {
+        const palavraChave = document.getElementById('buscaEspecialidade').value.trim();
+
+        if (!palavraChave) {
+            ToastModule.show("Digite uma especialidade para buscar", "warning");
+            return;
+        }
+
+        try {
+            const res = await fetch('/os/buscar_prestadores', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ palavra_chave: palavraChave })
+            });
+            const data = await res.json();
+
+            if (!data.success) {
+                ToastModule.show("Erro: " + data.erro, "danger");
+                return;
+            }
+
+            if (data.prestadores.length === 0) {
+                ToastModule.show("Nenhum prestador encontrado com essa especialidade", "info");
+                return;
+            }
+
+            // Mostrar resultados
+            document.getElementById('resultadosPrestadores').classList.remove('d-none');
+            const lista = document.getElementById('listaPrestadores');
+            lista.innerHTML = '';
+
+            data.prestadores.forEach(prest => {
+                const item = document.createElement('div');
+                item.className = 'form-check p-2 border-bottom';
+
+                // Ícones de contato
+                let iconesContato = '';
+                if (prest.tem_whatsapp) {
+                    iconesContato += '<i class="bi bi-whatsapp text-success" title="WhatsApp"></i> ';
+                }
+                if (prest.tem_email) {
+                    iconesContato += '<i class="bi bi-envelope text-primary" title="Email"></i> ';
+                }
+                if (!prest.tem_whatsapp && !prest.tem_email) {
+                    iconesContato += '<i class="bi bi-telephone text-warning" title="Contato Manual"></i> ';
+                }
+
+                // Avaliação
+                const estrelas = '★'.repeat(Math.round(prest.avaliacao_media));
+
+                item.innerHTML = `
+                    <input class="form-check-input" type="checkbox" value="${prest.id}"
+                           id="prest${prest.id}" onchange="atualizarSelecaoPrestadores()">
+                    <label class="form-check-label w-100" for="prest${prest.id}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>${prest.nome}</strong>
+                                ${prest.nome_empresa ? `<div class="small text-muted">${prest.nome_empresa}</div>` : ''}
+                                <div class="small">${iconesContato}</div>
+                                ${prest.orientacao_contato ? `<div class="small text-warning"><i class="bi bi-info-circle"></i> ${prest.orientacao_contato}</div>` : ''}
+                            </div>
+                            <div class="text-end">
+                                <div class="small text-warning">${estrelas}</div>
+                                <div class="small text-muted">${prest.especialidades.join(', ')}</div>
+                            </div>
+                        </div>
+                    </label>
+                `;
+
+                lista.appendChild(item);
+            });
+
+        } catch (e) {
+            console.error(e);
+            ToastModule.show("Erro de conexão", "danger");
+        }
+    }
+
+    function atualizarSelecaoPrestadores() {
+        prestadoresSelecionados = Array.from(document.querySelectorAll('#listaPrestadores input:checked'))
+            .map(cb => parseInt(cb.value));
+
+        document.getElementById('contadorSelecionados').textContent = prestadoresSelecionados.length;
+    }
+
+    async function enviarSolicitacoesPrestadores() {
+        if (prestadoresSelecionados.length === 0) {
+            ToastModule.show("Selecione ao menos um prestador", "warning");
+            return;
+        }
+
+        const titulo = document.getElementById('tituloServico').value.trim();
+        const descricao = document.getElementById('descricaoServico').value.trim();
+        const prioridade = document.getElementById('prioridadeServico').value;
+        const prazoDias = parseInt(document.getElementById('prazoDias').value);
+
+        if (!titulo || !descricao) {
+            ToastModule.show("Preencha título e descrição", "warning");
+            return;
+        }
+
+        try {
+            const res = await fetch('/os/criar_chamados_multiplos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prestador_ids: prestadoresSelecionados,
+                    os_id: {{ os.id }},
+                    titulo: titulo,
+                    descricao: descricao,
+                    prioridade: prioridade,
+                    prazo_dias: prazoDias
+                })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                ToastModule.show(data.mensagem, "success");
+
+                // Mostrar resumo
+                let resumo = '<div class="mt-2"><strong>Enviado para:</strong><ul>';
+                data.chamados.forEach(ch => {
+                    resumo += `<li>${ch.prestador} (${ch.canal})</li>`;
+                });
+                resumo += '</ul></div>';
+
+                ToastModule.show(data.mensagem + resumo, "success", true);
+
+                // Fechar modal e recarregar página
+                setTimeout(() => {
+                    bootstrap.Modal.getInstance(document.getElementById('modalRecursos')).hide();
+                    location.reload();
+                }, 3000);
+            } else {
+                ToastModule.show("Erro: " + data.erro, "danger");
+            }
+        } catch (e) {
+            console.error(e);
+            ToastModule.show("Erro de conexão", "danger");
+        }
+    }
+
+    // Permitir busca com Enter
+    document.getElementById('buscaEspecialidade')?.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            buscarPrestadores();
+        }
+    });
 </script>
 
 {% endblock %}
