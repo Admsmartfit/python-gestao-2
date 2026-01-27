@@ -430,10 +430,23 @@
                             </td>
                             <td data-label="Entregas">{{ f.total_pedidos_entregues }}</td>
                             <td class="text-end pe-4" data-label="Ações">
-                                <button class="btn btn-sm btn-outline-primary w-100-mobile"
-                                    onclick="abrirCatalogo('{{ f.id }}', '{{ f.nome }}')">
-                                    <i class="bi bi-list-check me-1"></i> Catálogo
-                                </button>
+                                <div class="d-flex justify-content-end gap-1">
+                                    <button class="btn btn-sm btn-outline-primary"
+                                        onclick="abrirCatalogo('{{ f.id }}', '{{ f.nome }}')" title="Catálogo">
+                                        <i class="bi bi-list-check"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary"
+                                        onclick="editarFornecedor('{{ f.id }}', '{{ f.nome }}', '{{ f.email or '' }}', '{{ f.telefone or '' }}', '{{ f.endereco or '' }}', '{{ f.prazo_medio_entrega_dias }}')"
+                                        title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <a href="{{ url_for('admin.excluir_fornecedor', id=f.id) }}"
+                                        class="btn btn-sm btn-outline-danger"
+                                        onclick="return confirm('Tem certeza que deseja excluir o fornecedor {{ f.nome }}?')"
+                                        title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                         {% else %}
@@ -707,6 +720,48 @@
     </div>
 </div>
 
+<div class="modal fade" id="modalEditarFornecedor" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">Editar Fornecedor</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('admin.editar_fornecedor') }}" method="POST">
+                <input type="hidden" name="id" id="editFornId">
+                <div class="modal-body pt-4">
+                    <div class="mb-3">
+                        <label class="form-label">Nome / Razão Social</label>
+                        <input type="text" name="nome" id="editFornNome" class="form-control" required>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" id="editFornEmail" class="form-control">
+                        </div>
+                        <div class="col">
+                            <label class="form-label">Telefone</label>
+                            <input type="text" name="telefone" id="editFornTelefone" class="form-control">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Prazo Médio (Dias)</label>
+                        <input type="number" step="0.1" name="prazo_medio" id="editFornPrazo" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Endereço</label>
+                        <input type="text" name="endereco" id="editFornEndereco" class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
     function abrirCatalogo(id, nome) {
         // Definir o ID do fornecedor no formulário de vincular peça
@@ -767,6 +822,17 @@
         });
 
         new bootstrap.Modal(document.getElementById('modalEditarTerceirizado')).show();
+    }
+
+    function editarFornecedor(id, nome, email, telefone, endereco, prazo) {
+        document.getElementById('editFornId').value = id;
+        document.getElementById('editFornNome').value = nome;
+        document.getElementById('editFornEmail').value = email;
+        document.getElementById('editFornTelefone').value = telefone;
+        document.getElementById('editFornEndereco').value = endereco;
+        document.getElementById('editFornPrazo').value = prazo;
+
+        new bootstrap.Modal(document.getElementById('modalEditarFornecedor')).show();
     }
 
     // Auto-dismiss alerts após 5 segundos

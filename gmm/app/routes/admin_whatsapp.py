@@ -24,13 +24,13 @@ def criar_regra():
     """Cria nova regra de automação"""
     if current_user.tipo != 'admin':
         return jsonify({'error': 'Unauthorized'}), 403
-    
+
     data = request.json
-    
+
     # Validações
     if not data.get('palavra_chave'):
         return jsonify({'error': 'Palavra-chave obrigatória'}), 400
-    
+
     regra = RegrasAutomacao(
         palavra_chave=data['palavra_chave'],
         tipo_correspondencia=data.get('tipo_correspondencia', 'contem'),
@@ -40,13 +40,98 @@ def criar_regra():
         funcao_sistema=data.get('funcao_sistema'),
         prioridade=data.get('prioridade', 0)
     )
-    
+
     db.session.add(regra)
     db.session.commit()
-    
+
     return jsonify({
         'success': True,
         'id': regra.id
+    })
+
+@bp.route('/admin/whatsapp/regras/<int:regra_id>', methods=['GET'])
+@login_required
+def obter_regra(regra_id):
+    """Busca dados de uma regra específica"""
+    if current_user.tipo != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    regra = RegrasAutomacao.query.get_or_404(regra_id)
+
+    return jsonify({
+        'id': regra.id,
+        'palavra_chave': regra.palavra_chave,
+        'tipo_correspondencia': regra.tipo_correspondencia,
+        'acao': regra.acao,
+        'resposta_texto': regra.resposta_texto,
+        'encaminhar_para_perfil': regra.encaminhar_para_perfil,
+        'funcao_sistema': regra.funcao_sistema,
+        'prioridade': regra.prioridade,
+        'ativo': regra.ativo
+    })
+
+@bp.route('/admin/whatsapp/regras/<int:regra_id>', methods=['PUT'])
+@login_required
+def atualizar_regra(regra_id):
+    """Atualiza uma regra existente"""
+    if current_user.tipo != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    regra = RegrasAutomacao.query.get_or_404(regra_id)
+    data = request.json
+
+    # Validações
+    if not data.get('palavra_chave'):
+        return jsonify({'error': 'Palavra-chave obrigatória'}), 400
+
+    # Atualizar campos
+    regra.palavra_chave = data['palavra_chave']
+    regra.tipo_correspondencia = data.get('tipo_correspondencia', 'contem')
+    regra.acao = data['acao']
+    regra.resposta_texto = data.get('resposta_texto')
+    regra.encaminhar_para_perfil = data.get('encaminhar_para_perfil')
+    regra.funcao_sistema = data.get('funcao_sistema')
+    regra.prioridade = data.get('prioridade', 0)
+
+    if 'ativo' in data:
+        regra.ativo = data['ativo']
+
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'id': regra.id
+    })
+
+@bp.route('/admin/whatsapp/regras/<int:regra_id>', methods=['DELETE'])
+@login_required
+def excluir_regra(regra_id):
+    """Exclui uma regra"""
+    if current_user.tipo != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    regra = RegrasAutomacao.query.get_or_404(regra_id)
+    db.session.delete(regra)
+    db.session.commit()
+
+    return jsonify({
+        'success': True
+    })
+
+@bp.route('/admin/whatsapp/regras/<int:regra_id>/toggle', methods=['POST'])
+@login_required
+def toggle_regra(regra_id):
+    """Ativa/desativa uma regra"""
+    if current_user.tipo != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    regra = RegrasAutomacao.query.get_or_404(regra_id)
+    regra.ativo = not regra.ativo
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'ativo': regra.ativo
     })
 
 # --- Dashboard & Métricas ---

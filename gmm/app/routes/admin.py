@@ -315,6 +315,49 @@ def novo_fornecedor():
     flash('Fornecedor cadastrado com sucesso!', 'success')
     return redirect(url_for('admin.dashboard', tab='fornecedores'))
 
+@bp.route('/fornecedor/editar', methods=['POST'])
+@login_required
+def editar_fornecedor():
+    forn_id = request.form.get('id')
+    fornecedor = Fornecedor.query.get_or_404(forn_id)
+    
+    # Tratamento seguro para float
+    try:
+        prazo = float(request.form.get('prazo_medio', 7))
+    except (ValueError, TypeError):
+        prazo = fornecedor.prazo_medio_entrega_dias
+
+    fornecedor.nome = request.form.get('nome')
+    fornecedor.email = request.form.get('email')
+    fornecedor.telefone = request.form.get('telefone')
+    fornecedor.endereco = request.form.get('endereco')
+    fornecedor.prazo_medio_entrega_dias = prazo
+    
+    db.session.commit()
+    flash(f'Fornecedor {fornecedor.nome} atualizado com sucesso!', 'success')
+    return redirect(url_for('admin.dashboard', tab='fornecedores'))
+
+@bp.route('/fornecedor/excluir/<int:id>')
+@login_required
+def excluir_fornecedor(id):
+    fornecedor = Fornecedor.query.get_or_404(id)
+    nome = fornecedor.nome
+    
+    try:
+        # Verificar se tem pedidos vinculados
+        if fornecedor.pedidos:
+            flash(f'Não é possível excluir {nome} pois existem pedidos vinculados.', 'danger')
+            return redirect(url_for('admin.dashboard', tab='fornecedores'))
+            
+        db.session.delete(fornecedor)
+        db.session.commit()
+        flash(f'Fornecedor {nome} removido com sucesso!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao excluir fornecedor: {str(e)}', 'danger')
+        
+    return redirect(url_for('admin.dashboard', tab='fornecedores'))
+
 @bp.route('/estoque/novo', methods=['POST'])
 @login_required
 def novo_item_estoque():

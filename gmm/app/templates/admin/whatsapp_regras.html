@@ -52,9 +52,20 @@
                                 </span>
                             </td>
                             <td class="text-end pe-4">
-                                <button class="btn btn-sm btn-link text-muted p-0"
-                                    onclick="editarRegra({{ regra.id }})">
+                                <button class="btn btn-sm btn-link text-primary p-0 me-2"
+                                    onclick="editarRegra({{ regra.id }})"
+                                    title="Editar regra">
                                     <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-sm btn-link text-{{ 'success' if regra.ativo else 'secondary' }} p-0 me-2"
+                                    onclick="toggleRegra({{ regra.id }})"
+                                    title="{{ 'Desativar' if regra.ativo else 'Ativar' }}">
+                                    <i class="bi bi-toggle-{{ 'on' if regra.ativo else 'off' }}"></i>
+                                </button>
+                                <button class="btn btn-sm btn-link text-danger p-0"
+                                    onclick="excluirRegra({{ regra.id }})"
+                                    title="Excluir regra">
+                                    <i class="bi bi-trash"></i>
                                 </button>
                             </td>
                         </tr>
@@ -78,11 +89,12 @@
     <div class="modal-dialog">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-light">
-                <h5 class="modal-title fw-bold">Nova Regra de Automação</h5>
+                <h5 class="modal-title fw-bold" id="tituloModal">Nova Regra de Automação</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-4">
                 <form id="formRegra">
+                    <input type="hidden" id="regraId">
                     <div class="mb-3">
                         <label class="form-label small fw-bold text-uppercase text-muted">Gatilho</label>
                         <input type="text" class="form-control" id="palavraChave" placeholder="Ex: #COMPRA, SIM, Preço"
@@ -160,7 +172,54 @@
         }
     }
 
-    function salvarRegra() {
+    function limparFormulario() {
+        document.getElementById('regraId').value = '';
+        document.getElementById('palavraChave').value = '';
+        document.getElementById('tipoMatch').value = 'contem';
+        document.getElementById('acao').value = 'responder';
+        document.getElementById('respostaTexto').value = '';
+        document.getElementById('encaminharPara').value = 'admin';
+        document.getElementById('funcaoSistema').value = '';
+        document.getElementById('prioridade').value = '0';
+        document.getElementById('tituloModal').textContent = 'Nova Regra de Automação';
+        toggleCampos();
+    }
+
+    async function editarRegra(id) {
+        try {
+            const res = await fetch(`/admin/whatsapp/regras/${id}`);
+            const regra = await res.json();
+
+            if (regra.error) {
+                alert('Erro ao carregar regra: ' + regra.error);
+                return;
+            }
+
+            // Preencher formulário
+            document.getElementById('regraId').value = regra.id;
+            document.getElementById('palavraChave').value = regra.palavra_chave;
+            document.getElementById('tipoMatch').value = regra.tipo_correspondencia;
+            document.getElementById('acao').value = regra.acao;
+            document.getElementById('respostaTexto').value = regra.resposta_texto || '';
+            document.getElementById('encaminharPara').value = regra.encaminhar_para_perfil || 'admin';
+            document.getElementById('funcaoSistema').value = regra.funcao_sistema || '';
+            document.getElementById('prioridade').value = regra.prioridade;
+
+            document.getElementById('tituloModal').textContent = 'Editar Regra de Automação';
+
+            toggleCampos();
+
+            // Abrir modal
+            const modal = new bootstrap.Modal(document.getElementById('modalNovaRegra'));
+            modal.show();
+        } catch (e) {
+            console.error(e);
+            alert('Erro ao carregar regra');
+        }
+    }
+
+    async function salvarRegra() {
+        const regraId = document.getElementById('regraId').value;
         const dados = {
             palavra_chave: document.getElementById('palavraChave').value,
             tipo_correspondencia: document.getElementById('tipoMatch').value,
@@ -171,19 +230,82 @@
             prioridade: parseInt(document.getElementById('prioridade').value)
         };
 
-        fetch('/admin/whatsapp/regras', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(dados)
-        })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    location.reload();
-                } else {
-                    alert('Erro: ' + (data.error || 'Desconhecido'));
-                }
+        if (!dados.palavra_chave) {
+            alert('Palavra-chave é obrigatória');
+            return;
+        }
+
+        try {
+            let url = '/admin/whatsapp/regras';
+            let method = 'POST';
+
+            if (regraId) {
+                url += `/${regraId}`;
+                method = 'PUT';
+            }
+
+            const res = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dados)
             });
+
+            const data = await res.json();
+
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Erro: ' + (data.error || 'Desconhecido'));
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Erro ao salvar regra');
+        }
     }
+
+    async function excluirRegra(id) {
+        if (!confirm('Tem certeza que deseja excluir esta regra?')) {
+            return;
+        }
+
+        try {
+            const res = await fetch(`/admin/whatsapp/regras/${id}`, {
+                method: 'DELETE'
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Erro ao excluir: ' + (data.error || 'Desconhecido'));
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Erro ao excluir regra');
+        }
+    }
+
+    async function toggleRegra(id) {
+        try {
+            const res = await fetch(`/admin/whatsapp/regras/${id}/toggle`, {
+                method: 'POST'
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Erro ao alterar status: ' + (data.error || 'Desconhecido'));
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Erro ao alterar status da regra');
+        }
+    }
+
+    // Limpar formulário quando fechar o modal
+    document.getElementById('modalNovaRegra').addEventListener('hidden.bs.modal', limparFormulario);
 </script>
 {% endblock %}
