@@ -69,10 +69,16 @@
                         <!-- Seletor de Categoria -->
                         <div class="mb-4 d-none" id="campoCategoria">
                             <label class="form-label fw-bold">Categoria</label>
-                            <input type="text" class="form-control" name="categoria_equipamento"
-                                   value="{{ plano.categoria_equipamento if plano else '' }}"
-                                   placeholder="Ex: Esteira, Bomba, Transformador">
-                            <div class="form-text">Digite a categoria (ex: Esteira, Bomba, Transformador)</div>
+                            <select class="form-select" name="categoria_equipamento">
+                                <option value="">Selecione uma categoria</option>
+                                {% for categoria in categorias %}
+                                <option value="{{ categoria }}"
+                                        {% if plano and plano.categoria_equipamento == categoria %}selected{% endif %}>
+                                    {{ categoria }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Selecione a categoria de equipamentos (ex: Esteira, Bomba, Transformador)</div>
                         </div>
 
                         <!-- Frequência -->

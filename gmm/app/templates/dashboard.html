@@ -162,7 +162,28 @@
 
         <div class="d-flex justify-content-between align-items-center mb-4" id="minhas-os">
             <h3 class="mb-0">Ordens de Serviço</h3>
-            <div class="d-flex gap-2 align-items-center">
+            <div class="d-flex gap-2 align-items-center flex-wrap">
+                <select class="form-select form-select-sm shadow-sm" id="unidadeFiltro" onchange="aplicarFiltros()"
+                    style="width: auto; min-width: 150px;">
+                    <option value="">Todas Unidades</option>
+                    {% for u in unidades %}
+                    <option value="{{ u.id }}" {% if request.args.get('unidade_id')|int == u.id %}selected{% endif %}>
+                        {{ u.nome }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <select class="form-select form-select-sm shadow-sm" id="tipoFiltro" onchange="aplicarFiltros()"
+                    style="width: auto; min-width: 150px;">
+                    <option value="">Todos os Tipos</option>
+                    <option value="preventiva" {% if request.args.get('tipo') == 'preventiva' %}selected{% endif %}>Manutenção Preventiva</option>
+                    <option value="corretiva" {% if request.args.get('tipo') == 'corretiva' %}selected{% endif %}>Corretiva/Outros</option>
+                </select>
+                <select class="form-select form-select-sm shadow-sm" id="statusFiltro" onchange="aplicarFiltros()"
+                    style="width: auto; min-width: 130px;">
+                    <option value="aberta" {% if not request.args.get('status') or request.args.get('status') == 'aberta' %}selected{% endif %}>Apenas Abertas</option>
+                    <option value="concluida" {% if request.args.get('status') == 'concluida' %}selected{% endif %}>Apenas Concluídas</option>
+                    <option value="todas" {% if request.args.get('status') == 'todas' %}selected{% endif %}>Todas</option>
+                </select>
                 <select class="form-select form-select-sm shadow-sm" id="sortSelect" onchange="sortOSList()"
                     style="width: auto;">
                     <option value="data-desc">Mais Recentes</option>
@@ -171,7 +192,7 @@
                     <option value="status-asc">Status (Abertas)</option>
                 </select>
                 <div class="d-none d-md-block" style="width: 200px;">
-                    <input type="text" class="form-control form-control-sm shadow-sm" placeholder="Filtrar..."
+                    <input type="text" class="form-control form-control-sm shadow-sm" placeholder="Buscar..."
                         onkeyup="filterOSList(this.value)">
                 </div>
             </div>
@@ -195,6 +216,11 @@
                     data-data="{{ os.data_abertura.isoformat() }}">
                     <td data-label="OS ID">
                         <span class="fw-bold text-primary">#{{ os.numero_os }}</span>
+                        {% if os.tipo_manutencao == 'preventiva' %}
+                        <span class="badge bg-info bg-opacity-10 text-info ms-1" title="Manutenção Preventiva">
+                            <i class="bi bi-calendar-check"></i>
+                        </span>
+                        {% endif %}
                     </td>
                     <td data-label="Equipamento">
                         <div class="fw-600">{{ os.equipamento_rel.nome if os.equipamento_rel else 'Geral' }}</div>
@@ -304,6 +330,37 @@
             const text = row.innerText.toLowerCase();
             row.style.display = text.includes(lowerTerm) ? '' : 'none';
         });
+    }
+
+    // Função para Aplicar Filtros de Unidade, Tipo e Status
+    function aplicarFiltros() {
+        const unidadeId = document.getElementById('unidadeFiltro').value;
+        const tipo = document.getElementById('tipoFiltro').value;
+        const status = document.getElementById('statusFiltro').value;
+
+        const params = new URLSearchParams(window.location.search);
+
+        // Atualizar parâmetros
+        if (unidadeId) {
+            params.set('unidade_id', unidadeId);
+        } else {
+            params.delete('unidade_id');
+        }
+
+        if (tipo) {
+            params.set('tipo', tipo);
+        } else {
+            params.delete('tipo');
+        }
+
+        if (status && status !== 'aberta') {
+            params.set('status', status);
+        } else {
+            params.delete('status');  // Remove para usar o padrão (aberta)
+        }
+
+        // Redirecionar com novos parâmetros
+        window.location.href = '{{ url_for("ponto.index") }}?' + params.toString() + '#minhas-os';
     }
 </script>
 {% endblock %}

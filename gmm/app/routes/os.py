@@ -115,9 +115,9 @@ def iniciar_os(id):
     
     # US-010: Notificar solicitante que OS começou
     from app.services.whatsapp_service import WhatsAppService
-    if os_obj.unidade and os_obj.unidade.telefone_responsavel:
+    if os_obj.unidade and os_obj.unidade.telefone:
         msg = f"🛠️ *OS INICIADA*\n\nA OS #{os_obj.numero_os} ({os_obj.titulo or os_obj.equipamento_rel.nome}) foi iniciada pelo técnico."
-        WhatsAppService.enviar_mensagem(os_obj.unidade.telefone_responsavel, msg)
+        WhatsAppService.enviar_mensagem(os_obj.unidade.telefone, msg)
 
     flash('OS iniciada! O tempo de execução está sendo contabilizado.', 'success')
     return redirect(url_for('os.detalhes', id=id))
@@ -140,10 +140,10 @@ def concluir_os(id):
         os_obj.fotos_depois = caminhos
 
     # US-004: Calcular tempo de execução em minutos
-    if os_obj.data_inicio:
-        delta = datetime.now() - os_obj.data_inicio
-        minutos = int(delta.total_seconds() / 60)
-        os_obj.tempo_execucao_minutos = (os_obj.tempo_execucao_minutos or 0) + minutos
+    # if os_obj.data_inicio:
+    #     delta = datetime.now() - os_obj.data_inicio
+    #     minutos = int(delta.total_seconds() / 60)
+    #     os_obj.tempo_execucao_minutos = (os_obj.tempo_execucao_minutos or 0) + minutos
 
     os_obj.descricao_solucao = solucao
     os_obj.status = 'concluida'
@@ -153,9 +153,9 @@ def concluir_os(id):
 
     # US-010: Notificar conclusão
     from app.services.whatsapp_service import WhatsAppService
-    if os_obj.unidade and os_obj.unidade.telefone_responsavel:
+    if os_obj.unidade and os_obj.unidade.telefone:
         msg = f"✅ *OS CONCLUÍDA*\n\nA OS #{os_obj.numero_os} foi finalizada.\n\n*Solução:* {solucao}"
-        WhatsAppService.enviar_mensagem(os_obj.unidade.telefone_responsavel, msg)
+        WhatsAppService.enviar_mensagem(os_obj.unidade.telefone, msg)
 
     flash('Ordem de Serviço concluída com sucesso!', 'success')
     return redirect(url_for('os.detalhes', id=id))

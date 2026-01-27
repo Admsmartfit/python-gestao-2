@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required, current_user
 from app.extensions import db
 from app.models.estoque_models import PlanoManutencao, Equipamento, OrdemServico
+from app.services.os_service import OSService
 from datetime import datetime, timedelta
 import logging
 
@@ -71,11 +72,20 @@ def novo_plano():
             logger.error(f"Erro ao criar plano: {e}")
             flash(f"Erro ao criar plano: {str(e)}", "danger")
 
-    # GET: Buscar equipamentos para o formulário
+    # GET: Buscar equipamentos e categorias para o formulário
     equipamentos = Equipamento.query.filter_by(ativo=True).order_by(Equipamento.nome).all()
+
+    # Buscar categorias únicas dos equipamentos
+    categorias = db.session.query(Equipamento.categoria)\
+        .filter(Equipamento.categoria.isnot(None), Equipamento.categoria != '')\
+        .distinct()\
+        .order_by(Equipamento.categoria)\
+        .all()
+    categorias = [cat[0] for cat in categorias]
 
     return render_template('manutencao/preventiva_form.html',
                          equipamentos=equipamentos,
+                         categorias=categorias,
                          plano=None)
 
 @bp.route('/preventiva/<int:id>/editar', methods=['GET', 'POST'])
@@ -117,8 +127,17 @@ def editar_plano(id):
 
     equipamentos = Equipamento.query.filter_by(ativo=True).order_by(Equipamento.nome).all()
 
+    # Buscar categorias únicas dos equipamentos
+    categorias = db.session.query(Equipamento.categoria)\
+        .filter(Equipamento.categoria.isnot(None), Equipamento.categoria != '')\
+        .distinct()\
+        .order_by(Equipamento.categoria)\
+        .all()
+    categorias = [cat[0] for cat in categorias]
+
     return render_template('manutencao/preventiva_form.html',
                          equipamentos=equipamentos,
+                         categorias=categorias,
                          plano=plano)
 
 @bp.route('/preventiva/<int:id>/toggle', methods=['POST'])
@@ -194,16 +213,21 @@ def executar_plano(id):
         oss_criadas = []
 
         for equipamento in equipamentos_afetados:
+            # Calcular prazo de conclusão (7 dias para manutenção preventiva)
+            prazo_conclusao = datetime.now() + timedelta(days=7)
+
             # Criar OS de manutenção preventiva
             os = OrdemServico(
-                tipo='preventiva',
+                numero_os=OSService.gerar_numero_os(),
+                tipo_manutencao='preventiva',
                 prioridade='media',
                 status='aberta',
                 equipamento_id=equipamento.id,
                 unidade_id=equipamento.unidade_id,
                 descricao_problema=f"[MANUTENÇÃO PREVENTIVA] {plano.nome}",
-                observacoes=plano.descricao_procedimento,
+                descricao_solucao=plano.descricao_procedimento,
                 tecnico_id=current_user.id,
+                prazo_conclusao=prazo_conclusao,
                 data_abertura=datetime.now()
             )
 

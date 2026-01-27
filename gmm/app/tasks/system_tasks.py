@@ -166,6 +166,7 @@ def executar_manutencoes_preventivas_task():
     from app.models.estoque_models import PlanoManutencao, Equipamento, OrdemServico
     from app.models.models import Usuario
     from app.services.whatsapp_service import WhatsAppService
+    from app.services.os_service import OSService
 
     hoje = datetime.utcnow()
     planos_ativos = PlanoManutencao.query.filter_by(ativo=True).all()
@@ -204,15 +205,20 @@ def executar_manutencoes_preventivas_task():
             if not tecnico:
                 continue
 
+            # Calcular prazo de conclusão (7 dias para manutenção preventiva)
+            prazo_conclusao = hoje + timedelta(days=7)
+
             os = OrdemServico(
-                tipo='preventiva',
+                numero_os=OSService.gerar_numero_os(),
+                tipo_manutencao='preventiva',
                 prioridade='media',
                 status='aberta',
                 equipamento_id=equipamento.id,
                 unidade_id=equipamento.unidade_id,
                 descricao_problema=f"[MANUTENÇÃO PREVENTIVA] {plano.nome}",
-                observacoes=plano.descricao_procedimento,
+                descricao_solucao=plano.descricao_procedimento,
                 tecnico_id=tecnico.id,
+                prazo_conclusao=prazo_conclusao,
                 data_abertura=hoje
             )
 

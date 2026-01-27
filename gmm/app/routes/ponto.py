@@ -13,14 +13,40 @@ bp = Blueprint('ponto', __name__, url_prefix='/dashboard')
 def index():
     unidades = Unidade.query.filter_by(ativa=True).all()
     registro_aberto = RegistroPonto.query.filter_by(
-        usuario_id=current_user.id, 
+        usuario_id=current_user.id,
         data_hora_saida=None
     ).first()
-    
+
+    # Filtros
+    unidade_filtro = request.args.get('unidade_id', type=int)
+    tipo_filtro = request.args.get('tipo')
+    status_filtro = request.args.get('status', 'aberta')  # Padrão: apenas abertas
+
     if current_user.tipo == 'tecnico':
-        minhas_os = OrdemServico.query.filter_by(tecnico_id=current_user.id).order_by(OrdemServico.prioridade.desc()).all()
+        query = OrdemServico.query.filter_by(tecnico_id=current_user.id)
     else:
-        minhas_os = OrdemServico.query.order_by(OrdemServico.data_abertura.desc()).limit(20).all()
+        query = OrdemServico.query
+
+    # Aplicar filtros
+    if unidade_filtro:
+        query = query.filter_by(unidade_id=unidade_filtro)
+
+    if tipo_filtro == 'preventiva':
+        query = query.filter_by(tipo_manutencao='preventiva')
+    elif tipo_filtro == 'corretiva':
+        query = query.filter(OrdemServico.tipo_manutencao != 'preventiva')
+
+    # Filtro de status (padrão: apenas abertas)
+    if status_filtro == 'aberta':
+        query = query.filter_by(status='aberta')
+    elif status_filtro == 'concluida':
+        query = query.filter_by(status='concluida')
+    # Se for 'todas', não adiciona filtro de status
+
+    if current_user.tipo == 'tecnico':
+        minhas_os = query.order_by(OrdemServico.prioridade.desc()).all()
+    else:
+        minhas_os = query.order_by(OrdemServico.data_abertura.desc()).limit(20).all()
 
     # --- Lógica de Alertas (Notificações) ---
     alertas_os = []
