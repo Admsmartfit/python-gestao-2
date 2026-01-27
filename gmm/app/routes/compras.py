@@ -49,8 +49,7 @@ def novo():
 
             pedido = PedidoCompra(
                 estoque_id=estoque_id,
-                quantidade=quantidade,
-                valor_total=valor_total,
+                quantidade=int(quantidade),
                 fornecedor_id=fornecedor_id if fornecedor_id else None,
                 unidade_destino_id=unidade_id if unidade_id else None,
                 solicitante_id=current_user.id,

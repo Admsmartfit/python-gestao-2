@@ -258,23 +258,19 @@ def solicitar_compra_peca(id):
         
         status_inicial = 'pendente'
         aprovador_id = None
-        data_aprovacao = None
 
         if valor_total <= 500:
             status_inicial = 'aprovado'
             aprovador_id = 0 # ID 0 ou ID do sistema para aprovacao automatica
-            data_aprovacao = datetime.now()
 
         novo_pedido = PedidoCompra(
             fornecedor_id=fornecedor_id,
             estoque_id=estoque_id,
-            quantidade=quantidade,
-            valor_total=valor_total,
+            quantidade=int(quantidade),
             status=status_inicial,
             data_solicitacao=datetime.now(),
             solicitante_id=current_user.id,
-            aprovador_id=aprovador_id,
-            data_aprovacao=data_aprovacao
+            aprovador_id=aprovador_id
         )
         
         db.session.add(novo_pedido)
@@ -523,8 +519,7 @@ def solicitar_compra():
         pedido = PedidoCompra(
             estoque_id=estoque_id,
             fornecedor_id=fornecedor_id,
-            quantidade=quantidade,
-            valor_total=valor_total,
+            quantidade=int(quantidade),
             status=status_inicial,
             data_solicitacao=datetime.now(),
             solicitante_id=current_user.id
