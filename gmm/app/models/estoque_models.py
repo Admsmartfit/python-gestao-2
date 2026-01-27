@@ -119,6 +119,7 @@ class Fornecedor(db.Model):
     endereco = db.Column(db.String(255), nullable=True)
     email = db.Column(db.String(120), nullable=False)
     telefone = db.Column(db.String(20), nullable=True)
+    forma_contato_alternativa = db.Column(db.Text, nullable=True)  # Site, telefone fixo, etc.
     prazo_medio_entrega_dias = db.Column(db.Float, default=7.0)
     total_pedidos_entregues = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -130,9 +131,26 @@ class CatalogoFornecedor(db.Model):
     estoque_id = db.Column(db.Integer, db.ForeignKey('estoque.id'), nullable=False)
     preco_atual = db.Column(db.Numeric(10, 2), nullable=True)
     prazo_estimado_dias = db.Column(db.Integer, default=7)
-    
+
     fornecedor = db.relationship('Fornecedor', backref='catalogo')
     peca = db.relationship('Estoque', backref='fornecedores')
+
+# [NOVO] Histórico de Comunicações com Fornecedores
+class ComunicacaoFornecedor(db.Model):
+    __tablename__ = 'comunicacoes_fornecedor'
+    id = db.Column(db.Integer, primary_key=True)
+    pedido_compra_id = db.Column(db.Integer, db.ForeignKey('pedidos_compra.id'), nullable=False)
+    fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedores.id'), nullable=False)
+    tipo_comunicacao = db.Column(db.String(20), nullable=False)  # whatsapp, email, telefone, site
+    direcao = db.Column(db.String(10), nullable=False)  # enviado, recebido
+    mensagem = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(20), default='pendente')  # pendente, enviado, entregue, lido, respondido, erro
+    resposta = db.Column(db.Text, nullable=True)
+    data_envio = db.Column(db.DateTime, default=datetime.utcnow)
+    data_resposta = db.Column(db.DateTime, nullable=True)
+
+    pedido = db.relationship('PedidoCompra', backref='comunicacoes')
+    fornecedor = db.relationship('Fornecedor', backref='comunicacoes')
 
 # [NOVO] Saldo por Unidade
 class EstoqueSaldo(db.Model):

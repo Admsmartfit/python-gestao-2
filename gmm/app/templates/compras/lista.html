@@ -51,9 +51,11 @@
             </thead>
             <tbody>
                 {% for p in pedidos %}
-                <tr>
+                <tr class="purchase-row" style="cursor: pointer;" onclick="window.location='{{ url_for('compras.detalhes', id=p.id) }}'">
                     <td class="ps-4">
-                        <div class="fw-bold">#{{ p.id }}</div>
+                        <a href="{{ url_for('compras.detalhes', id=p.id) }}" class="text-decoration-none text-primary fw-bold" onclick="event.stopPropagation()">
+                            #{{ p.id }}
+                        </a>
                         <div class="small text-muted">{{ p.data_solicitacao.strftime('%d/%m/%Y %H:%M') }}</div>
                     </td>
                     <td>
@@ -76,10 +78,13 @@
                             {{ p.status|upper }}
                         </span>
                     </td>
-                    <td class="text-end pe-4">
+                    <td class="text-end pe-4" onclick="event.stopPropagation()">
                         <a href="{{ url_for('compras.detalhes', id=p.id) }}"
-                            class="btn btn-sm btn-light text-primary border">
-                            <i class="bi bi-eye"></i>
+                            class="btn btn-sm btn-primary"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="left"
+                            title="Ver detalhes, histórico e fornecedores">
+                            <i class="bi bi-eye me-1"></i>Ver Detalhes
                         </a>
                     </td>
                 </tr>
@@ -95,4 +100,24 @@
         </table>
     </div>
 </div>
+
+<style>
+.purchase-row:hover {
+    background-color: #f8f9fa !important;
+}
+
+.purchase-row td {
+    transition: background-color 0.2s ease;
+}
+</style>
+
+<script>
+// Initialize tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
 {% endblock %}

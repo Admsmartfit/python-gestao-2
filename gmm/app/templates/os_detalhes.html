@@ -1454,7 +1454,7 @@
         const palavraChave = document.getElementById('buscaEspecialidade').value.trim();
 
         if (!palavraChave) {
-            ToastModule.show("Digite uma especialidade para buscar", "warning");
+            ToastModule.show("Digite uma palavra-chave para buscar", "warning");
             return;
         }
 
@@ -1464,6 +1464,24 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ palavra_chave: palavraChave })
             });
+
+            // Verificar se a resposta é OK
+            if (!res.ok) {
+                const errorText = await res.text();
+                console.error('Erro HTTP:', res.status, errorText);
+                ToastModule.show(`Erro HTTP ${res.status}: ${errorText.substring(0, 100)}`, "danger");
+                return;
+            }
+
+            // Verificar se o Content-Type é JSON
+            const contentType = res.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                const text = await res.text();
+                console.error('Resposta não é JSON:', text);
+                ToastModule.show("Erro: Resposta do servidor não é JSON válido", "danger");
+                return;
+            }
+
             const data = await res.json();
 
             if (!data.success) {
@@ -1472,7 +1490,7 @@
             }
 
             if (data.prestadores.length === 0) {
-                ToastModule.show("Nenhum prestador encontrado com essa especialidade", "info");
+                ToastModule.show("Nenhum prestador encontrado", "info");
                 return;
             }
 

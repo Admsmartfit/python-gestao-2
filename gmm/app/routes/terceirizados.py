@@ -122,6 +122,21 @@ def criar_chamado():
                     flash('Chamado criado. Mensagem será enviada quando API estabilizar.', 'warning')
                 else:
                     flash(f'Chamado criado, mas falha no envio: {response.get("error", "Erro desconhecido")}', 'warning')
+            
+            # [NOVO] Adiciona notificação por email se o terceirizado tiver email cadastrado
+            if terceirizado.email:
+                try:
+                    from app.services.email_service import EmailService
+                    EmailService.enviar_solicitacao_terceirizado(
+                        novo_chamado, 
+                        terceirizado, 
+                        msg, 
+                        cc=current_user.email
+                    )
+                except Exception as e:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Erro ao enviar email para terceirizado: {e}")
         else:
             flash('Chamado criado com sucesso.', 'success')
         

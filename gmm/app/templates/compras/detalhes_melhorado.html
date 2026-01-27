@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('compras.listar') }}">Compras</a></li>
+<li class="breadcrumb-item active">Pedido #{{ pedido.id }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Coluna Principal -->
+    <div class="col-lg-8">
+        <!-- Card: Detalhes do Pedido -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                <h4 class="fw-bold mb-0">Pedido #{{ pedido.id }}</h4>
+                <span class="badge bg-{{ 'success' if pedido.status=='aprovado' else 'warning'  }} px-3 py-2">
+                    {{ pedido.status|upper }}
+                </span>
+            </div>
+            <div class="card-body p-4">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <label class="small text-muted fw-bold text-uppercase">Peça Solicitada</label>
+                        <div class="fs-5 fw-bold">{{ pedido.peca.nome }}</div>
+                        <div class="text-muted small">{{ pedido.peca.codigo }}</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="small text-muted fw-bold text-uppercase">Quantidade</label>
+                        <div class="fs-4 fw-bold text-primary">{{ "{:g}".format(pedido.quantidade) }} {{ pedido.peca.unidade_medida }}</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="small text-muted fw-bold text-uppercase">Destino</label>
+                        <div>{{ pedido.unidade_destino.nome if pedido.unidade_destino else 'Central' }}</div>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <label class="small text-muted fw-bold text-uppercase">Solicitado por</label>
+                        <div>{{ pedido.solicitante.nome if pedido.solicitante else 'Sistema' }}</div>
+                        <small class="text-muted">{{ pedido.data_solicitacao.strftime('%d/%m/%Y %H:%M') }}</small>
+                    </div>
+                    {% if pedido.aprovador %}
+                    <div class="col-md-6">
+                        <label class="small text-muted fw-bold text-uppercase">Aprovado por</label>
+                        <div>{{ pedido.aprovador.nome }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Card: Histórico de Comunicações -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0">
+                    <i class="bi bi-chat-dots text-primary me-2"></i>Histórico de Comunicações
+                </h5>
+                <button class="btn btn-sm btn-outline-primary" onclick="atualizarHistorico()">
+                    <i class="bi bi-arrow-clockwise me-1"></i>Atualizar
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <div id="historicoComunicacoes">
+                    {% if pedido.comunicacoes %}
+                    <div class="list-group list-group-flush">
+                        {% for com in pedido.comunicacoes|sort(attribute='data_envio', reverse=True) %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <strong>{{ com.fornecedor.nome }}</strong>
+                                    <span class="badge bg-{{ 'info' if com.direcao=='enviado' else 'success' }} bg-opacity-10 text-{{ 'info' if com.direcao=='enviado' else 'success' }} ms-2">
+                                        {{ com.direcao }}
+                                    </span>
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary ms-1">
+                                        <i class="bi bi-{{ 'whatsapp' if com.tipo_comunicacao=='whatsapp' else 'envelope' }}"></i>
+                                        {{ com.tipo_comunicacao }}
+                                    </span>
+                                </div>
+                                <div class="text-end">
+                                    <small class="text-muted">{{ com.data_envio.strftime('%d/%m/%Y %H:%M') }}</small>
+                                    <br>
+                                    <span class="badge bg-{{ 'success' if com.status=='entregue' else ('warning' if com.status=='enviado' else 'secondary') }}">
+                                        {{ com.status }}
+                                    </span>
+                                </div>
+                            </div>
+                            {% if com.mensagem %}
+                            <div class="small text-muted mb-2">
+                                <i class="bi bi-arrow-right me-1"></i>{{ com.mensagem[:100] }}{% if com.mensagem|length > 100 %}...{% endif %}
+                            </div>
+                            {% endif %}
+                            {% if com.resposta %}
+                            <div class="alert alert-success alert-sm mb-0 mt-2">
+                                <i class="bi bi-reply-fill me-1"></i>
+                                <strong>Resposta:</strong> {{ com.resposta }}
+                                <br>
+                                <small class="text-muted">{{ com.data_resposta.strftime('%d/%m/%Y %H:%M') if com.data_resposta else '' }}</small>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="p-4 text-center text-muted">
+                        <i class="bi bi-chat-dots fs-1 opacity-25 d-block mb-2"></i>
+                        Nenhuma comunicação registrada ainda
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Ações -->
+        {% if pedido.status == 'solicitado' and current_user.tipo in ['admin', 'gerente'] %}
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <div class="d-flex gap-2">
+                    <form action="{{ url_for('compras.aprovar', id=pedido.id) }}" method="POST" class="flex-grow-1">
+                        <button type="submit" class="btn btn-success w-100 py-3">
+                            <i class="bi bi-check-circle me-2"></i>Aprovar Pedido
+                        </button>
+                    </form>
+                    <button class="btn btn-outline-danger px-4">Rejeitar</button>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Coluna Lateral -->
+    <div class="col-lg-4">
+        <!-- Card: Fornecedores Disponíveis -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="fw-bold mb-0">
+                    <i class="bi bi-shop text-primary me-2"></i>Fornecedores
+                </h5>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for quote in quotes %}
+                <div class="list-group-item p-3">
+                    <div class="d-flex justify-content-between mb-2">
+                        <div>
+                            <strong class="text-dark d-block">{{ quote.fornecedor.nome }}</strong>
+                            <small class="text-muted">
+                                {% if quote.fornecedor.telefone %}
+                                <i class="bi bi-whatsapp text-success" title="WhatsApp"></i>
+                                {% endif %}
+                                {% if quote.fornecedor.email %}
+                                <i class="bi bi-envelope text-primary" title="Email"></i>
+                                {% endif %}
+                                {% if quote.fornecedor.forma_contato_alternativa %}
+                                <i class="bi bi-globe text-info" title="Contato Alternativo"></i>
+                                {% endif %}
+                            </small>
+                        </div>
+                        <div class="text-end">
+                            <div class="text-success fw-bold">R$ {{ "{:.2f}".format(quote.preco_atual) }}</div>
+                            <small class="text-muted">{{ quote.prazo_estimado_dias }} dias</small>
+                        </div>
+                    </div>
+
+                    <!-- Contato Alternativo -->
+                    {% if quote.fornecedor.forma_contato_alternativa %}
+                    <div class="alert alert-info alert-sm mt-2 mb-0">
+                        <i class="bi bi-info-circle me-1"></i>
+                        <strong>Contato:</strong><br>
+                        {{ quote.fornecedor.forma_contato_alternativa }}
+                    </div>
+                    {% endif %}
+
+                    <!-- Ações Rápidas -->
+                    <div class="d-flex gap-2 mt-2">
+                        {% if quote.fornecedor.telefone %}
+                        <button class="btn btn-sm btn-success flex-grow-1" onclick="enviarWhatsApp({{ quote.fornecedor.id }})">
+                            <i class="bi bi-whatsapp me-1"></i>WhatsApp
+                        </button>
+                        {% endif %}
+                        {% if quote.fornecedor.email %}
+                        <button class="btn btn-sm btn-primary flex-grow-1" onclick="enviarEmail({{ quote.fornecedor.id }})">
+                            <i class="bi bi-envelope me-1"></i>Email
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% else %}
+                <div class="p-4 text-center text-muted small">
+                    Nenhum fornecedor cadastrado para esta peça
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Card: Fornecedor Selecionado -->
+        {% if pedido.fornecedor %}
+        <div class="card border-0 shadow-sm border-start border-4 border-primary">
+            <div class="card-header bg-light py-3">
+                <div class="small text-uppercase fw-bold text-muted">Fornecedor Atual</div>
+            </div>
+            <div class="card-body">
+                <h5 class="fw-bold mb-2">{{ pedido.fornecedor.nome }}</h5>
+                <div class="small text-muted mb-2">
+                    <i class="bi bi-envelope me-1"></i>{{ pedido.fornecedor.email }}
+                </div>
+                {% if pedido.fornecedor.telefone %}
+                <div class="small text-muted mb-2">
+                    <i class="bi bi-telephone me-1"></i>{{ pedido.fornecedor.telefone }}
+                </div>
+                {% endif %}
+                <div class="badge bg-info bg-opacity-10 text-info mt-2">
+                    Prazo: {{ pedido.fornecedor.prazo_medio_entrega_dias|int }} dias
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+async function enviarWhatsApp(fornecedorId) {
+    ToastModule.show("Enviando mensagem via WhatsApp...", "info");
+    // Implementar lógica de envio
+}
+
+async function enviarEmail(fornecedorId) {
+    ToastModule.show("Enviando email...", "info");
+    // Implementar lógica de envio
+}
+
+async function atualizarHistorico() {
+    ToastModule.show("Atualizando histórico...", "info");
+    location.reload();
+}
+</script>
+{% endblock %}

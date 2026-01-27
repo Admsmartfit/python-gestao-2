@@ -689,9 +689,20 @@ def adicionar_tarefa_externa(id):
             # Envia assincronamente via Celery
             try:
                 enviar_whatsapp_task.delay(notif.id)
+                
+                # [NOVO] Se o terceirizado tem email, envia cópia por email também se solicitado ou como fallback
+                if terceirizado.email:
+                    EmailService.enviar_solicitacao_terceirizado(
+                        novo_chamado, 
+                        terceirizado, 
+                        msg, 
+                        cc=current_user.email
+                    )
+                
                 flash('Tarefa criada e notificação enviada ao prestador!', 'success')
             except Exception as e:
-                flash('Tarefa criada, mas erro ao enfileirar WhatsApp.', 'warning')
+                flash('Tarefa criada, mas erro ao enviar notificações.', 'warning')
+                logger.error(f"Erro ao enviar notificações: {e}")
         else:
             flash('Tarefa externa criada com sucesso (sem notificação).', 'success')
         
@@ -786,16 +797,29 @@ def salvar_feedback(id):
 @bp.route('/buscar_prestadores', methods=['POST'])
 @login_required
 def buscar_prestadores():
-    """Busca prestadores por palavra-chave na especialidade"""
+    """Busca prestadores por palavra-chave na especialidade, nome ou empresa"""
     try:
         import json
-        palavra_chave = request.json.get('palavra_chave', '').strip().lower()
-        unidade_id = current_user.unidade_id
+        import logging
+        logger = logging.getLogger(__name__)
+
+        # Verificar se há dados JSON
+        if not request.is_json:
+            return jsonify({'success': False, 'erro': 'Content-Type deve ser application/json'}), 400
+
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'erro': 'Dados JSON inválidos'}), 400
+
+        palavra_chave = data.get('palavra_chave', '').strip().lower()
+        unidade_id = current_user.unidade_padrao_id
 
         if not palavra_chave:
             return jsonify({'success': False, 'erro': 'Palavra-chave não informada'}), 400
 
-        # Buscar prestadores ativos com a palavra-chave nas especialidades
+        logger.info(f"Buscando prestadores com palavra-chave: {palavra_chave}")
+
+        # Buscar prestadores ativos
         prestadores = Terceirizado.query.filter(
             Terceirizado.ativo == True
         ).all()
@@ -803,16 +827,27 @@ def buscar_prestadores():
         resultados = []
         for p in prestadores:
             # Verificar se o prestador atende a unidade (global ou específica)
-            atende_unidade = p.abrangencia_global or (unidade_id in [u.id for u in p.unidades])
+            if unidade_id:
+                atende_unidade = p.abrangencia_global or (unidade_id in [u.id for u in p.unidades])
+                if not atende_unidade:
+                    continue
 
-            if not atende_unidade:
-                continue
+            # Buscar palavra-chave nas especialidades, nome e nome da empresa
+            try:
+                especialidades_list = json.loads(p.especialidades) if p.especialidades else []
+            except (json.JSONDecodeError, TypeError):
+                # Se não for JSON válido, tentar como string
+                especialidades_list = [p.especialidades] if p.especialidades else []
 
-            # Buscar palavra-chave nas especialidades (JSON array)
-            especialidades_list = json.loads(p.especialidades) if p.especialidades else []
-            especialidades_str = ' '.join(especialidades_list).lower()
+            # Montar string de busca
+            texto_busca = ' '.join([
+                p.nome.lower() if p.nome else '',
+                p.nome_empresa.lower() if p.nome_empresa else '',
+                ' '.join(especialidades_list).lower()
+            ])
 
-            if palavra_chave in especialidades_str:
+            # Verificar se a palavra-chave está presente
+            if palavra_chave in texto_busca:
                 resultados.append({
                     'id': p.id,
                     'nome': p.nome,
@@ -826,6 +861,8 @@ def buscar_prestadores():
                     'orientacao_contato': p.observacoes if not p.telefone and not p.email else None
                 })
 
+        logger.info(f"Encontrados {len(resultados)} prestadores")
+
         return jsonify({
             'success': True,
             'prestadores': resultados,
@@ -833,6 +870,9 @@ def buscar_prestadores():
         })
 
     except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Erro ao buscar prestadores: {str(e)}")
         return jsonify({'success': False, 'erro': str(e)}), 500
 
 # [NOVO] Criar Chamados para Múltiplos Prestadores

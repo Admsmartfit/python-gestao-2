@@ -10,7 +10,8 @@
       "Bash(flask db:*)",
       "Bash(py -m flask db:*)",
       "Bash(py -c:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(venvScriptspython -m flask db migrate -m \"Add forma_contato_alternativa and ComunicacaoFornecedor table\")"
     ]
   }
 }

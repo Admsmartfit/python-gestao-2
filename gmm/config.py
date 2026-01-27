@@ -35,6 +35,12 @@ class Config:
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER')
     PURCHASE_EMAIL = os.environ.get('PURCHASE_EMAIL') # Email do setor de compras
+    
+    # IMAP settings for monitoring responses
+    MAIL_IMAP_SERVER = os.environ.get('MAIL_IMAP_SERVER') or 'imap.gmail.com'
+    MAIL_IMAP_USERNAME = os.environ.get('MAIL_IMAP_USERNAME') or os.environ.get('MAIL_USERNAME')
+    MAIL_IMAP_PASSWORD = os.environ.get('MAIL_IMAP_PASSWORD') or os.environ.get('MAIL_PASSWORD')
+
 
     # Celery Beat Schedule
     from celery.schedules import crontab
@@ -54,5 +60,9 @@ class Config:
         'anomalias-equipamentos': {
             'task': 'app.tasks.system_tasks.detectar_anomalias_equipamentos_task',
             'schedule': crontab(hour=10, minute=0, day_of_week='mon'),
+        },
+        'monitorar-respostas-email': {
+            'task': 'app.tasks.email_tasks.monitorar_email_task',
+            'schedule': crontab(minute='*/10'), # A cada 10 minutos
         },
     }

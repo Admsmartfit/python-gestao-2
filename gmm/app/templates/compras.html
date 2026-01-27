@@ -63,7 +63,12 @@
                             {% for pedido in pendentes %}
                             <tr>
                                 <td class="ps-4">
-                                    <div class="fw-bold">{{ pedido.peca.nome }}</div>
+                                    <div class="fw-bold">
+                                        <a href="{{ url_for('compras.detalhes', id=pedido.id) }}"
+                                            class="text-decoration-none text-primary">
+                                            {{ pedido.peca.nome }}
+                                        </a>
+                                    </div>
                                     <small class="text-muted font-monospace">{{ pedido.peca.codigo }}</small>
                                 </td>
                                 <td>
@@ -126,7 +131,12 @@
                                         }}</small>
                                 </td>
                                 <td>
-                                    <div>{{ pedido.peca.nome }}</div>
+                                    <div class="fw-bold">
+                                        <a href="{{ url_for('compras.detalhes', id=pedido.id) }}"
+                                            class="text-decoration-none text-primary">
+                                            {{ pedido.peca.nome }}
+                                        </a>
+                                    </div>
                                     <small class="fw-bold">{{ "{:g}".format(pedido.quantidade|float) }} {{
                                         pedido.peca.unidade_medida }}</small>
                                 </td>
@@ -184,7 +194,12 @@
                             {% for pedido in historico %}
                             <tr class="{% if pedido.status == 'cancelado' %}opacity-75{% endif %}">
                                 <td class="ps-4">
-                                    <div class="fw-bold">{{ pedido.peca.nome }}</div>
+                                    <div class="fw-bold">
+                                        <a href="{{ url_for('compras.detalhes', id=pedido.id) }}"
+                                            class="text-decoration-none text-primary">
+                                            {{ pedido.peca.nome }}
+                                        </a>
+                                    </div>
                                     <small class="text-muted">{{ pedido.fornecedor.nome if pedido.fornecedor else 'N/A'
                                         }}</small>
                                 </td>

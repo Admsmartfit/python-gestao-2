@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
-from app.models.estoque_models import PedidoCompra, Fornecedor, Estoque, CatalogoFornecedor
+from app.models.estoque_models import PedidoCompra, Fornecedor, Estoque, CatalogoFornecedor, ComunicacaoFornecedor
 from app.extensions import db
 from datetime import datetime
 import logging
@@ -84,12 +84,12 @@ def novo():
 @bp.route('/<int:id>')
 @login_required
 def detalhes(id):
-    """View order details and quotes"""
+    """View order details, quotes and communication history"""
     pedido = PedidoCompra.query.get_or_404(id)
     # Get other quotes for this item
     quotes = CatalogoFornecedor.query.filter_by(estoque_id=pedido.estoque_id).order_by(CatalogoFornecedor.preco_atual).all()
-    
-    return render_template('compras/detalhes.html', pedido=pedido, quotes=quotes)
+
+    return render_template('compras/detalhes_melhorado.html', pedido=pedido, quotes=quotes)
 
 @bp.route('/<int:id>/aprovar', methods=['POST'])
 @login_required
@@ -280,4 +280,205 @@ def criar_pedidos_multiplos():
     except Exception as e:
         db.session.rollback()
         logger.error(f"Erro ao criar pedidos múltiplos: {e}")
+        return jsonify({'success': False, 'erro': str(e)}), 500
+
+# [NOVO] Registrar Comunicação com Fornecedor
+@bp.route('/<int:pedido_id>/registrar_comunicacao', methods=['POST'])
+@login_required
+def registrar_comunicacao(pedido_id):
+    """Registra uma comunicação enviada ao fornecedor"""
+    try:
+        # Verificar se o pedido existe
+        PedidoCompra.query.get_or_404(pedido_id)
+        data = request.json
+
+        fornecedor_id = data.get('fornecedor_id')
+        tipo_comunicacao = data.get('tipo_comunicacao')  # whatsapp, email, telefone, site
+        mensagem = data.get('mensagem')
+
+        if not fornecedor_id or not tipo_comunicacao:
+            return jsonify({'success': False, 'erro': 'Dados incompletos'}), 400
+
+        comunicacao = ComunicacaoFornecedor(
+            pedido_compra_id=pedido_id,
+            fornecedor_id=fornecedor_id,
+            tipo_comunicacao=tipo_comunicacao,
+            direcao='enviado',
+            mensagem=mensagem,
+            status='enviado',
+            data_envio=datetime.now()
+        )
+
+        db.session.add(comunicacao)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'mensagem': 'Comunicação registrada com sucesso',
+            'comunicacao_id': comunicacao.id
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao registrar comunicação: {e}")
+        return jsonify({'success': False, 'erro': str(e)}), 500
+
+# [NOVO] Registrar Resposta de Fornecedor
+@bp.route('/comunicacao/<int:com_id>/resposta', methods=['POST'])
+@login_required
+def registrar_resposta(com_id):
+    """Registra a resposta de um fornecedor"""
+    try:
+        comunicacao = ComunicacaoFornecedor.query.get_or_404(com_id)
+        data = request.json
+
+        resposta = data.get('resposta')
+        if not resposta:
+            return jsonify({'success': False, 'erro': 'Resposta não informada'}), 400
+
+        comunicacao.resposta = resposta
+        comunicacao.status = 'respondido'
+        comunicacao.data_resposta = datetime.now()
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'mensagem': 'Resposta registrada com sucesso'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao registrar resposta: {e}")
+        return jsonify({'success': False, 'erro': str(e)}), 500
+
+# [NOVO] Listar Comunicações de um Pedido
+@bp.route('/<int:pedido_id>/comunicacoes', methods=['GET'])
+@login_required
+def listar_comunicacoes(pedido_id):
+    """Lista todas as comunicações de um pedido"""
+    try:
+        comunicacoes = ComunicacaoFornecedor.query.filter_by(
+            pedido_compra_id=pedido_id
+        ).order_by(ComunicacaoFornecedor.data_envio.desc()).all()
+
+        resultado = []
+        for com in comunicacoes:
+            resultado.append({
+                'id': com.id,
+                'fornecedor': com.fornecedor.nome,
+                'tipo': com.tipo_comunicacao,
+                'direcao': com.direcao,
+                'mensagem': com.mensagem,
+                'status': com.status,
+                'resposta': com.resposta,
+                'data_envio': com.data_envio.strftime('%d/%m/%Y %H:%M'),
+                'data_resposta': com.data_resposta.strftime('%d/%m/%Y %H:%M') if com.data_resposta else None
+            })
+
+        return jsonify({
+            'success': True,
+            'comunicacoes': resultado,
+            'total': len(resultado)
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao listar comunicações: {e}")
+        return jsonify({'success': False, 'erro': str(e)}), 500
+
+# [NOVO] Enviar Solicitação de Orçamento
+@bp.route('/<int:pedido_id>/solicitar_orcamento', methods=['POST'])
+@login_required
+def solicitar_orcamento(pedido_id):
+    """Envia solicitação de orçamento para fornecedores via WhatsApp/Email"""
+    try:
+        pedido = PedidoCompra.query.get_or_404(pedido_id)
+        data = request.json
+
+        fornecedor_ids = data.get('fornecedor_ids', [])
+        mensagem_custom = data.get('mensagem')
+
+        if not fornecedor_ids:
+            return jsonify({'success': False, 'erro': 'Nenhum fornecedor selecionado'}), 400
+
+        enviados = []
+        erros = []
+
+        for fornecedor_id in fornecedor_ids:
+            fornecedor = Fornecedor.query.get(fornecedor_id)
+            if not fornecedor:
+                continue
+
+            # Mensagem padrão
+            mensagem = mensagem_custom or f"""
+🛒 *SOLICITAÇÃO DE ORÇAMENTO*
+
+Pedido: #{pedido.id}
+Item: {pedido.peca.nome}
+Código: {pedido.peca.codigo}
+Quantidade: {pedido.quantidade} {pedido.peca.unidade_medida}
+
+Por favor, envie seu melhor preço e prazo de entrega.
+
+_Solicitado por: {current_user.nome}_
+"""
+
+            tipo_comunicacao = None
+            sucesso = False
+
+            # Tentar WhatsApp primeiro
+            if fornecedor.telefone:
+                try:
+                    from app.tasks.whatsapp_tasks import enviar_whatsapp_task
+                    enviar_whatsapp_task.delay(fornecedor.telefone, mensagem)
+                    tipo_comunicacao = 'whatsapp'
+                    sucesso = True
+                except Exception as e:
+                    logger.error(f"Erro ao enviar WhatsApp: {e}")
+
+            # Fallback para Email
+            if not sucesso and fornecedor.email:
+                try:
+                    from app.services.email_service import EmailService
+                    EmailService.enviar_solicitacao_orcamento(pedido, fornecedor, mensagem, cc=current_user.email)
+                    tipo_comunicacao = 'email'
+                    sucesso = True
+                except Exception as e:
+                    logger.error(f"Erro ao enviar email: {e}")
+
+            # Registrar comunicação
+            if sucesso:
+                comunicacao = ComunicacaoFornecedor(
+                    pedido_compra_id=pedido_id,
+                    fornecedor_id=fornecedor_id,
+                    tipo_comunicacao=tipo_comunicacao,
+                    direcao='enviado',
+                    mensagem=mensagem,
+                    status='enviado',
+                    data_envio=datetime.now()
+                )
+                db.session.add(comunicacao)
+
+                enviados.append({
+                    'fornecedor': fornecedor.nome,
+                    'canal': tipo_comunicacao
+                })
+            else:
+                erros.append({
+                    'fornecedor': fornecedor.nome,
+                    'motivo': 'Sem WhatsApp ou Email cadastrado'
+                })
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'mensagem': f'{len(enviados)} solicitações enviadas',
+            'enviados': enviados,
+            'erros': erros
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao solicitar orçamentos: {e}")
         return jsonify({'success': False, 'erro': str(e)}), 500
