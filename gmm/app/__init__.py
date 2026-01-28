@@ -86,31 +86,36 @@ def create_app():
             estoque,
             manutencao
         )
-    
-    app.register_blueprint(auth.bp)
-    app.register_blueprint(ponto.bp)
-    app.register_blueprint(admin.bp)
-    app.register_blueprint(os.bp)
-    app.register_blueprint(terceirizados.bp)
-    app.register_blueprint(analytics.bp)
-    app.register_blueprint(whatsapp.bp)
-    app.register_blueprint(webhook.bp)
-    app.register_blueprint(admin_whatsapp.bp)
 
-    # Novo Módulo de Equipamentos
-    app.register_blueprint(equipamentos.bp)
+        app.register_blueprint(auth.bp)
+        app.register_blueprint(ponto.bp)
+        app.register_blueprint(admin.bp)
+        app.register_blueprint(os.bp)
+        app.register_blueprint(terceirizados.bp)
+        app.register_blueprint(analytics.bp)
+        app.register_blueprint(whatsapp.bp)
+        app.register_blueprint(webhook.bp)
+        app.register_blueprint(admin_whatsapp.bp)
 
-    # Módulos de Utilidade
-    app.register_blueprint(search.bp)
-    app.register_blueprint(notifications.bp)
-    app.register_blueprint(compras.bp)
-    app.register_blueprint(estoque.bp)
-    app.register_blueprint(manutencao.bp)
-    
-    # Rota Raiz
-    @app.route('/')
-    def root():
-        # Redireciona automaticamente para o login
-        return redirect(url_for('auth.login'))
+        # Novo Módulo de Equipamentos
+        app.register_blueprint(equipamentos.bp)
+
+        # Módulos de Utilidade
+        app.register_blueprint(search.bp)
+        app.register_blueprint(notifications.bp)
+        app.register_blueprint(compras.bp)
+        app.register_blueprint(estoque.bp)
+        app.register_blueprint(manutencao.bp)
+
+        # Rota Raiz
+        @app.route('/')
+        def root():
+            # Redireciona automaticamente para o login
+            return redirect(url_for('auth.login'))
+    else:
+        # Modo setup - apenas rota raiz redireciona para setup
+        @app.route('/')
+        def root():
+            return redirect(url_for('setup.welcome'))
 
     return app

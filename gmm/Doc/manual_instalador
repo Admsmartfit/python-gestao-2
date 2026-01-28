@@ -1,0 +1,223 @@
+Este é o manual completo de instalação do **Sistema GMM (Gestão Moderna de Manutenção)** em ambiente Linux, integrando o guia técnico de requisitos com o novo módulo **Setup Wizard** para configuração simplificada.
+
+---
+
+# 🐧 Manual do Instalador - Sistema GMM (Linux)
+
+## 1. Visão Geral e Requisitos de Sistema
+
+O GMM é uma aplicação Flask para gestão de manutenção com suporte a tarefas assíncronas via Celery e Redis.
+
+* **Sistema Operacional**: Ubuntu 20.04+, Debian 11+, CentOS 8+ ou similar.
+* **Python**: Versão 3.9 ou superior.
+* **Redis**: Versão 5.0 ou superior (obrigatório para o Celery).
+* **RAM**: Mínimo de 2GB (4GB recomendado).
+* **Espaço em Disco**: Mínimo de 500MB livres para a aplicação, sendo recomendado 1GB livre para o Setup Wizard.
+
+---
+
+## 2. Preparação e Instalação Automatizada
+
+O sistema fornece um script para configurar as dependências básicas do Linux antes de iniciar a configuração web.
+
+1. **Copie os arquivos** necessários para o servidor, mantendo a estrutura original das pastas `app/`, `config/`, `migrations/`, `instance/` e os scripts da raiz.
+2. **Dê permissão de execução** e inicie o script como root:
+```bash
+chmod +x install_linux.sh
+sudo ./install_linux.sh
+
+```
+
+
+3. **Ações do Script**:
+* Detecta a distribuição Linux e instala Python 3.9+, Redis e ferramentas de compilação.
+* Cria o ambiente virtual (`venv`) e instala as dependências do `requirements.txt`.
+* Cria a estrutura de pastas para uploads em `app/static/uploads/{audios,chamados,os}`.
+* Garante permissões de escrita para o usuário real.
+
+
+
+---
+
+## 3. Configuração via Setup Wizard (Interface Web)
+
+O GMM possui um assistente de configuração interativo que substitui a edição manual do arquivo `.env`.
+
+### Inicialização
+
+Se o arquivo `.env` não existir, ao executar `python run.py`, o sistema redirecionará automaticamente para a rota `/setup`. Acesse `http://IP-DO-SERVIDOR:5000` no seu navegador.
+
+### Etapas do Assistente:
+
+* **Etapa 1: Verificação de Ambiente**: Valida a versão do Python, permissões de escrita, se o Redis está rodando e o espaço em disco.
+* **Etapa 2: Segurança**: Gera automaticamente a `SECRET_KEY` (proteção de sessões) e a `FERNET_KEY` (criptografia de tokens e senhas).
+* **Etapa 3: Banco de Dados**:
+* **SQLite**: Configura o caminho absoluto para o banco em `instance/gmm.db`.
+* **PostgreSQL**: Permite inserir Host, Porta, Usuário e Senha, com validação de conexão em tempo real.
+
+
+* **Etapa 4: Conectividade**: Configura as chaves da **MegaAPI (WhatsApp)** e credenciais de e-mail (SMTP/IMAP) para notificações, permitindo o envio de mensagens de teste.
+* **Etapa 5: Inteligência Artificial (Opcional)**: Configura a API Key da OpenAI para transcrição de áudios e comandos de voz.
+* **Finalização**: Salva o arquivo `.env`, cria a trava de segurança `instance/setup.lock` e limpa a sessão.
+
+---
+
+## 4. Inicialização e Serviços em Produção
+
+Após concluir o Setup Wizard, o sistema deve ser reiniciado para carregar as novas configurações.
+
+### Comandos de Inicialização (Manual)
+
+Abra terminais separados ou use o `start_linux.sh`:
+
+1. **Flask**: `python run.py`.
+2. **Celery Worker**: `celery -A app.celery worker --loglevel=info`.
+3. **Celery Beat**: `celery -A app.celery beat --loglevel=info`.
+
+### Configuração com Systemd (Recomendado)
+
+Para rodar como serviço de sistema, utilize o modelo abaixo para o arquivo `/etc/systemd/system/gmm-flask.service`:
+
+```ini
+[Unit]
+Description=GMM Flask Application
+After=network.target redis.service
+
+[Service]
+Type=simple
+User=seu-usuario
+WorkingDirectory=/caminho/para/gmm
+Environment="PATH=/caminho/para/gmm/venv/bin"
+ExecStart=/caminho/para/gmm/venv/bin/python run.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+
+```
+
+Repita o processo para os serviços do Celery (`gmm-celery.service` e `gmm-celery-beat.service`) conforme detalhado no script de instalação.
+
+---
+
+## 5. Verificação e Acesso
+
+* **Login Padrão**: Usuário `admin` / Senha `admin123`.
+* **⚠️ Segurança**: Altere a senha padrão imediatamente após o primeiro login e mantenha o arquivo `.env` com permissões restritas.
+* **Reconfiguração**: Caso precise refazer o processo, delete os arquivos `.env` e `instance/setup.lock`.
+
+Gostaria que eu detalhasse a criação dos arquivos de serviço do Celery para o Systemd?
+
+Aqui estão os comandos prontos para configurar o **Systemd** no seu servidor Linux. Estes comandos criam os três serviços necessários para o pleno funcionamento do GMM: a aplicação Web, o processador de tarefas e o agendador.
+
+### 1. Defina as Variáveis de Ambiente
+
+Substitua `/caminho/para/gmm` pelo caminho real da pasta onde instalou o sistema e `seu-utilizador` pelo nome do utilizador Linux que será o dono dos ficheiros.
+
+```bash
+# Exemplo: INSTALL_DIR="/home/ubuntu/gmm" e REAL_USER="ubuntu"
+INSTALL_DIR="/caminho/para/gmm"
+REAL_USER="seu-utilizador"
+
+```
+
+### 2. Criar o Serviço Flask (Interface Web)
+
+Este comando cria o serviço que mantém o site online.
+
+```bash
+sudo bash -c "cat > /etc/systemd/system/gmm-flask.service << EOF
+[Unit]
+Description=GMM Flask Application
+After=network.target redis.service
+
+[Service]
+Type=simple
+User=$REAL_USER
+WorkingDirectory=$INSTALL_DIR
+Environment=\"PATH=$INSTALL_DIR/venv/bin\"
+EnvironmentFile=$INSTALL_DIR/.env
+ExecStart=$INSTALL_DIR/venv/bin/python run.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF"
+
+```
+
+### 3. Criar o Serviço Celery Worker (Tarefas)
+
+Este serviço processa tarefas como o envio de mensagens de WhatsApp em segundo plano.
+
+```bash
+sudo bash -c "cat > /etc/systemd/system/gmm-celery.service << EOF
+[Unit]
+Description=GMM Celery Worker
+After=network.target redis.service
+
+[Service]
+Type=simple
+User=$REAL_USER
+WorkingDirectory=$INSTALL_DIR
+Environment=\"PATH=$INSTALL_DIR/venv/bin\"
+EnvironmentFile=$INSTALL_DIR/.env
+ExecStart=$INSTALL_DIR/venv/bin/celery -A app.celery worker --loglevel=info
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF"
+
+```
+
+### 4. Criar o Serviço Celery Beat (Agendador)
+
+Este serviço é responsável por tarefas que ocorrem em horários específicos, como verificações automáticas.
+
+```bash
+sudo bash -c "cat > /etc/systemd/system/gmm-celery-beat.service << EOF
+[Unit]
+Description=GMM Celery Beat Scheduler
+After=network.target redis.service
+
+[Service]
+Type=simple
+User=$REAL_USER
+WorkingDirectory=$INSTALL_DIR
+Environment=\"PATH=$INSTALL_DIR/venv/bin\"
+EnvironmentFile=$INSTALL_DIR/.env
+ExecStart=$INSTALL_DIR/venv/bin/celery -A app.celery beat --loglevel=info
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF"
+
+```
+
+### 5. Ativar e Iniciar os Serviços
+
+Execute estes comandos para recarregar o Linux e colocar tudo a funcionar imediatamente:
+
+```bash
+# Recarregar as configurações do sistema
+sudo systemctl daemon-reload
+
+# Ativar para iniciarem automaticamente no boot
+sudo systemctl enable gmm-flask gmm-celery gmm-celery-beat
+
+# Iniciar os serviços agora
+sudo systemctl start gmm-flask gmm-celery gmm-celery-beat
+
+```
+
+### 6. Como verificar se está tudo OK?
+
+Pode verificar o estado de qualquer serviço e ler os logs em tempo real:
+
+* **Verificar estado:** `sudo systemctl status gmm-flask`
+* **Ver logs do Flask:** `sudo journalctl -u gmm-flask -f`
+* **Ver logs do WhatsApp/Tarefas:** `sudo journalctl -u gmm-celery -f`
+
+**Atenção:** Certifique-se de que já concluiu o **Setup Wizard** via navegador antes de iniciar estes serviços, para que o ficheiro `.env` esteja presente e configurado.
