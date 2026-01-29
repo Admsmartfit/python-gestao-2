@@ -5,7 +5,7 @@ from celery import Celery
 from config import Config
 from datetime import datetime
 from pathlib import Path
-import os
+import os as os_module
 
 def make_celery(app):
     celery = Celery(
@@ -33,7 +33,7 @@ def create_app():
     app.register_blueprint(setup_module.bp)
 
     # Configurar secret key temporária para o setup wizard
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'temporary-setup-key-change-me')
+    app.config['SECRET_KEY'] = os_module.environ.get('SECRET_KEY', 'temporary-setup-key-change-me')
 
     # Se .env não existe e não estamos na rota de setup, redirecionar
     @app.before_request
