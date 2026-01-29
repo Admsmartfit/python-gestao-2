@@ -3,6 +3,7 @@
 # ============================================================================
 # Script de Instalacao Automatica - Sistema GMM (Linux)
 # Gestao Moderna de Manutencao
+# Versao 2.0 - Com Setup Wizard
 # ============================================================================
 
 set -e  # Sair em caso de erro
@@ -12,6 +13,7 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
 NC='\033[0m' # No Color
 
 # Funcoes auxiliares
@@ -39,6 +41,10 @@ print_ok() {
     echo -e "${GREEN}[OK]${NC} $1"
 }
 
+print_info() {
+    echo -e "${PURPLE}[INFO]${NC} $1"
+}
+
 # Verificar se esta sendo executado como root
 if [ "$EUID" -ne 0 ]; then
     print_error "Este script precisa ser executado como root (sudo)"
@@ -54,12 +60,12 @@ INSTALL_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$INSTALL_DIR"
 
 
-print_header "INSTALADOR GMM - GESTAO MODERNA DE MANUTENCAO (Linux) - v1.1 Fix"
-echo "Rodando versao atualizada..."
+print_header "INSTALADOR GMM - GESTAO MODERNA DE MANUTENCAO (Linux) - v2.0"
+echo "Esta versao utiliza o Setup Wizard para configuracao"
 echo ""
 
 # Detectar distribuicao
-print_step "1/14" "Detectando distribuicao Linux..."
+print_step "1/10" "Detectando distribuicao Linux..."
 if [ -f /etc/os-release ]; then
     . /etc/os-release
     DISTRO=$ID
@@ -70,9 +76,9 @@ else
 fi
 
 # Atualizar repositorios
-print_step "2/14" "Atualizando repositorios do sistema..."
+print_step "2/10" "Atualizando repositorios do sistema..."
 case "$DISTRO" in
-    ubuntu|debian)
+    ubuntu|debian|linuxmint)
         apt-get update -qq
         ;;
     centos|rhel|fedora)
@@ -85,14 +91,14 @@ esac
 print_ok "Repositorios atualizados"
 
 # Instalar Python
-print_step "3/14" "Verificando instalacao do Python..."
+print_step "3/10" "Verificando instalacao do Python..."
 if command -v python3 &> /dev/null; then
     PYTHON_VERSION=$(python3 --version | cut -d' ' -f2)
     print_ok "Python $PYTHON_VERSION encontrado"
 else
     print_warning "Python nao encontrado. Instalando..."
     case "$DISTRO" in
-        ubuntu|debian)
+        ubuntu|debian|linuxmint)
             apt-get install -y python3 python3-pip python3-venv python3-dev build-essential
             ;;
         centos|rhel|fedora)
@@ -103,31 +109,27 @@ else
 fi
 
 # Verificar versao do Python
-# Verificar versao do Python (>= 3.9) using python itself to handle 3.10+ correctly
-print_step "Check Python Version (Internal Check)..."
+print_step "Check" "Verificando versao do Python..."
 if ! python3 -c "import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)"; then
     PYTHON_VERSION=$(python3 --version | cut -d' ' -f2)
-    # Changed error message to verify file update
-    print_error "ERRO CRITICO: Python 3.9+ requerido. Versao detectada: $PYTHON_VERSION"
-    print_error "Debug: O comando 'python3' falhou na verificacao de versao interna."
-    # Fail safe: se for 3.12, vamos permitir com um aviso (caso o python3 -c falhe por outro motivo)
-    if [[ "$PYTHON_VERSION" == "3.12"* ]] || [[ "$PYTHON_VERSION" == "3.11"* ]]; then
-        print_warning "Detectado Python $PYTHON_VERSION. Forcando continuacao apesar da falha no teste."
+    if [[ "$PYTHON_VERSION" == "3.12"* ]] || [[ "$PYTHON_VERSION" == "3.11"* ]] || [[ "$PYTHON_VERSION" == "3.10"* ]]; then
+        print_warning "Detectado Python $PYTHON_VERSION. Continuando..."
     else
+        print_error "Python 3.9+ requerido. Versao detectada: $PYTHON_VERSION"
         exit 1
     fi
 else
-    print_ok "Versao do Python validada com sucesso."
+    print_ok "Versao do Python validada"
 fi
 
 # Instalar Redis
-print_step "4/14" "Verificando instalacao do Redis..."
+print_step "4/10" "Verificando instalacao do Redis..."
 if command -v redis-server &> /dev/null; then
     print_ok "Redis encontrado"
 else
     print_warning "Redis nao encontrado. Instalando..."
     case "$DISTRO" in
-        ubuntu|debian)
+        ubuntu|debian|linuxmint)
             apt-get install -y redis-server
             systemctl enable redis-server
             systemctl start redis-server
@@ -151,13 +153,12 @@ else
     if redis-cli ping &> /dev/null; then
         print_ok "Redis iniciado com sucesso"
     else
-        print_error "Nao foi possivel iniciar o Redis"
-        exit 1
+        print_warning "Redis nao iniciou. Tarefas agendadas nao funcionarao."
     fi
 fi
 
 # Criar ambiente virtual
-print_step "5/14" "Criando ambiente virtual Python..."
+print_step "5/10" "Criando ambiente virtual Python..."
 if [ -d "venv" ]; then
     print_warning "Ambiente virtual ja existe. Removendo..."
     rm -rf venv
@@ -168,17 +169,17 @@ su - $REAL_USER -c "cd '$INSTALL_DIR' && python3 -m venv venv"
 print_ok "Ambiente virtual criado"
 
 # Ativar ambiente virtual e instalar dependencias
-print_step "6/14" "Atualizando pip..."
+print_step "6/10" "Atualizando pip..."
 su - $REAL_USER -c "cd '$INSTALL_DIR' && source venv/bin/activate && pip install --upgrade pip -q"
 print_ok "pip atualizado"
 
-print_step "7/14" "Instalando dependencias Python..."
+print_step "7/10" "Instalando dependencias Python..."
 echo "Isso pode levar alguns minutos..."
 su - $REAL_USER -c "cd '$INSTALL_DIR' && source venv/bin/activate && pip install -r requirements.txt -q"
 print_ok "Dependencias instaladas"
 
 # Criar estrutura de pastas
-print_step "8/14" "Criando estrutura de pastas..."
+print_step "8/10" "Criando estrutura de pastas..."
 mkdir -p instance
 mkdir -p app/static/uploads/{audios,chamados,os}
 
@@ -188,71 +189,13 @@ chown -R $REAL_USER:$REAL_USER app/static/uploads
 chmod -R 755 app/static/uploads
 chmod -R 755 instance
 
+# Garantir que o usuario possa escrever o .env
+chown $REAL_USER:$REAL_USER "$INSTALL_DIR"
+
 print_ok "Estrutura de pastas criada"
 
-# Criar arquivo .env
-print_step "9/14" "Criando arquivo de configuracao .env..."
-if [ -f ".env" ]; then
-    print_warning "Arquivo .env ja existe. Criando backup..."
-    BACKUP_DATE=$(date +%Y%m%d_%H%M%S)
-    cp .env .env.backup.$BACKUP_DATE
-fi
-
-# Gerar chaves aleatorias
-SECRET_KEY=$(su - $REAL_USER -c "cd '$INSTALL_DIR' && source venv/bin/activate && python3 -c \"import secrets; print(secrets.token_hex(32))\"")
-FERNET_KEY=$(su - $REAL_USER -c "cd '$INSTALL_DIR' && source venv/bin/activate && python3 -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\"")
-
-# Criar arquivo .env
-cat > .env << EOF
-# Configuracao do Sistema GMM - Gerado automaticamente
-# Data: $(date)
-
-# Flask
-SECRET_KEY=$SECRET_KEY
-FLASK_APP=run.py
-FLASK_ENV=development
-
-# Banco de Dados
-# SQLite para desenvolvimento (Caminho absoluto obrigatÃ³rio para evitar erros)
-DATABASE_URL=sqlite:///$INSTALL_DIR/instance/gmm.db
-
-# Para usar PostgreSQL em producao, descomente e configure:
-# DATABASE_URL=postgresql://usuario:senha@localhost:5432/gmm
-
-# Redis (Celery)
-CELERY_BROKER_URL=redis://localhost:6379/0
-CELERY_RESULT_BACKEND=redis://localhost:6379/0
-
-# WhatsApp MegaAPI (configure suas credenciais)
-MEGA_API_KEY=sua-chave-api-aqui
-MEGA_API_URL=https://api.megaapi.com.br/v1/messages
-
-# Criptografia
-FERNET_KEY=$FERNET_KEY
-
-# Email (opcional - configure se necessario)
-MAIL_SERVER=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USE_TLS=True
-MAIL_USERNAME=
-MAIL_PASSWORD=
-MAIL_DEFAULT_SENDER=
-PURCHASE_EMAIL=
-
-# Slack (opcional)
-SLACK_WEBHOOK_URL=
-
-# OpenAI (opcional)
-OPENAI_API_KEY=
-EOF
-
-chown $REAL_USER:$REAL_USER .env
-chmod 600 .env
-
-print_ok "Arquivo .env criado com chaves aleatorias"
-
 # Configurar firewall
-print_step "10/14" "Configurando firewall..."
+print_step "9/10" "Configurando firewall..."
 if command -v ufw &> /dev/null; then
     # UFW (Ubuntu/Debian)
     ufw allow 5000/tcp &> /dev/null
@@ -266,23 +209,8 @@ else
     print_warning "Firewall nao detectado. Configure manualmente a porta 5000/tcp"
 fi
 
-# Inicializar banco de dados
-print_step "11/14" "Sincronizando banco de dados (Migrate & Upgrade)..."
-# Tenta migrar primeiro para capturar colunas novas (ex: razao_social)
-su - $REAL_USER -c "cd '$INSTALL_DIR' && source venv/bin/activate && export FLASK_APP=run.py && flask db migrate -m 'Auto migration fix' && flask db upgrade" || \
-su - $REAL_USER -c "cd '$INSTALL_DIR' && source venv/bin/activate && export FLASK_APP=run.py && flask db upgrade"
-print_ok "Banco de dados atualizado"
-
-print_step "12/14" "Criando usuario administrador padrao..."
-su - $REAL_USER -c "cd '$INSTALL_DIR' && source venv/bin/activate && python3 seed_db.py" || print_warning "Dados ja podem estar inicializados"
-print_ok "Usuario admin criado (usuario: admin / senha: admin123)"
-
-print_step "13/14" "Inicializando saldos de estoque..."
-su - $REAL_USER -c "cd '$INSTALL_DIR' && source venv/bin/activate && python3 init_saldos_estoque.py" || print_warning "Saldos ja podem estar inicializados"
-print_ok "Saldos de estoque inicializados"
-
 # Obter IP
-print_step "14/14" "Obtendo endereco IP da maquina..."
+print_step "10/10" "Obtendo endereco IP da maquina..."
 IP_ADDRESS=$(hostname -I | awk '{print $1}')
 print_ok "IP: $IP_ADDRESS"
 
@@ -304,7 +232,7 @@ Type=simple
 User=$REAL_USER
 WorkingDirectory=$INSTALL_DIR
 Environment="PATH=$INSTALL_DIR/venv/bin"
-EnvironmentFile=$INSTALL_DIR/.env
+EnvironmentFile=-$INSTALL_DIR/.env
 ExecStart=$INSTALL_DIR/venv/bin/python run.py
 Restart=always
 
@@ -323,7 +251,7 @@ Type=simple
 User=$REAL_USER
 WorkingDirectory=$INSTALL_DIR
 Environment="PATH=$INSTALL_DIR/venv/bin"
-EnvironmentFile=$INSTALL_DIR/.env
+EnvironmentFile=-$INSTALL_DIR/.env
 ExecStart=$INSTALL_DIR/venv/bin/celery -A app.celery worker --loglevel=info
 Restart=always
 
@@ -342,7 +270,7 @@ Type=simple
 User=$REAL_USER
 WorkingDirectory=$INSTALL_DIR
 Environment="PATH=$INSTALL_DIR/venv/bin"
-EnvironmentFile=$INSTALL_DIR/.env
+EnvironmentFile=-$INSTALL_DIR/.env
 ExecStart=$INSTALL_DIR/venv/bin/celery -A app.celery beat --loglevel=info
 Restart=always
 
@@ -355,63 +283,57 @@ EOF
     systemctl enable gmm-flask gmm-celery gmm-celery-beat
 
     print_ok "Servicos systemd criados e habilitados"
-    echo ""
-    echo "Para iniciar os servicos:"
-    echo "  sudo systemctl start gmm-flask gmm-celery gmm-celery-beat"
-    echo ""
-    echo "Para verificar status:"
-    echo "  sudo systemctl status gmm-flask"
-    echo ""
-    echo "Para ver logs:"
-    echo "  sudo journalctl -u gmm-flask -f"
 fi
 
 # Resumo final
 echo ""
-print_header "INSTALACAO CONCLUIDA COM SUCESSO!"
+print_header "INSTALACAO DE DEPENDENCIAS CONCLUIDA!"
 echo ""
-echo "Proximos passos:"
+echo -e "${PURPLE}========================================${NC}"
+echo -e "${PURPLE}  PROXIMO PASSO: SETUP WIZARD${NC}"
+echo -e "${PURPLE}========================================${NC}"
 echo ""
-echo "1. IMPORTANTE: Edite o arquivo .env e configure:"
-echo "   - MEGA_API_KEY (chave da API do WhatsApp)"
-echo "   - Configuracoes de email (se necessario)"
-echo "   nano $INSTALL_DIR/.env"
+echo "O GMM agora possui um Setup Wizard interativo para configuracao!"
 echo ""
-echo "2. Inicie o sistema:"
-if [ -f "/etc/systemd/system/gmm-flask.service" ]; then
-    echo "   sudo systemctl start gmm-flask gmm-celery gmm-celery-beat"
-else
-    echo "   $INSTALL_DIR/start_linux.sh"
-fi
+echo "1. Inicie o servidor Flask:"
 echo ""
-echo "3. Acesse o sistema no navegador:"
-echo "   - Neste computador: http://localhost:5000"
-echo "   - Outros computadores na rede: http://$IP_ADDRESS:5000"
+echo -e "   ${GREEN}cd $INSTALL_DIR${NC}"
+echo -e "   ${GREEN}source venv/bin/activate${NC}"
+echo -e "   ${GREEN}python run.py${NC}"
 echo ""
-echo "4. Login padrao:"
-echo "   Usuario: admin"
-echo "   Senha: admin123"
-echo "   [ALTERE A SENHA APOS O PRIMEIRO LOGIN!]"
+echo "2. Acesse o Setup Wizard no navegador:"
 echo ""
-echo "5. Para producao, considere:"
-echo "   - Alterar FLASK_ENV=production no .env"
-echo "   - Usar PostgreSQL em vez de SQLite"
-echo "   - Configurar HTTPS com certificado SSL"
-echo "   - Usar Nginx ou Apache como proxy reverso"
+echo -e "   - Neste computador: ${GREEN}http://localhost:5000${NC}"
+echo -e "   - Outros computadores: ${GREEN}http://$IP_ADDRESS:5000${NC}"
 echo ""
-echo "Logs e informacoes:"
-echo "- Arquivo de configuracao: $INSTALL_DIR/.env"
-echo "- Banco de dados: $INSTALL_DIR/instance/gmm.db"
-echo "- Uploads: $INSTALL_DIR/app/static/uploads/"
+echo "3. O Setup Wizard ira guia-lo para configurar:"
+echo ""
+echo "   - Chaves de seguranca (geradas automaticamente)"
+echo "   - Banco de dados (SQLite ou PostgreSQL)"
+echo "   - WhatsApp (MegaAPI)"
+echo "   - Email (SMTP/IMAP)"
+echo "   - Inteligencia Artificial (OpenAI)"
+echo ""
+echo "4. Apos o Setup Wizard, execute as migracoes:"
+echo ""
+echo -e "   ${GREEN}flask db upgrade${NC}"
+echo -e "   ${GREEN}python seed_db.py${NC}  (cria usuario admin)"
+echo ""
+echo -e "${YELLOW}IMPORTANTE: Nao esqueca de trocar a senha do admin apos o primeiro login!${NC}"
 echo ""
 if [ -f "/etc/systemd/system/gmm-flask.service" ]; then
-    echo "Gerenciamento de servicos:"
+    echo "Gerenciamento de servicos (apos o Setup Wizard):"
     echo "- Iniciar: sudo systemctl start gmm-flask gmm-celery gmm-celery-beat"
     echo "- Parar: sudo systemctl stop gmm-flask gmm-celery gmm-celery-beat"
     echo "- Status: sudo systemctl status gmm-flask"
     echo "- Logs: sudo journalctl -u gmm-flask -f"
     echo ""
 fi
+echo "Informacoes uteis:"
+echo "- Diretorio de instalacao: $INSTALL_DIR"
+echo "- Banco de dados (apos setup): $INSTALL_DIR/instance/gmm.db"
+echo "- Uploads: $INSTALL_DIR/app/static/uploads/"
+echo ""
 echo "Para desinstalar:"
 echo "- Delete a pasta 'venv': rm -rf $INSTALL_DIR/venv"
 echo "- Delete a pasta 'instance': rm -rf $INSTALL_DIR/instance"
@@ -422,5 +344,5 @@ if [ -f "/etc/systemd/system/gmm-flask.service" ]; then
     echo "                    sudo systemctl daemon-reload"
 fi
 echo ""
-print_header "INSTALACAO FINALIZADA"
+print_header "INSTALACAO FINALIZADA - ACESSE O SETUP WIZARD"
 echo ""
