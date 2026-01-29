@@ -3,43 +3,160 @@
 {% block content %}
 <div class="container py-5">
     <div class="progress-steps mb-4">
-        <div class="step completed"><div class="step-circle"><i class="bi bi-check"></i></div><div class="step-label">Ambiente</div></div>
-        <div class="step completed"><div class="step-circle"><i class="bi bi-check"></i></div><div class="step-label">Segurança</div></div>
-        <div class="step completed"><div class="step-circle"><i class="bi bi-check"></i></div><div class="step-label">Banco</div></div>
-        <div class="step completed"><div class="step-circle"><i class="bi bi-check"></i></div><div class="step-label">Conectividade</div></div>
-        <div class="step active"><div class="step-circle">5</div><div class="step-label">IA</div></div>
+        <div class="step completed">
+            <div class="step-circle"><i class="bi bi-check"></i></div>
+            <div class="step-label">Ambiente</div>
+        </div>
+        <div class="step completed">
+            <div class="step-circle"><i class="bi bi-check"></i></div>
+            <div class="step-label">Segurança</div>
+        </div>
+        <div class="step completed">
+            <div class="step-circle"><i class="bi bi-check"></i></div>
+            <div class="step-label">Banco</div>
+        </div>
+        <div class="step completed">
+            <div class="step-circle"><i class="bi bi-check"></i></div>
+            <div class="step-label">Conectividade</div>
+        </div>
+        <div class="step active">
+            <div class="step-circle">5</div>
+            <div class="step-label">IA</div>
+        </div>
     </div>
 
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <div class="card shadow-sm">
                 <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0"><i class="bi bi-cpu"></i> Etapa 5: Inteligência Artificial (Opcional)</h4>
+                    <h4 class="mb-0"><i class="bi bi-cpu"></i> Etapa 5: Inteligencia Artificial (Opcional)</h4>
                 </div>
                 <div class="card-body">
                     <form method="POST">
                         <div class="alert alert-info">
                             <i class="bi bi-lightbulb"></i>
-                            <strong>Esta etapa é opcional.</strong> Se não configurar agora,
-                            as seguintes funcionalidades não estarão disponíveis:
+                            <strong>Esta etapa e opcional.</strong> Se nao configurar agora,
+                            as seguintes funcionalidades nao estarao disponiveis:
                             <ul class="mb-0 mt-2">
-                                <li>Transcrição automática de áudios do WhatsApp</li>
+                                <li>Transcricao automatica de audios do WhatsApp</li>
                                 <li>Abertura de OS por comando de voz</li>
-                                <li>Chatbot inteligente para responder dúvidas</li>
+                                <li>Chatbot inteligente para responder duvidas</li>
                             </ul>
                         </div>
 
+                        <!-- Escolha do Provedor -->
                         <div class="mb-4">
-                            <label class="form-label fw-bold">
-                                <i class="bi bi-cpu"></i> OpenAI API Key
-                            </label>
-                            <input type="password" class="form-control" name="openai_api_key"
-                                   id="openaiApiKey" placeholder="sk-proj-...">
-                            <small class="text-muted">
-                                Obtenha em: <a href="https://platform.openai.com/api-keys" target="_blank">
-                                platform.openai.com/api-keys
-                                </a>
-                            </small>
+                            <label class="form-label fw-bold">Escolha o Provedor de IA</label>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="form-check card p-3 h-100">
+                                        <input class="form-check-input" type="radio" name="ai_provider"
+                                            id="providerOpenAI" value="openai" checked onchange="toggleAIFields()">
+                                        <label class="form-check-label w-100" for="providerOpenAI">
+                                            <strong>OpenAI (ChatGPT)</strong>
+                                            <small class="text-muted d-block mt-1">
+                                                GPT-3.5/4, Whisper (transcricao)
+                                            </small>
+                                            <span class="badge bg-info mt-2">Recomendado para transcricao</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check card p-3 h-100">
+                                        <input class="form-check-input" type="radio" name="ai_provider"
+                                            id="providerGemini" value="gemini" onchange="toggleAIFields()">
+                                        <label class="form-check-label w-100" for="providerGemini">
+                                            <strong>Google Gemini</strong>
+                                            <small class="text-muted d-block mt-1">
+                                                Gemini 1.5 Flash/Pro
+                                            </small>
+                                            <span class="badge bg-success mt-2">Gratuito ate 60 req/min</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- OpenAI Fields -->
+                        <div id="openaiFields">
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">
+                                    <i class="bi bi-key"></i> OpenAI API Key
+                                </label>
+                                <input type="password" class="form-control" name="openai_api_key" id="openaiApiKey"
+                                    placeholder="sk-proj-...">
+                                <small class="text-muted">
+                                    Obtenha em: <a href="https://platform.openai.com/api-keys" target="_blank">
+                                        platform.openai.com/api-keys
+                                    </a>
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Gemini Fields -->
+                        <div id="geminiFields" class="d-none">
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">
+                                    <i class="bi bi-key"></i> Google Gemini API Key
+                                </label>
+                                <input type="password" class="form-control" name="gemini_api_key" id="geminiApiKey"
+                                    placeholder="AIza...">
+                                <small class="text-muted">
+                                    Obtenha em: <a href="https://aistudio.google.com/app/apikey" target="_blank">
+                                        aistudio.google.com/app/apikey
+                                    </a>
+                                </small>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Modelo Gemini</label>
+                                <select class="form-select" name="gemini_model" id="geminiModel">
+                                    <option value="gemini-1.5-flash" selected>Gemini 1.5 Flash (Rapido, Gratuito)
+                                    </option>
+                                    <option value="gemini-1.5-pro">Gemini 1.5 Pro (Mais capaz)</option>
+                                    <option value="gemini-2.0-flash">Gemini 2.0 Flash (Experimental)</option>
+                                </select>
+                            </div>
+
+                            <div class="alert alert-success">
+                                <i class="bi bi-info-circle"></i>
+                                <strong>Nota:</strong> O Gemini 1.5 possui capacidade **nativa** de transcrição de
+                                áudio.
+                                Você também pode optar por usar a API do Google Cloud STT ou OpenAI Whisper caso
+                                prefira.
+                            </div>
+
+                            <!-- Google Cloud STT Key -->
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">
+                                    <i class="bi bi-google"></i> Google Cloud STT API Key
+                                    <span class="badge bg-secondary">Opcional</span>
+                                </label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" name="google_stt_api_key"
+                                        id="googleSttApiKey" placeholder="AIza...">
+                                    <button class="btn btn-outline-primary" type="button"
+                                        onclick="testGoogleSTT()">Testar</button>
+                                </div>
+                                <small class="text-muted">
+                                    API específica de "Speech-to-Text". Recomendado para maior precisão em áudios
+                                    longos.
+                                </small>
+                                <div id="googleSttStatus" class="mt-2"></div>
+                            </div>
+
+                            <!-- OpenAI para Whisper quando usando Gemini -->
+                            <div class="mb-4">
+                                <label class="form-label">
+                                    <i class="bi bi-mic"></i> OpenAI API Key (opcional para Whisper)
+                                    <span class="badge bg-secondary">Opcional</span>
+                                </label>
+                                <input type="password" class="form-control" name="openai_api_key_whisper"
+                                    id="openaiApiKeyWhisper" placeholder="sk-proj-...">
+                                <small class="text-muted">
+                                    Use apenas se preferir o Whisper da OpenAI em vez das opções do Google.
+                                </small>
+                            </div>
                         </div>
 
                         <div class="d-flex justify-content-between mt-4">
@@ -50,18 +167,79 @@
                 </div>
             </div>
 
-            <!-- Card de Preços -->
-            <div class="card mt-3 border-warning bg-white">
+            <!-- Card de Comparacao -->
+            <div class="card mt-3 border-info bg-white">
                 <div class="card-body">
-                    <h6 class="text-warning"><i class="bi bi-cash-coin"></i> Custos Estimados da OpenAI</h6>
+                    <h6 class="text-info"><i class="bi bi-bar-chart"></i> Comparacao de Provedores</h6>
                     <table class="table table-sm mb-0">
-                        <tr><td>Transcrição de Áudio (Whisper)</td><td>$0.006 / minuto</td></tr>
-                        <tr><td>Chatbot (GPT-3.5 Turbo)</td><td>$0.002 / 1K tokens</td></tr>
-                        <tr><td colspan="2"><strong>Estimativa Mensal (100 áudios + 1000 msgs): ~$5-10 USD</strong></td></tr>
+                        <thead>
+                            <tr>
+                                <th>Recurso</th>
+                                <th>OpenAI</th>
+                                <th>Google (Gemini/Cloud)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Chat/NLP</td>
+                                <td>GPT-3.5/4</td>
+                                <td>Gemini 1.5</td>
+                            </tr>
+                            <tr>
+                                <td>Transcricao Audio</td>
+                                <td class="text-success">Whisper</td>
+                                <td class="text-success">Nativo + Cloud STT</td>
+                            </tr>
+                            <tr>
+                                <td>Custo</td>
+                                <td>~$5-10/mes</td>
+                                <td class="text-success">Gratuito* / Pago (STT)</td>
+                            </tr>
+                            <tr>
+                                <td>Limite Gratuito</td>
+                                <td>Nenhum</td>
+                                <td>60 req/min (Gemini)</td>
+                            </tr>
+                        </tbody>
                     </table>
+                    <small class="text-muted">* Gemini gratuito até limites de taxa. Google Cloud STT possui free
+                        tier.</small>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    function toggleAIFields() {
+        const isGemini = document.getElementById('providerGemini').checked;
+        document.getElementById('openaiFields').classList.toggle('d-none', isGemini);
+        document.getElementById('geminiFields').classList.toggle('d-none', !isGemini);
+    }
+
+    async function testGoogleSTT() {
+        const apiKey = document.getElementById('googleSttApiKey').value;
+        const statusDiv = document.getElementById('googleSttStatus');
+
+        if (!apiKey) {
+            statusDiv.innerHTML = '<div class="alert alert-warning py-1 px-2 m-0 mt-2">Insira a chave primeiro</div>';
+            return;
+        }
+
+        statusDiv.innerHTML = '<div class="spinner-border spinner-border-sm text-primary" role="status"></div>';
+
+        try {
+            const response = await fetch('/setup/api/test-google-stt', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ api_key: apiKey })
+            });
+            const result = await response.json();
+
+            statusDiv.innerHTML = `<div class="alert alert-${result.success ? 'success' : 'danger'} py-1 px-2 m-0 mt-2">${result.message}</div>`;
+        } catch (e) {
+            statusDiv.innerHTML = `<div class="alert alert-danger py-1 px-2 m-0 mt-2">Erro na requisição: ${e}</div>`;
+        }
+    }
+</script>
 {% endblock %}

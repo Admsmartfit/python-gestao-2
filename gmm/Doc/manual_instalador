@@ -57,7 +57,7 @@ Se o arquivo `.env` não existir, ao executar `python run.py`, o sistema redirec
 
 
 * **Etapa 4: Conectividade**: Configura as chaves da **MegaAPI (WhatsApp)** e credenciais de e-mail (SMTP/IMAP) para notificações, permitindo o envio de mensagens de teste.
-* **Etapa 5: Inteligência Artificial (Opcional)**: Configura a API Key da OpenAI para transcrição de áudios e comandos de voz.
+* **Etapa 5: Inteligência Artificial (Opcional)**: Configura a API Key do Google Gemini ou OpenAI. O sistema agora suporta transcrição nativa via Gemini 1.5 e suporte opcional à API do Google Cloud Speech-to-Text, removendo a dependência obrigatória da OpenAI para áudio.
 * **Finalização**: Salva o arquivo `.env`, cria a trava de segurança `instance/setup.lock` e limpa a sessão.
 
 ---

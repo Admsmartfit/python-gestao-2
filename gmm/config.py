@@ -21,8 +21,13 @@ class Config:
     MEGA_API_KEY = os.environ.get('MEGA_API_KEY')
     MEGA_API_URL = "https://api.megaapi.com.br/v1/messages/send"
     
+    # Inteligência Artificial
+    AI_PROVIDER = os.environ.get('AI_PROVIDER') or 'openai'  # 'openai' ou 'gemini'
     OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
-    
+    GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+    GEMINI_MODEL = os.environ.get('GEMINI_MODEL') or 'gemini-1.5-flash'  # ou 'gemini-1.5-pro'
+    GOOGLE_STT_API_KEY = os.environ.get('GOOGLE_STT_API_KEY')
+
     FERNET_KEY = os.environ.get('FERNET_KEY') or '00000000000000000000000000000000'
     
     CELERY_IMPORTS = ('app.tasks',)

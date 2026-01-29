@@ -227,7 +227,22 @@ def test_email():
 def step5_ai():
     """Configuração de IA (opcional)"""
     if request.method == 'POST':
-        session['OPENAI_API_KEY'] = request.form.get('openai_api_key', '')
+        # Provider selection
+        ai_provider = request.form.get('ai_provider', 'openai')
+        session['AI_PROVIDER'] = ai_provider
+
+        if ai_provider == 'openai':
+            session['OPENAI_API_KEY'] = request.form.get('openai_api_key', '')
+            session['GEMINI_API_KEY'] = ''
+            session['GEMINI_MODEL'] = ''
+        else:
+            # Gemini
+            session['GEMINI_API_KEY'] = request.form.get('gemini_api_key', '')
+            session['GEMINI_MODEL'] = request.form.get('gemini_model', 'gemini-1.5-flash')
+            # Opções de transcrição para Gemini
+            session['OPENAI_API_KEY'] = request.form.get('openai_api_key_whisper', '')
+            session['GOOGLE_STT_API_KEY'] = request.form.get('google_stt_api_key', '')
+
         return redirect(url_for('setup.complete'))
 
     return render_template('setup/step5_ai.html')
@@ -238,18 +253,78 @@ def test_openai():
     data = request.json
 
     try:
-        import openai
-        openai.api_key = data.get('api_key')
+        import requests as http_requests
 
-        # Teste simples de completion
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": "Say test"}],
-            max_tokens=5
-        )
+        api_key = data.get('api_key')
+        url = "https://api.openai.com/v1/chat/completions"
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}"
+        }
+        payload = {
+            "model": "gpt-3.5-turbo",
+            "messages": [{"role": "user", "content": "Say test"}],
+            "max_tokens": 5
+        }
+
+        response = http_requests.post(url, headers=headers, json=payload, timeout=10)
+        response.raise_for_status()
 
         return jsonify({'success': True, 'message': 'OpenAI conectada!'})
 
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+@bp.route('/api/test-gemini', methods=['POST'])
+def test_gemini():
+    """Testa API do Google Gemini"""
+    data = request.json
+
+    try:
+        import requests as http_requests
+
+        api_key = data.get('api_key')
+        model = data.get('model', 'gemini-1.5-flash')
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+
+        headers = {"Content-Type": "application/json"}
+        payload = {
+            "contents": [{
+                "parts": [{"text": "Say test"}]
+            }],
+            "generationConfig": {
+                "maxOutputTokens": 10
+            }
+        }
+
+        response = http_requests.post(url, headers=headers, json=payload, timeout=10)
+        response.raise_for_status()
+
+        return jsonify({'success': True, 'message': 'Gemini conectado!'})
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+@bp.route('/api/test-google-stt', methods=['POST'])
+def test_google_stt():
+    """Testa API do Google Cloud STT"""
+    data = request.json
+    try:
+        import requests as http_requests
+        api_key = data.get('api_key')
+        # Chamada mínima apenas para validar a chave (sem áudio real)
+        url = f"https://speech.googleapis.com/v1/speech:recognize?key={api_key}"
+        # Payload vazio ou mal formatado apenas para ver se a API rejeita por "chave inválida" ou "corpo vazio"
+        response = http_requests.post(url, json={}, timeout=10)
+        
+        # Se retornar 400 (Bad Request) com erro de 'audio' missing, a chave é válida.
+        # Se retornar 403 (Forbidden), a chave é inválida.
+        if response.status_code == 400 and 'audio' in response.text:
+            return jsonify({'success': True, 'message': 'Google STT conectado (chave válida)!'})
+        elif response.status_code == 403:
+            return jsonify({'success': False, 'message': 'Chave Inválida ou Sem Permissão'}), 400
+        else:
+            return jsonify({'success': False, 'message': f'Erro: {response.text}'}), 400
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 400
 
@@ -281,7 +356,11 @@ IMAP_SERVER={session.get('IMAP_SERVER', '')}
 IMAP_PORT={session.get('IMAP_PORT', 993)}
 
 # === INTELIGÊNCIA ARTIFICIAL ===
+AI_PROVIDER={session.get('AI_PROVIDER', 'openai')}
 OPENAI_API_KEY={session.get('OPENAI_API_KEY', '')}
+GEMINI_API_KEY={session.get('GEMINI_API_KEY', '')}
+GEMINI_MODEL={session.get('GEMINI_MODEL', 'gemini-1.5-flash')}
+GOOGLE_STT_API_KEY={session.get('GOOGLE_STT_API_KEY', '')}
 
 # === REDIS / CELERY ===
 CELERY_BROKER_URL=redis://localhost:6379/0
@@ -307,10 +386,14 @@ FLASK_DEBUG=0
         return render_template('setup/complete.html', env_path=str(env_path))
 
     # Exibe resumo antes de salvar
+    ai_provider = session.get('AI_PROVIDER', 'openai')
+    ai_configured = bool(session.get('OPENAI_API_KEY')) if ai_provider == 'openai' else bool(session.get('GEMINI_API_KEY'))
+
     config_summary = {
         'database': session.get('DATABASE_URL', '').split('://')[0] if session.get('DATABASE_URL') else 'não configurado',
         'whatsapp': bool(session.get('MEGA_API_KEY')),
         'email': bool(session.get('SMTP_SERVER')),
-        'ai': bool(session.get('OPENAI_API_KEY'))
+        'ai': ai_configured,
+        'ai_provider': ai_provider.upper() if ai_configured else None
     }
     return render_template('setup/complete.html', summary=config_summary)
