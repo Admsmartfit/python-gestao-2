@@ -331,19 +331,19 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 
 #### Windows - Permitir Acesso na Rede
 1. Abra o Firewall do Windows
-2. Adicione regra de entrada para porta 5000 (TCP)
+2. Adicione regra de entrada para porta 5010 (TCP)
 3. Ou execute:
    ```cmd
-   netsh advfirewall firewall add rule name="Flask GMM" dir=in action=allow protocol=TCP localport=5000
+   netsh advfirewall firewall add rule name="Flask GMM" dir=in action=allow protocol=TCP localport=5010
    ```
 
 #### Linux - Configurar Firewall
 ```bash
 # UFW (Ubuntu)
-sudo ufw allow 5000/tcp
+sudo ufw allow 5010/tcp
 
 # Firewalld (CentOS/RHEL)
-sudo firewall-cmd --permanent --add-port=5000/tcp
+sudo firewall-cmd --permanent --add-port=5010/tcp
 sudo firewall-cmd --reload
 ```
 
@@ -374,7 +374,7 @@ start_windows.bat
 ```
 
 Este script abre 3 janelas do terminal:
-1. **Flask** - Servidor web na porta 5000
+1. **Flask** - Servidor web na porta 5010
 2. **Celery Worker** - Processamento de tarefas
 3. **Celery Beat** - Agendador de tarefas
 
@@ -507,10 +507,10 @@ redis-cli ping
 
 ### 2. Verificar Flask
 Abra o navegador e acesse:
-- **Mesmo computador**: http://localhost:5000
-- **Outro computador na rede**: http://IP-DO-SERVIDOR:5000
+- **Mesmo computador**: http://localhost:5010
+- **Outro computador na rede**: http://IP-DO-SERVIDOR:5010
 
-Exemplo: http://192.168.1.100:5000
+Exemplo: http://192.168.1.100:5010
 
 ### 3. Login Padrão
 - **Usuário**: admin
@@ -573,11 +573,11 @@ sudo journalctl -u gmm-celery-beat -f
    - Windows: Execute `redis-server.exe`
    - Linux: `sudo systemctl start redis-server`
 
-### Problema: "Port 5000 already in use"
+### Problema: "Port 5010 already in use"
 **Solução:**
 1. Encontre o processo usando a porta:
-   - Windows: `netstat -ano | findstr :5000`
-   - Linux: `sudo lsof -i :5000`
+   - Windows: `netstat -ano | findstr :5010`
+   - Linux: `sudo lsof -i :5010`
 2. Mate o processo ou altere a porta em `run.py`:
    ```python
    app.run(debug=True, port=5001)  # Use porta 5001
@@ -614,7 +614,7 @@ sudo journalctl -u gmm-celery-beat -f
 2. Execute Flask em todas as interfaces:
    Edite `run.py`:
    ```python
-   app.run(debug=True, host='0.0.0.0', port=5000)
+   app.run(debug=True, host='0.0.0.0', port=5010)
    ```
 3. Certifique-se que os computadores estão na mesma rede
 
@@ -656,12 +656,12 @@ hostname -I
 
 Em qualquer navegador na mesma rede, acesse:
 ```
-http://IP-DO-SERVIDOR:5000
+http://IP-DO-SERVIDOR:5010
 ```
 
 Exemplo:
 ```
-http://192.168.1.100:5000
+http://192.168.1.100:5010
 ```
 
 ### Testar Conectividade
