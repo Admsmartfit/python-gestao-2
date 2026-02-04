@@ -12,7 +12,8 @@
       "Bash(py -c:*)",
       "Bash(ls:*)",
       "Bash(venvScriptspython -m flask db migrate -m \"Add forma_contato_alternativa and ComunicacaoFornecedor table\")",
-      "WebFetch(domain:doc.mega-api.app.br)"
+      "WebFetch(domain:doc.mega-api.app.br)",
+      "Bash(python -m flask db migrate:*)"
     ]
   }
 }

@@ -1,7 +1,13 @@
+import logging
+from datetime import datetime
 from flask import Blueprint, jsonify, request, render_template, abort
 from flask_login import login_required, current_user
+from sqlalchemy import or_
 from app.extensions import db
 from app.models.whatsapp_models import RegrasAutomacao
+from app.models.terceirizados_models import HistoricoNotificacao
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint('admin_whatsapp', __name__)
 
@@ -472,12 +478,13 @@ def listar_mensagens(telefone):
             'direcao': direcao,
             'mensagem': msg.mensagem,
             'tipo_conteudo': msg.tipo_conteudo or 'text',
-            'url_midia_local': msg.url_midia_local,
+            'url_midia_local': getattr(msg, 'url_midia_local', None),
             'mimetype': msg.mimetype,
             'caption': msg.caption,
             'status': msg.status_envio,
             'hora': msg.criado_em.strftime('%H:%M'),
-            'data_completa': msg.criado_em.isoformat()
+            'data_completa': msg.criado_em.isoformat(),
+            'excluido_em': msg.excluido_em.isoformat() if msg.excluido_em else None
         })
 
     return jsonify(resultado)
@@ -552,3 +559,34 @@ def marcar_como_lida(telefone):
     db.session.commit()
 
     return jsonify({'success': True})
+
+@bp.route('/admin/chat/excluir/<int:msg_id>', methods=['DELETE'])
+@login_required
+def excluir_mensagem(msg_id):
+    """Exclui uma mensagem do historico e tenta apagar na MegaAPI"""
+    if current_user.tipo != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    notif = HistoricoNotificacao.query.get_or_404(msg_id)
+
+    # Tentar excluir na MegaAPI se tiver megaapi_id
+    api_ok = False
+    if notif.megaapi_id:
+        try:
+            from app.services.whatsapp_service import WhatsAppService
+            telefone = notif.destinatario if notif.direcao == 'outbound' else notif.remetente
+            from_me = notif.direcao == 'outbound'
+            api_ok, resp = WhatsAppService.delete_message(telefone, notif.megaapi_id, from_me)
+        except Exception as e:
+            logger.warning(f"Erro ao excluir mensagem na MegaAPI: {e}")
+
+    # Marcar como excluida no banco (soft delete)
+    notif.excluido_em = datetime.utcnow()
+    notif.excluido_por = current_user.id
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'api_excluida': api_ok,
+        'mensagem': 'Mensagem excluida'
+    })

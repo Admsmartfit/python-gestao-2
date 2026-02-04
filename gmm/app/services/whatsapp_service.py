@@ -290,3 +290,49 @@ class WhatsAppService:
             CircuitBreaker.record_failure()
             logger.error(f"MegaAPI request exception: {str(e)}")
             return False, {"error": str(e)}
+
+    @classmethod
+    def delete_message(cls, phone: str, message_id: str, from_me: bool = True):
+        """
+        Exclui uma mensagem via MegaAPI.
+        Endpoint: POST {URL}/rest/chat/{KEY}/deleteMessage
+
+        Args:
+            phone: Telefone do destinatario
+            message_id: ID da mensagem na MegaAPI (megaapi_id)
+            from_me: Se a mensagem foi enviada por nos
+        """
+        url, instance_key, bearer_token = cls._get_credentials()
+
+        if not url or not instance_key:
+            return False, {"error": "Configuracao MegaAPI incompleta"}
+
+        phone = cls.normalizar_telefone(phone)
+        recipient = cls._format_phone(phone)
+        base_url = url.rstrip('/')
+        endpoint = f"{base_url}/rest/chat/{instance_key}/deleteMessage"
+
+        headers = {
+            "Authorization": f"Bearer {bearer_token}",
+            "Content-Type": "application/json"
+        }
+
+        payload = {
+            "to": recipient,
+            "key": {
+                "remoteJid": recipient,
+                "fromMe": from_me,
+                "id": message_id
+            }
+        }
+
+        try:
+            response = requests.post(endpoint, json=payload, headers=headers, timeout=10)
+            if response.status_code in [200, 201]:
+                return True, response.json()
+            else:
+                logger.warning(f"MegaAPI deleteMessage falhou: {response.status_code} - {response.text}")
+                return False, {"status": response.status_code, "text": response.text}
+        except requests.exceptions.RequestException as e:
+            logger.error(f"MegaAPI deleteMessage exception: {e}")
+            return False, {"error": str(e)}

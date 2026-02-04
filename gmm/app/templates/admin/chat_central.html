@@ -237,6 +237,43 @@
         font-size: 0.8rem;
     }
 
+    /* Botão de excluir mensagem */
+    .mensagem-bubble {
+        position: relative;
+    }
+
+    .btn-excluir-msg {
+        position: absolute;
+        top: 0.25rem;
+        right: 0.25rem;
+        width: 24px;
+        height: 24px;
+        padding: 0;
+        font-size: 0.75rem;
+        border-radius: 50%;
+        opacity: 0;
+        transition: opacity 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(220, 53, 69, 0.9);
+        border: none;
+        color: white;
+    }
+
+    .mensagem-item:hover .btn-excluir-msg {
+        opacity: 1;
+    }
+
+    .btn-excluir-msg:hover {
+        background: #dc3545;
+    }
+
+    .mensagem-excluida {
+        opacity: 0.5;
+        font-style: italic;
+    }
+
     .typing-indicator {
         display: inline-flex;
         gap: 0.25rem;
@@ -442,12 +479,22 @@ function renderizarMensagens(mensagens) {
 
         const statusIcon = getStatusIcon(msg.status);
 
+        const excluida = msg.excluido_em ? 'mensagem-excluida' : '';
+        const btnExcluir = msg.excluido_em ? '' : `
+            <button class="btn-excluir-msg" onclick="excluirMensagem(${msg.id}, event)" title="Excluir mensagem">
+                <i class="bi bi-trash"></i>
+            </button>
+        `;
+
         return `
             <div class="mensagem-item ${msg.direcao}">
-                <div class="mensagem-bubble">
-                    ${midiaHtml}
-                    ${msg.mensagem ? `<div class="mensagem-texto">${escapeHtml(msg.mensagem)}</div>` : ''}
-                    ${msg.caption && msg.tipo_conteudo !== 'document' ? `<div class="mensagem-texto small mt-1"><em>${escapeHtml(msg.caption)}</em></div>` : ''}
+                <div class="mensagem-bubble ${excluida}">
+                    ${btnExcluir}
+                    ${msg.excluido_em ? '<div class="mensagem-texto"><i class="bi bi-x-circle me-1"></i>Mensagem excluída</div>' : `
+                        ${midiaHtml}
+                        ${msg.mensagem ? `<div class="mensagem-texto">${escapeHtml(msg.mensagem)}</div>` : ''}
+                        ${msg.caption && msg.tipo_conteudo !== 'document' ? `<div class="mensagem-texto small mt-1"><em>${escapeHtml(msg.caption)}</em></div>` : ''}
+                    `}
                     <div class="mensagem-meta">
                         <span>${msg.hora}</span>
                         ${msg.direcao === 'outbound' ? `<i class="bi ${statusIcon} status-icon"></i>` : ''}
@@ -540,6 +587,46 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+function excluirMensagem(msgId, event) {
+    event.stopPropagation();
+
+    if (!confirm('Deseja excluir esta mensagem? Ela também será excluída no WhatsApp do destinatário.')) {
+        return;
+    }
+
+    fetch(`/admin/chat/excluir/${msgId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            // Recarregar mensagens para atualizar a UI
+            if (conversaAtiva) {
+                carregarMensagens(conversaAtiva);
+            }
+            if (typeof ToastModule !== 'undefined') {
+                ToastModule.show('Mensagem excluída!', 'success');
+            }
+        } else {
+            const erro = data.error || 'Erro ao excluir mensagem';
+            if (typeof ToastModule !== 'undefined') {
+                ToastModule.show('Erro: ' + erro, 'danger');
+            } else {
+                alert('Erro: ' + erro);
+            }
+        }
+    })
+    .catch(err => {
+        console.error('Erro ao excluir:', err);
+        if (typeof ToastModule !== 'undefined') {
+            ToastModule.show('Erro de conexão', 'danger');
+        } else {
+            alert('Erro de conexão ao excluir mensagem');
+        }
+    });
 }
 
 // Cleanup ao sair da página

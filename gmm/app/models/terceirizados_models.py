@@ -90,3 +90,12 @@ class HistoricoNotificacao(db.Model):
     mensagem_hash = db.Column(db.String(64), index=True)
     prioridade = db.Column(db.Integer, default=0, index=True)
     criado_em = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Campos para webhook/MegaAPI
+    megaapi_id = db.Column(db.String(100), nullable=True)
+    tipo_conteudo = db.Column(db.String(20), nullable=True)  # text, image, audio, document, interactive
+    status_leitura = db.Column(db.String(20), default='nao_lida')  # nao_lida, lida
+    mimetype = db.Column(db.String(100), nullable=True)
+    caption = db.Column(db.Text, nullable=True)
+    excluido_em = db.Column(db.DateTime, nullable=True)
+    excluido_por = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)

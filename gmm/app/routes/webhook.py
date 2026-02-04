@@ -5,101 +5,206 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify, current_app
 from app.extensions import db
 from app.models.terceirizados_models import HistoricoNotificacao
-from app.tasks.whatsapp_tasks import processar_mensagem_inbound
 
 bp = Blueprint('webhook', __name__)
 logger = logging.getLogger(__name__)
 
+
 def validar_webhook(req):
     """
-    Valida origem do webhook:
-    - IP na whitelist (Placeholder IPs)
-    - Assinatura HMAC
-    - Timestamp recente (max 5min)
+    Valida origem do webhook.
+    - Se WEBHOOK_SECRET configurado: valida HMAC
+    - Se nao configurado: aceita todas as requisicoes (dev/ngrok)
+    - Timestamp: tolerancia de 600s
     """
-    # 1. IP Whitelist (Simulated/Placeholder ranges as per prompt)
-    # In prod, check actual MegaAPI IPs
-    # MEGAAPI_IPS = ['191.252.xxx.xxx', ...]
-    # For now, we skip IP check or allow localhost/all for dev
-    # if request.remote_addr not in MEGAAPI_IPS: ...
-    
-    # 2. Assinatura HMAC
+    secret = current_app.config.get('WEBHOOK_SECRET')
+
+    # Se nao tem secret configurado, aceitar tudo (modo dev/ngrok)
+    if not secret:
+        return True
+
+    # Validar HMAC se secret existe
     signature = req.headers.get('X-Webhook-Signature', '')
-    payload = req.get_data()
-    secret = current_app.config.get('WEBHOOK_SECRET', 'default-secret-dev')
-    
-    expected = hmac.new(secret.encode(), payload, hashlib.sha256).hexdigest()
-    
-    # Using compare_digest to prevent timing attacks
-    # Note: Prompt example format "sha256={expected}" depends on provider. 
-    # MegaAPI usually sends just the hash or specific format. Adapting to prompt req.
-    # If signature header is just the hash:
-    if not hmac.compare_digest(signature, f"sha256={expected}") and not hmac.compare_digest(signature, expected):
-         # Try both formats to be safe
-         logger.warning(f"Invalid HMAC signature. Expected: {expected}, Got: {signature}")
-         return False
-    
-    # 3. Timestamp (Replay Attack Prevention)
-    try:
-        data = req.json
-        if not data: return False
-        
-        timestamp = data.get('timestamp')
-        if not timestamp:
-            # Some hooks might not send timestamp in body, check headers if needed
-            return True # Skip if not present
-            
-        msg_time = datetime.fromtimestamp(int(timestamp))
-        now = datetime.utcnow()
-        
-        if abs((now - msg_time).total_seconds()) > 300:  # 5 minutos
-            logger.warning(f"Old message received: {msg_time}")
-            return False
-    except Exception as e:
-        logger.error(f"Error validating timestamp: {e}")
+    if not signature:
+        logger.warning("Webhook sem header X-Webhook-Signature")
         return False
-    
+
+    payload = req.get_data()
+    expected = hmac.new(secret.encode(), payload, hashlib.sha256).hexdigest()
+
+    if not hmac.compare_digest(signature, f"sha256={expected}") and not hmac.compare_digest(signature, expected):
+        logger.warning(f"HMAC invalido. Expected: {expected[:16]}..., Got: {signature[:16]}...")
+        return False
+
     return True
 
-@bp.route('/webhook/whatsapp', methods=['POST'])
+
+def extrair_dados_megaapi(payload):
+    """
+    Extrai dados da mensagem do payload MegaAPI.
+    Suporta formato com e sem wrapper 'data'.
+
+    MegaAPI envia eventos como:
+    {
+        "event": "messages.upsert",
+        "instance": "megastart-xxx",
+        "data": {
+            "key": {"remoteJid": "55..@s.whatsapp.net", "fromMe": false, "id": "xxx"},
+            "message": {"conversation": "texto"},
+            "messageType": "conversation",
+            "messageTimestamp": 1234567890
+        }
+    }
+    """
+    if not payload:
+        return None
+
+    # Verificar tipo de evento
+    event = payload.get('event', '')
+
+    # Ignorar eventos que nao sao mensagens recebidas
+    if event and event not in ('messages.upsert', 'messages.update', ''):
+        logger.info(f"Evento ignorado: {event}")
+        return None
+
+    # Extrair dados - com ou sem wrapper 'data'
+    data = payload.get('data', payload)
+
+    # Se data for lista (messages.upsert pode enviar array), pegar primeiro
+    if isinstance(data, list):
+        if len(data) == 0:
+            return None
+        data = data[0]
+
+    # Extrair remetente
+    key = data.get('key', {})
+    remote_jid = key.get('remoteJid', '')
+    from_me = key.get('fromMe', False)
+    msg_id = key.get('id', '')
+
+    # Ignorar mensagens enviadas por nos
+    if from_me:
+        return None
+
+    # Extrair telefone do JID (5511999999999@s.whatsapp.net -> 5511999999999)
+    remetente = remote_jid.split('@')[0] if '@' in remote_jid else remote_jid
+    if not remetente:
+        return None
+
+    # Tipo de mensagem
+    message_type = data.get('messageType', 'conversation')
+    message_obj = data.get('message', {})
+    timestamp = data.get('messageTimestamp', int(datetime.utcnow().timestamp()))
+
+    # Validar timestamp (tolerancia 600s)
+    try:
+        msg_time = datetime.fromtimestamp(int(timestamp))
+        now = datetime.utcnow()
+        if abs((now - msg_time).total_seconds()) > 600:
+            logger.warning(f"Mensagem antiga ignorada: {msg_time}")
+            return None
+    except (ValueError, TypeError, OSError):
+        pass  # Se timestamp invalido, continuar
+
+    resultado = {
+        'remetente': remetente,
+        'msg_id': msg_id,
+        'timestamp': timestamp,
+        'tipo': 'text',
+        'texto': None,
+        'url_midia': None,
+        'mimetype': None,
+        'caption': None,
+        'interactive_id': None,
+        'interactive_title': None,
+    }
+
+    if message_type in ('conversation', 'extendedTextMessage'):
+        resultado['tipo'] = 'text'
+        resultado['texto'] = (
+            message_obj.get('conversation') or
+            message_obj.get('extendedTextMessage', {}).get('text') or
+            ''
+        )
+
+    elif message_type == 'imageMessage':
+        resultado['tipo'] = 'image'
+        img = message_obj.get('imageMessage', {})
+        resultado['url_midia'] = img.get('url')
+        resultado['mimetype'] = img.get('mimetype')
+        resultado['caption'] = img.get('caption')
+
+    elif message_type == 'audioMessage':
+        resultado['tipo'] = 'audio'
+        audio = message_obj.get('audioMessage', {})
+        resultado['url_midia'] = audio.get('url')
+        resultado['mimetype'] = audio.get('mimetype')
+
+    elif message_type == 'documentMessage':
+        resultado['tipo'] = 'document'
+        doc = message_obj.get('documentMessage', {})
+        resultado['url_midia'] = doc.get('url')
+        resultado['mimetype'] = doc.get('mimetype')
+        resultado['caption'] = doc.get('fileName')
+
+    elif message_type in ('listResponseMessage', 'buttonsResponseMessage'):
+        resultado['tipo'] = 'interactive'
+        if message_type == 'listResponseMessage':
+            lr = message_obj.get('listResponseMessage', {})
+            resultado['interactive_id'] = lr.get('singleSelectReply', {}).get('selectedRowId')
+            resultado['interactive_title'] = lr.get('title')
+        else:
+            br = message_obj.get('buttonsResponseMessage', {})
+            resultado['interactive_id'] = br.get('selectedButtonId')
+            resultado['interactive_title'] = br.get('selectedDisplayText')
+
+    else:
+        # Tentar extrair texto de formatos desconhecidos
+        resultado['tipo'] = 'text'
+        resultado['texto'] = str(message_obj) if message_obj else None
+
+    return resultado
+
+
+@bp.route('/webhook/whatsapp', methods=['POST', 'GET'])
 def webhook_whatsapp():
     """
-    Receives POSTs from MegaAPI
-    Handles: text, interactive, image, audio, document
+    Receives POSTs from MegaAPI.
+    GET retorna 200 para verificacao de URL pela MegaAPI.
     """
-    # 1. Validações de Segurança
+    # GET = verificacao de URL
+    if request.method == 'GET':
+        return jsonify({'status': 'ok', 'webhook': 'active'}), 200
+
+    # Validacao de seguranca
     if not validar_webhook(request):
         return jsonify({'error': 'Unauthorized'}), 403
 
-    # 2. Parse do payload
+    # Parse do payload
     try:
-        data = request.json
-        payload_data = data.get('data', {})
+        payload = request.json
+        if not payload:
+            return jsonify({'status': 'ignored', 'reason': 'empty_payload'}), 200
 
-        remetente = payload_data.get('from')
-        timestamp = data.get('timestamp', datetime.utcnow().timestamp())
+        logger.info(f"Webhook recebido: event={payload.get('event', 'N/A')}")
 
-        # Identificar tipo de mensagem
-        tipo_mensagem = payload_data.get('type', 'text')  # text, interactive, image, audio, document
+        dados = extrair_dados_megaapi(payload)
+        if not dados:
+            return jsonify({'status': 'ignored', 'reason': 'no_actionable_data'}), 200
 
-        # Campos comuns
-        megaapi_id = payload_data.get('id')  # ID único da mensagem na MegaAPI
+        remetente = dados['remetente']
+        tipo = dados['tipo']
 
-        if not remetente:
-            return jsonify({'status': 'ignored', 'reason': 'no_sender'}), 200
+        logger.info(f"Mensagem de {remetente} tipo={tipo}")
 
-    except KeyError as e:
-        logger.error(f"Invalid payload structure: {e}")
+    except Exception as e:
+        logger.error(f"Erro ao parsear payload: {e}", exc_info=True)
         return jsonify({'error': 'Invalid payload'}), 400
 
-    # 3. Processar baseado no tipo
+    # Processar baseado no tipo
     try:
-        notif = None
-
-        if tipo_mensagem == 'text':
-            # Mensagem de texto simples
-            texto = payload_data.get('text', {}).get('body') if isinstance(payload_data.get('text'), dict) else payload_data.get('text')
-
+        if tipo == 'text':
+            texto = dados['texto']
             if not texto:
                 return jsonify({'status': 'ignored', 'reason': 'empty_text'}), 200
 
@@ -111,33 +216,28 @@ def webhook_whatsapp():
                 status_envio='recebido',
                 mensagem=texto,
                 mensagem_hash=hashlib.sha256(texto.encode()).hexdigest(),
-                megaapi_id=megaapi_id,
+                megaapi_id=dados['msg_id'],
                 tipo_conteudo='text',
                 status_leitura='nao_lida',
-                chamado_id=None
             )
             db.session.add(notif)
             db.session.commit()
 
-            # Processar assincronamente
-            processar_mensagem_inbound.delay(remetente, texto, timestamp)
+            # Processar assincronamente (chamar direto se Celery nao estiver rodando)
+            try:
+                from app.tasks.whatsapp_tasks import processar_mensagem_inbound
+                processar_mensagem_inbound.delay(remetente, texto, dados['timestamp'])
+            except Exception as e:
+                logger.warning(f"Celery indisponivel, processando sincrono: {e}")
+                try:
+                    from app.services.roteamento_service import RoteamentoService
+                    RoteamentoService.processar_mensagem(remetente, texto)
+                except Exception as e2:
+                    logger.error(f"Erro ao processar mensagem: {e2}")
 
-        elif tipo_mensagem == 'interactive':
-            # Resposta de list message ou button
-            interactive_data = payload_data.get('interactive', {})
-            interactive_type = interactive_data.get('type')  # list_reply, button_reply
-
-            if interactive_type == 'list_reply':
-                resposta_id = interactive_data.get('list_reply', {}).get('id')
-                resposta_titulo = interactive_data.get('list_reply', {}).get('title')
-            elif interactive_type == 'button_reply':
-                resposta_id = interactive_data.get('button_reply', {}).get('id')
-                resposta_titulo = interactive_data.get('button_reply', {}).get('title')
-            else:
-                resposta_id = None
-                resposta_titulo = None
-
-            if not resposta_id:
+        elif tipo == 'interactive':
+            interactive_id = dados['interactive_id']
+            if not interactive_id:
                 return jsonify({'status': 'ignored', 'reason': 'no_interactive_response'}), 200
 
             notif = HistoricoNotificacao(
@@ -146,64 +246,56 @@ def webhook_whatsapp():
                 remetente=remetente,
                 destinatario='sistema',
                 status_envio='recebido',
-                mensagem=resposta_id,  # Guardar ID da resposta
-                caption=resposta_titulo,  # Guardar título para exibição
-                megaapi_id=megaapi_id,
+                mensagem=interactive_id,
+                caption=dados['interactive_title'],
+                megaapi_id=dados['msg_id'],
                 tipo_conteudo='interactive',
                 status_leitura='nao_lida',
-                chamado_id=None
             )
             db.session.add(notif)
             db.session.commit()
 
             # Processar resposta interativa
-            from app.services.roteamento_service import RoteamentoService
-            resultado = RoteamentoService.processar_resposta_interativa(notif)
+            try:
+                from app.services.roteamento_service import RoteamentoService
+                resultado = RoteamentoService.processar_resposta_interativa(notif)
+                if resultado and resultado.get('acao') == 'enviar_mensagem':
+                    from app.services.whatsapp_service import WhatsAppService
+                    WhatsAppService.enviar_mensagem(resultado['telefone'], resultado['mensagem'], prioridade=1)
+            except Exception as e:
+                logger.error(f"Erro ao processar interativo: {e}")
 
-            # Executar ação do resultado
-            if resultado.get('acao') == 'enviar_mensagem':
-                from app.services.whatsapp_service import WhatsAppService
-                WhatsAppService.enviar_mensagem(resultado['telefone'], resultado['mensagem'], prioridade=1)
-
-        elif tipo_mensagem in ['image', 'audio', 'document']:
-            # Mensagem com mídia
-            midia_data = payload_data.get(tipo_mensagem, {})
-            url_megaapi = midia_data.get('url') or midia_data.get('link')  # URL temporária da mídia
-            mimetype = midia_data.get('mime_type')
-            caption = midia_data.get('caption')
-
-            if not url_megaapi:
-                return jsonify({'status': 'ignored', 'reason': 'no_media_url'}), 200
-
+        elif tipo in ('image', 'audio', 'document'):
             notif = HistoricoNotificacao(
                 tipo='midia_recebida',
                 direcao='inbound',
                 remetente=remetente,
                 destinatario='sistema',
                 status_envio='recebido',
-                mensagem=caption or f'[{tipo_mensagem.upper()}]',
-                megaapi_id=megaapi_id,
-                tipo_conteudo=tipo_mensagem,
-                mimetype=mimetype,
-                caption=caption,
+                mensagem=dados['caption'] or f'[{tipo.upper()}]',
+                megaapi_id=dados['msg_id'],
+                tipo_conteudo=tipo,
+                mimetype=dados['mimetype'],
+                caption=dados['caption'],
                 status_leitura='nao_lida',
-                chamado_id=None
             )
             db.session.add(notif)
             db.session.commit()
 
-            # Disparar task para baixar mídia
-            from app.tasks.whatsapp_tasks import baixar_midia_task
-
-            baixar_midia_task.delay(notif.id, url_megaapi, tipo_mensagem)
+            # Baixar midia
+            if dados['url_midia']:
+                try:
+                    from app.tasks.whatsapp_tasks import baixar_midia_task
+                    baixar_midia_task.delay(notif.id, dados['url_midia'], tipo)
+                except Exception as e:
+                    logger.warning(f"Celery indisponivel para download de midia: {e}")
 
         else:
-            # Tipo desconhecido - registrar mas ignorar
-            logger.warning(f"Unknown message type: {tipo_mensagem}")
-            return jsonify({'status': 'ignored', 'reason': f'unknown_type_{tipo_mensagem}'}), 200
+            logger.warning(f"Tipo de mensagem desconhecido: {tipo}")
+            return jsonify({'status': 'ignored', 'reason': f'unknown_type_{tipo}'}), 200
 
     except Exception as e:
-        logger.error(f"Error processing webhook: {e}", exc_info=True)
+        logger.error(f"Erro ao processar webhook: {e}", exc_info=True)
         db.session.rollback()
         return jsonify({'error': 'Processing failed', 'details': str(e)}), 500
 
