@@ -290,6 +290,49 @@ def nova_unidade():
     flash('Unidade criada com sucesso!', 'success')
     return redirect(url_for('admin.dashboard', tab='unidades'))
 
+@bp.route('/unidade/editar', methods=['POST'])
+@login_required
+def editar_unidade():
+    unidade_id = request.form.get('id')
+    unidade = Unidade.query.get_or_404(unidade_id)
+    
+    unidade.nome = request.form.get('nome')
+    unidade.endereco = request.form.get('endereco')
+    unidade.faixa_ip_permitida = request.form.get('faixa_ip')
+    unidade.razao_social = request.form.get('razao_social')
+    unidade.cnpj = request.form.get('cnpj')
+    unidade.telefone = request.form.get('telefone')
+    
+    db.session.commit()
+    flash(f'Unidade {unidade.nome} atualizada com sucesso!', 'success')
+    return redirect(url_for('admin.dashboard', tab='unidades'))
+
+@bp.route('/unidade/excluir/<int:id>')
+@login_required
+def excluir_unidade(id):
+    unidade = Unidade.query.get_or_404(id)
+    nome = unidade.nome
+    
+    # Verificar dependências
+    tem_funcionarios = Usuario.query.filter_by(unidade_padrao_id=id).first()
+    tem_equipamentos = Equipamento.query.filter_by(unidade_id=id).first()
+    tem_os = OrdemServico.query.filter_by(unidade_id=id).first()
+    tem_estoque = EstoqueSaldo.query.filter_by(unidade_id=id).filter(EstoqueSaldo.quantidade > 0).first()
+    
+    if tem_funcionarios or tem_equipamentos or tem_os or tem_estoque:
+        flash(f'Não é possível excluir a unidade "{nome}" pois ela possui vínculos ativos (Usuários, Equipamentos, OS ou Saldo de Estoque).', 'danger')
+        return redirect(url_for('admin.dashboard', tab='unidades'))
+    
+    try:
+        db.session.delete(unidade)
+        db.session.commit()
+        flash(f'Unidade {nome} removida com sucesso!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao excluir unidade: {str(e)}', 'danger')
+        
+    return redirect(url_for('admin.dashboard', tab='unidades'))
+
 # ==============================================================================
 # GESTÃO DE FORNECEDORES E ESTOQUE
 # ==============================================================================

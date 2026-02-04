@@ -309,6 +309,7 @@
                             <th>CNPJ</th>
                             <th>Telefone</th>
                             <th>IPs Permitidos</th>
+                            <th class="text-end pe-4">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -321,6 +322,21 @@
                             <td data-label="Telefone">{{ u.telefone or '-' }}</td>
                             <td data-label="IPs"><code
                                     class="bg-light px-2 py-1 rounded text-dark">{{ u.faixa_ip_permitida }}</code></td>
+                            <td class="text-end pe-4" data-label="Ações">
+                                <div class="d-flex justify-content-end gap-1">
+                                    <button class="btn btn-sm btn-outline-secondary"
+                                        onclick="editarUnidade('{{ u.id }}', '{{ u.nome|replace("'", "\\'") }}', '{{ u.endereco|replace("'", "\\'") or '' }}', '{{ u.razao_social|replace("'", "\\'") or '' }}', '{{ u.cnpj or '' }}', '{{ u.telefone or '' }}', '{{ u.faixa_ip_permitida or '' }}')"
+                                        title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <a href="{{ url_for('admin.excluir_unidade', id=u.id) }}"
+                                        class="btn btn-sm btn-outline-danger"
+                                        onclick="return confirm('Tem certeza que deseja excluir a unidade {{ u.nome }}?')"
+                                        title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
                         </tr>
                         {% else %}
                         <tr>
@@ -542,7 +558,7 @@
                             </td>
                             <td class="text-end pe-4" data-label="Ações">
                                 <button class="btn btn-sm btn-outline-primary me-1"
-                                    onclick="editarTerceirizado('{{ t.id }}', '{{ t.nome }}', '{{ t.nome_empresa or '' }}', '{{ t.cnpj or '' }}', '{{ t.telefone }}', '{{ t.email or '' }}', '{{ t.especialidades or '' }}', {{ 'true' if t.abrangencia_global else 'false' }}, [{% for u in t.unidades %}'{{ u.id }}'{% if not loop.last %},{% endif %}{% endfor %}])"
+                                    onclick="editarTerceirizado('{{ t.id }}', '{{ t.nome|replace("'", "\\'") }}', '{{ t.nome_empresa|replace("'", "\\'") or '' }}', '{{ t.cnpj or '' }}', '{{ t.telefone }}', '{{ t.email or '' }}', '{{ t.especialidades|replace("'", "\\'") or '' }}', {{ 'true' if t.abrangencia_global else 'false' }}, [{% for u in t.unidades %}'{{ u.id }}'{% if not loop.last %},{% endif %}{% endfor %}])"
                                     title="Editar">
                                     <i class="bi bi-pencil"></i>
                                 </button>
@@ -833,6 +849,18 @@
         document.getElementById('editFornPrazo').value = prazo;
 
         new bootstrap.Modal(document.getElementById('modalEditarFornecedor')).show();
+    }
+
+    function editarUnidade(id, nome, endereco, razao, cnpj, telefone, ip) {
+        document.getElementById('editUnidadeId').value = id;
+        document.getElementById('editUnidadeNome').value = nome;
+        document.getElementById('editUnidadeEndereco').value = endereco;
+        document.getElementById('editUnidadeRazao').value = razao;
+        document.getElementById('editUnidadeCnpj').value = cnpj;
+        document.getElementById('editUnidadeTelefone').value = telefone;
+        document.getElementById('editUnidadeIp').value = ip;
+
+        new bootstrap.Modal(document.getElementById('modalEditarUnidade')).show();
     }
 
     // Auto-dismiss alerts após 5 segundos
