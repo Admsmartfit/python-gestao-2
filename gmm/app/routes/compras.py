@@ -409,19 +409,32 @@ def solicitar_orcamento(pedido_id):
             if not fornecedor:
                 continue
 
+            # Dados da unidade solicitante
+            unidade = pedido.unidade_destino
+            unidade_info = ""
+            if unidade:
+                unidade_info = f"\n*Unidade Solicitante:* {unidade.nome}"
+                if unidade.razao_social:
+                    unidade_info += f"\nRazao Social: {unidade.razao_social}"
+                if unidade.cnpj:
+                    unidade_info += f"\nCNPJ: {unidade.cnpj}"
+                if unidade.endereco:
+                    unidade_info += f"\nEndereco: {unidade.endereco}"
+                if unidade.telefone:
+                    unidade_info += f"\nTelefone: {unidade.telefone}"
+
             # Mensagem padrão
-            mensagem = mensagem_custom or f"""
-🛒 *SOLICITAÇÃO DE ORÇAMENTO*
+            mensagem = mensagem_custom or f"""*SOLICITACAO DE ORCAMENTO*
 
 Pedido: #{pedido.id}
 Item: {pedido.peca.nome}
-Código: {pedido.peca.codigo}
+Codigo: {pedido.peca.codigo}
 Quantidade: {pedido.quantidade} {pedido.peca.unidade_medida}
+{unidade_info}
 
-Por favor, envie seu melhor preço e prazo de entrega.
+Por favor, envie seu melhor preco e prazo de entrega.
 
-_Solicitado por: {current_user.nome}_
-"""
+Solicitado por: {current_user.nome}"""
 
             tipo_comunicacao = None
             sucesso = False
