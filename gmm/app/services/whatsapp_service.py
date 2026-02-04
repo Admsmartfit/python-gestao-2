@@ -24,28 +24,34 @@ class WhatsAppService:
 
     @staticmethod
     def _get_credentials():
-        """Retorna (url_base, token, instance_id) da MegaAPI."""
+        """
+        Retorna (url_base, instance_key, bearer_token) da MegaAPI.
+
+        Na MegaAPI:
+        - instance_key: identificador da instância na URL (ex: megastart-MkOyNxUpCFB)
+        - bearer_token: token de autenticação no header Authorization
+        - Normalmente ambos são o mesmo valor (MEGA_API_KEY)
+        """
         # Tentar credenciais do banco (encriptadas)
         try:
             from app.models.whatsapp_models import ConfiguracaoWhatsApp
             config = ConfiguracaoWhatsApp.query.filter_by(ativo=True).first()
             if config and config.api_key_encrypted:
                 fernet_key = current_app.config.get('FERNET_KEY')
-                token = config.decrypt_key(fernet_key)
+                api_key = config.decrypt_key(fernet_key)
                 url = current_app.config.get('MEGA_API_URL')
-                instance_id = current_app.config.get('MEGA_API_ID')
-                if url and token and instance_id:
-                    return url, token, instance_id
+                if url and api_key:
+                    return url, api_key, api_key
         except Exception as e:
             logger.debug(f"Credenciais do banco não disponíveis: {e}")
 
         # Fallback: credenciais do .env
         url = current_app.config.get('MEGA_API_URL')
-        # MEGA_API_KEY é a chave completa (ex: megastart-XXXXX) usada como Bearer token
-        token = current_app.config.get('MEGA_API_KEY') or current_app.config.get('MEGA_API_TOKEN')
-        instance_id = current_app.config.get('MEGA_API_ID')
+        # MEGA_API_KEY é a chave da instância (ex: megastart-XXXXX)
+        # Serve como instance_key na URL e como Bearer token
+        api_key = current_app.config.get('MEGA_API_KEY')
 
-        return url, token, instance_id
+        return url, api_key, api_key
 
     @staticmethod
     def _format_phone(telefone: str) -> str:
@@ -244,18 +250,18 @@ class WhatsAppService:
         Returns:
             tuple: (sucesso: bool, resposta: dict)
         """
-        url, token, instance_id = cls._get_credentials()
+        url, instance_key, bearer_token = cls._get_credentials()
 
-        if not url or not token or not instance_id:
-            logger.error("Configuração MegaAPI incompleta. Verifique MEGA_API_URL, MEGA_API_TOKEN e MEGA_API_ID no .env")
-            return False, {"error": "Configuração MegaAPI incompleta (URL, TOKEN ou ID ausente)"}
+        if not url or not instance_key:
+            logger.error("Configuração MegaAPI incompleta. Verifique MEGA_API_URL e MEGA_API_KEY no .env")
+            return False, {"error": "Configuração MegaAPI incompleta (URL ou MEGA_API_KEY ausente)"}
 
-        # Montar URL: {base}/rest/sendMessage/{instance_id}/{type}
+        # Montar URL: {base}/rest/sendMessage/{instance_key}/{type}
         base_url = url.rstrip('/')
-        endpoint = f"{base_url}/rest/sendMessage/{instance_id}/{endpoint_type}"
+        endpoint = f"{base_url}/rest/sendMessage/{instance_key}/{endpoint_type}"
 
         headers = {
-            "Authorization": f"Bearer {token}",
+            "Authorization": f"Bearer {bearer_token}",
             "Content-Type": "application/json"
         }
 
