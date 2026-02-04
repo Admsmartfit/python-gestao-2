@@ -324,12 +324,11 @@
                                     class="bg-light px-2 py-1 rounded text-dark">{{ u.faixa_ip_permitida }}</code></td>
                             <td class="text-end pe-4" data-label="Ações">
                                 <div class="d-flex justify-content-end gap-1">
-                                    <button class="btn btn-sm btn-outline-secondary"
-                                        onclick="editarUnidade('{{ u.id }}', '{{ u.nome|replace(" \'", "\\\'" )
-                                        }}', '{{ u.endereco|replace("\'", " \\\'") or ""
-                                        }}', '{{ u.razao_social|replace("\'", " \\\'") or "" }}', '{{ u.cnpj or "" }}'
-                                        , '{{ u.telefone or "" }}' , '{{ u.faixa_ip_permitida or "" }}' )"
-                                        title="Editar">
+                                    <button class="btn btn-sm btn-outline-secondary btn-editar-unidade"
+                                        data-id="{{ u.id }}" data-nome="{{ u.nome }}"
+                                        data-endereco="{{ u.endereco or '' }}" data-razao="{{ u.razao_social or '' }}"
+                                        data-cnpj="{{ u.cnpj or '' }}" data-telefone="{{ u.telefone or '' }}"
+                                        data-ip="{{ u.faixa_ip_permitida or '' }}" title="Editar">
                                         <i class="bi bi-pencil"></i>
                                     </button>
                                     <a href="{{ url_for('admin.excluir_unidade', id=u.id) }}"
@@ -450,13 +449,14 @@
                             <td data-label="Entregas">{{ f.total_pedidos_entregues }}</td>
                             <td class="text-end pe-4" data-label="Ações">
                                 <div class="d-flex justify-content-end gap-1">
-                                    <button class="btn btn-sm btn-outline-primary"
-                                        onclick="abrirCatalogo('{{ f.id }}', '{{ f.nome }}')" title="Catálogo">
+                                    <button class="btn btn-sm btn-outline-primary btn-abrir-catalogo"
+                                        data-id="{{ f.id }}" data-nome="{{ f.nome }}" title="Catálogo">
                                         <i class="bi bi-list-check"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-outline-secondary"
-                                        onclick="editarFornecedor('{{ f.id }}', '{{ f.nome }}', '{{ f.email or '' }}', '{{ f.telefone or '' }}', '{{ f.endereco or '' }}', '{{ f.prazo_medio_entrega_dias }}')"
-                                        title="Editar">
+                                    <button class="btn btn-sm btn-outline-secondary btn-editar-fornecedor"
+                                        data-id="{{ f.id }}" data-nome="{{ f.nome }}" data-email="{{ f.email or '' }}"
+                                        data-telefone="{{ f.telefone or '' }}" data-endereco="{{ f.endereco or '' }}"
+                                        data-prazo="{{ f.prazo_medio_entrega_dias }}" title="Editar">
                                         <i class="bi bi-pencil"></i>
                                     </button>
                                     <a href="{{ url_for('admin.excluir_fornecedor', id=f.id) }}"
@@ -560,12 +560,13 @@
                                 {% endif %}
                             </td>
                             <td class="text-end pe-4" data-label="Ações">
-                                <button class="btn btn-sm btn-outline-primary me-1"
-                                    onclick="editarTerceirizado('{{ t.id }}', '{{ t.nome|replace(" \'", "\\\'" )
-                                    }}', '{{ t.nome_empresa|replace("\'", " \\\'") or "" }}', '{{ t.cnpj or "" }}'
-                                    , '{{ t.telefone }}' , '{{ t.email or "" }}' , '{{ t.especialidades|replace("\'", "
-                                    \\\'") or "" }}', {{ "true" if t.abrangencia_global else "false" }}, [{% for u in
-                                    t.unidades %}'{{ u.id }}'{% if not loop.last %},{% endif %}{% endfor %}])"
+                                <button class="btn btn-sm btn-outline-primary btn-editar-terceirizado me-1"
+                                    data-id="{{ t.id }}" data-nome="{{ t.nome }}"
+                                    data-empresa="{{ t.nome_empresa or '' }}" data-cnpj="{{ t.cnpj or '' }}"
+                                    data-telefone="{{ t.telefone or '' }}" data-email="{{ t.email or '' }}"
+                                    data-especialidades="{{ t.especialidades or '' }}"
+                                    data-global="{{ 'true' if t.abrangencia_global else 'false' }}"
+                                    data-unidades='[{% for u in t.unidades %}"{{ u.id }}"{% if not loop.last %},{% endif %}{% endfor %}]'
                                     title="Editar">
                                     <i class="bi bi-pencil"></i>
                                 </button>
@@ -785,6 +786,52 @@
     </div>
 </div>
 
+<div class="modal fade" id="modalEditarUnidade" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">Editar Unidade</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('admin.editar_unidade') }}" method="POST">
+                <input type="hidden" name="id" id="editUnidadeId">
+                <div class="modal-body pt-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Nome da Unidade</label>
+                            <input type="text" name="nome" id="editUnidadeNome" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Endereço</label>
+                            <input type="text" name="endereco" id="editUnidadeEndereco" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Razão Social</label>
+                            <input type="text" name="razao_social" id="editUnidadeRazao" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">CNPJ</label>
+                            <input type="text" name="cnpj" id="editUnidadeCnpj" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Telefone</label>
+                            <input type="text" name="telefone" id="editUnidadeTelefone" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">IP Permitido</label>
+                            <input type="text" name="faixa_ip" id="editUnidadeIp" class="form-control" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
     function abrirCatalogo(id, nome) {
         // Definir o ID do fornecedor no formulário de vincular peça
@@ -878,6 +925,38 @@
                 const bsAlert = new bootstrap.Alert(alert);
                 bsAlert.close();
             }, 5000);
+        });
+
+        // Listener para Editar Unidade
+        document.querySelectorAll('.btn-editar-unidade').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const d = this.dataset;
+                editarUnidade(d.id, d.nome, d.endereco, d.razao, d.cnpj, d.telefone, d.ip);
+            });
+        });
+
+        // Listener para Editar Prestador (Terceirizado)
+        document.querySelectorAll('.btn-editar-terceirizado').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const d = this.dataset;
+                const unidades = JSON.parse(d.unidades || '[]');
+                editarTerceirizado(d.id, d.nome, d.empresa, d.cnpj, d.telefone, d.email, d.especialidades, d.global === 'true', unidades);
+            });
+        });
+
+        // Listener para Abrir Catálogo
+        document.querySelectorAll('.btn-abrir-catalogo').forEach(btn => {
+            btn.addEventListener('click', function () {
+                abrirCatalogo(this.dataset.id, this.dataset.nome);
+            });
+        });
+
+        // Listener para Editar Fornecedor
+        document.querySelectorAll('.btn-editar-fornecedor').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const d = this.dataset;
+                editarFornecedor(d.id, d.nome, d.email, d.telefone, d.endereco, d.prazo);
+            });
         });
     });
 </script>
