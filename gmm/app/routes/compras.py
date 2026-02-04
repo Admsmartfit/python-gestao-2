@@ -86,10 +86,31 @@ def novo():
 def detalhes(id):
     """View order details, quotes and communication history"""
     pedido = PedidoCompra.query.get_or_404(id)
-    # Get other quotes for this item
     quotes = CatalogoFornecedor.query.filter_by(estoque_id=pedido.estoque_id).order_by(CatalogoFornecedor.preco_atual).all()
+    from app.models.models import Unidade
+    unidades = Unidade.query.filter_by(ativa=True).order_by(Unidade.nome).all()
 
-    return render_template('compras/detalhes_melhorado.html', pedido=pedido, quotes=quotes)
+    return render_template('compras/detalhes_melhorado.html', pedido=pedido, quotes=quotes, unidades=unidades)
+
+@bp.route('/<int:id>/alterar_unidade', methods=['POST'])
+@login_required
+def alterar_unidade(id):
+    """Altera a unidade solicitante do pedido de compra"""
+    pedido = PedidoCompra.query.get_or_404(id)
+    data = request.json
+    unidade_id = data.get('unidade_id')
+
+    if unidade_id:
+        from app.models.models import Unidade
+        unidade = Unidade.query.get(unidade_id)
+        if not unidade:
+            return jsonify({'success': False, 'erro': 'Unidade nao encontrada'}), 404
+        pedido.unidade_destino_id = unidade.id
+    else:
+        pedido.unidade_destino_id = None
+
+    db.session.commit()
+    return jsonify({'success': True, 'mensagem': 'Unidade solicitante atualizada'})
 
 @bp.route('/<int:id>/aprovar', methods=['POST'])
 @login_required

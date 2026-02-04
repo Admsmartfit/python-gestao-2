@@ -698,6 +698,8 @@ def adicionar_tarefa_externa(id):
             # Enviar WhatsApp diretamente
             try:
                 from app.services.whatsapp_service import WhatsAppService
+                import os as os_module
+
                 ok, resp = WhatsAppService.enviar_mensagem(
                     telefone=terceirizado.telefone,
                     texto=msg,
@@ -706,7 +708,26 @@ def adicionar_tarefa_externa(id):
                 if ok:
                     notif.status_envio = 'enviado'
                     notif.enviado_em = datetime.now()
-                    flash('Tarefa criada e WhatsApp enviado ao prestador!', 'success')
+
+                    # Enviar fotos da OS junto
+                    fotos_enviadas = 0
+                    if os_obj.anexos_list:
+                        for anexo in os_obj.anexos_list:
+                            foto_path = os_module.path.join(current_app.root_path, 'static', anexo.caminho_arquivo)
+                            if os_module.path.exists(foto_path):
+                                ok_foto, _ = WhatsAppService.enviar_mensagem(
+                                    telefone=terceirizado.telefone,
+                                    texto=f"Foto OS {os_obj.numero_os} - {anexo.tipo.replace('_', ' ')}",
+                                    arquivo_path=foto_path,
+                                    tipo_midia='image'
+                                )
+                                if ok_foto:
+                                    fotos_enviadas += 1
+
+                    msg_flash = f'Tarefa criada e WhatsApp enviado ao prestador!'
+                    if fotos_enviadas > 0:
+                        msg_flash += f' ({fotos_enviadas} foto(s) enviada(s))'
+                    flash(msg_flash, 'success')
                 else:
                     notif.status_envio = 'falhou'
                     logger.warning(f"WhatsApp falhou para {terceirizado.nome}: {resp}")
@@ -972,6 +993,8 @@ Por favor, envie seu orçamento até a data limite."""
                 # Enviar WhatsApp diretamente
                 try:
                     from app.services.whatsapp_service import WhatsAppService
+                    import os as os_module
+
                     ok, resp = WhatsAppService.enviar_mensagem(
                         telefone=prestador.telefone,
                         texto=mensagem,
@@ -980,6 +1003,19 @@ Por favor, envie seu orçamento até a data limite."""
                     if ok:
                         notif.status_envio = 'enviado'
                         notif.enviado_em = datetime.now()
+
+                        # Enviar fotos da OS junto
+                        os_obj = OrdemServico.query.get(os_id)
+                        if os_obj and os_obj.anexos_list:
+                            for anexo in os_obj.anexos_list:
+                                foto_path = os_module.path.join(current_app.root_path, 'static', anexo.caminho_arquivo)
+                                if os_module.path.exists(foto_path):
+                                    WhatsAppService.enviar_mensagem(
+                                        telefone=prestador.telefone,
+                                        texto=f"Foto OS {os_obj.numero_os} - {anexo.tipo.replace('_', ' ')}",
+                                        arquivo_path=foto_path,
+                                        tipo_midia='image'
+                                    )
                     else:
                         notif.status_envio = 'falhou'
                         logger.warning(f"WhatsApp falhou para {prestador.nome}: {resp}")
