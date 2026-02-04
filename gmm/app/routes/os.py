@@ -9,7 +9,7 @@ from app.services.os_service import OSService
 from app.services.estoque_service import EstoqueService
 from app.services.email_service import EmailService
 from app.models.terceirizados_models import HistoricoNotificacao
-from app.tasks.whatsapp_tasks import enviar_whatsapp_task
+
 
 bp = Blueprint('os', __name__, url_prefix='/os')
 
@@ -695,20 +695,32 @@ def adicionar_tarefa_externa(id):
             db.session.add(notif)
             db.session.commit()
 
-            # Envia assincronamente via Celery
+            # Enviar WhatsApp diretamente
             try:
-                enviar_whatsapp_task.delay(notif.id)
-                
-                # [NOVO] Se o terceirizado tem email, envia cópia por email também se solicitado ou como fallback
+                from app.services.whatsapp_service import WhatsAppService
+                ok, resp = WhatsAppService.enviar_mensagem(
+                    telefone=terceirizado.telefone,
+                    texto=msg,
+                    prioridade=1
+                )
+                if ok:
+                    notif.status_envio = 'enviado'
+                    notif.enviado_em = datetime.now()
+                    flash('Tarefa criada e WhatsApp enviado ao prestador!', 'success')
+                else:
+                    notif.status_envio = 'falhou'
+                    logger.warning(f"WhatsApp falhou para {terceirizado.nome}: {resp}")
+                    flash('Tarefa criada, mas falha ao enviar WhatsApp.', 'warning')
+                db.session.commit()
+
+                # Se o terceirizado tem email, envia copia por email tambem
                 if terceirizado.email:
                     EmailService.enviar_solicitacao_terceirizado(
-                        novo_chamado, 
-                        terceirizado, 
-                        msg, 
+                        novo_chamado,
+                        terceirizado,
+                        msg,
                         cc=current_user.email
                     )
-                
-                flash('Tarefa criada e notificação enviada ao prestador!', 'success')
             except Exception as e:
                 flash('Tarefa criada, mas erro ao enviar notificações.', 'warning')
                 logger.error(f"Erro ao enviar notificações: {e}")
@@ -957,10 +969,25 @@ Por favor, envie seu orçamento até a data limite."""
                 db.session.add(notif)
                 db.session.flush()
 
-                # Enfileirar envio
-                enviar_whatsapp_task.delay(notif.id)
+                # Enviar WhatsApp diretamente
+                try:
+                    from app.services.whatsapp_service import WhatsAppService
+                    ok, resp = WhatsAppService.enviar_mensagem(
+                        telefone=prestador.telefone,
+                        texto=mensagem,
+                        prioridade=1
+                    )
+                    if ok:
+                        notif.status_envio = 'enviado'
+                        notif.enviado_em = datetime.now()
+                    else:
+                        notif.status_envio = 'falhou'
+                        logger.warning(f"WhatsApp falhou para {prestador.nome}: {resp}")
+                except Exception as e:
+                    notif.status_envio = 'falhou'
+                    logger.error(f"Erro ao enviar WhatsApp para {prestador.nome}: {e}")
 
-            # Enviar email se tiver e não tiver WhatsApp
+            # Enviar email se tiver e nao tiver WhatsApp
             elif prestador.email:
                 EmailService.enviar_notificacao_chamado(chamado, prestador)
 
