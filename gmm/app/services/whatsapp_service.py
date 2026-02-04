@@ -1,7 +1,5 @@
 import requests
-import json
 import re
-import time
 import logging
 from flask import current_app
 from app.services.circuit_breaker import CircuitBreaker
@@ -10,22 +8,55 @@ from app.services.rate_limiter import RateLimiter
 logger = logging.getLogger(__name__)
 
 class WhatsAppService:
+    """
+    Serviço de envio de mensagens via MegaAPI.
+
+    Formato dos endpoints:
+        POST {MEGA_API_URL}/rest/sendMessage/{MEGA_API_ID}/{tipo}
+        Headers: Authorization: Bearer {MEGA_API_TOKEN}
+        Body: {"messageData": {"to": "5511999999999@s.whatsapp.net", ...}}
+    """
 
     @staticmethod
     def validar_telefone(telefone: str) -> bool:
         """Valida formato: 5511999999999 (13 dígitos)"""
         return bool(re.match(r'^55\d{11}$', str(telefone)))
 
+    @staticmethod
+    def _get_credentials():
+        """Retorna (url_base, token, instance_id) da MegaAPI."""
+        # Tentar credenciais do banco (encriptadas)
+        try:
+            from app.models.whatsapp_models import ConfiguracaoWhatsApp
+            config = ConfiguracaoWhatsApp.query.filter_by(ativo=True).first()
+            if config and config.api_key_encrypted:
+                fernet_key = current_app.config.get('FERNET_KEY')
+                token = config.decrypt_key(fernet_key)
+                url = current_app.config.get('MEGA_API_URL')
+                instance_id = current_app.config.get('MEGA_API_ID')
+                if url and token and instance_id:
+                    return url, token, instance_id
+        except Exception as e:
+            logger.debug(f"Credenciais do banco não disponíveis: {e}")
+
+        # Fallback: credenciais do .env
+        url = current_app.config.get('MEGA_API_URL')
+        token = current_app.config.get('MEGA_API_TOKEN')
+        instance_id = current_app.config.get('MEGA_API_ID')
+
+        return url, token, instance_id
+
+    @staticmethod
+    def _format_phone(telefone: str) -> str:
+        """Formata telefone para o padrão MegaAPI: 5511999999999@s.whatsapp.net"""
+        phone = re.sub(r'[^0-9]', '', str(telefone))
+        return f"{phone}@s.whatsapp.net"
+
     @classmethod
     def enviar_mensagem(cls, telefone: str, texto: str, prioridade: int = 0, notificacao_id: int = None,
                        arquivo_path: str = None, tipo_midia: str = 'text', caption: str = None):
         """
-        Envia mensagem via MegaAPI com resiliência e suporte a multimídia:
-        1. Validação de Telefone
-        2. Circuit Breaker check
-        3. Rate Limiting check (exceto para prioridade 2/Urgente)
-        4. API Request com Error Handling
-        5. Suporte a Mídia (imagem, áudio, documento)
+        Envia mensagem via MegaAPI com resiliência e suporte a multimídia.
 
         Args:
             telefone: Número no formato 5511999999999
@@ -42,14 +73,11 @@ class WhatsAppService:
 
         # 2. Circuit Breaker
         if not CircuitBreaker.should_attempt():
-            # FALLBACK SMS (RF-013)
             from app.services.sms_service import SMSService
             logger.warning(f"WhatsApp Indisponível (Circuit OPEN). Tentando SMS para {telefone}")
             sucesso_sms, res_sms = SMSService.enviar_sms(telefone, texto)
-            
             if sucesso_sms:
                 return True, {"status": "enviado_via_sms", "details": res_sms}
-            
             return False, {"error": "Circuit breaker OPEN and SMS fallback failed", "code": "CIRCUIT_OPEN_NO_FALLBACK"}
 
         # 3. Rate Limit (ignorar se prioridade urgente >= 2)
@@ -58,83 +86,23 @@ class WhatsAppService:
             if not pode_enviar:
                 logger.info(f"Rate limit reached. Enqueueing notification {notificacao_id} for later.")
                 if notificacao_id:
-                    # Circular import avoidance: import inside method
                     from app.tasks.whatsapp_tasks import enviar_whatsapp_task
                     enviar_whatsapp_task.apply_async(args=[notificacao_id], countdown=60)
                 return True, {"status": "enfileirado"}
 
-        # 4. Get Credentials
-        from app.models.whatsapp_models import ConfiguracaoWhatsApp
-        config = ConfiguracaoWhatsApp.query.filter_by(ativo=True).first()
+        # 4. Enviar
+        recipient = cls._format_phone(telefone)
 
-        if config and config.api_key_encrypted:
-            try:
-                fernet_key = current_app.config.get('FERNET_KEY')
-                api_key = config.decrypt_key(fernet_key)
-                url = current_app.config.get('MEGA_API_URL')
-            except Exception as e:
-                logger.error(f"Error decrypting API Key: {str(e)}")
-                return False, {"error": "Decryption failed"}
+        if arquivo_path and tipo_midia != 'text':
+            return cls._send_media(recipient, arquivo_path, tipo_midia, caption or texto)
         else:
-            url = current_app.config.get('MEGA_API_URL')
-            api_key = current_app.config.get('MEGA_API_KEY')
-
-        if not url or not api_key:
-            return False, {"error": "MegaAPI configuration missing"}
-
-        # 5. API Request (com ou sem mídia)
-        try:
-            headers = {"Authorization": f"Bearer {api_key}"}
-
-            # Se houver arquivo de mídia
-            if arquivo_path and tipo_midia != 'text':
-                # Envia como multipart/form-data
-                import os
-                if not os.path.exists(arquivo_path):
-                    return False, {"error": f"Arquivo não encontrado: {arquivo_path}"}
-
-                with open(arquivo_path, 'rb') as f:
-                    files = {'file': (os.path.basename(arquivo_path), f)}
-                    data = {
-                        'number': telefone,
-                        'type': tipo_midia,  # image, audio, document
-                        'caption': caption or texto
-                    }
-
-                    response = requests.post(
-                        f"{url}/media",  # Endpoint de mídia (ajustar conforme API)
-                        data=data,
-                        files=files,
-                        headers=headers,
-                        timeout=30  # Timeout maior para upload
-                    )
-            else:
-                # Envia mensagem de texto normal
-                # Ajuste: Alinhado com setup.py que usa /send-message e o campo 'number'
-                base_url = url.rstrip('/')
-                endpoint = f"{base_url}/send-message" if not base_url.endswith('send-message') else base_url
-                response = requests.post(
-                    endpoint,
-                    json={"number": telefone, "message": texto},
-                    headers=headers,
-                    timeout=5
-                )
-
-            if response.status_code in [200, 201]:
-                CircuitBreaker.record_success()
-                RateLimiter.increment()
-                return True, response.json()
-            else:
-                CircuitBreaker.record_failure()
-                logger.warning(f"MegaAPI failure: {response.status_code} - {response.text}")
-                return False, {"status": response.status_code, "text": response.text}
-
-        except requests.exceptions.RequestException as e:
-            CircuitBreaker.record_failure()
-            logger.error(f"MegaAPI request exception: {str(e)}")
-            return False, {"error": str(e)}
-
-    # ==================== MÉTODOS V3.1 - MENSAGENS INTERATIVAS ====================
+            payload = {
+                "messageData": {
+                    "to": recipient,
+                    "text": texto
+                }
+            }
+            return cls._send_request("text", payload)
 
     @classmethod
     def send_list_message(cls, phone: str, header: str, body: str, sections: list, button_text: str = "Ver Opções"):
@@ -146,43 +114,26 @@ class WhatsAppService:
             header: Cabeçalho da mensagem
             body: Corpo da mensagem
             sections: Lista de seções com opções
-                Exemplo: [
-                    {
-                        "title": "Menu Principal",
-                        "rows": [
-                            {"id": "minhas_os", "title": "Minhas OSs", "description": "Ver ordens abertas"},
-                            {"id": "solicitar_peca", "title": "Solicitar Peça"}
-                        ]
-                    }
-                ]
-
-        Returns:
-            tuple: (sucesso: bool, resposta: dict)
+            button_text: Texto do botão
         """
-        # Validação
         if not cls.validar_telefone(phone):
             return False, {"error": "Telefone inválido"}
-
-        # Circuit Breaker
         if not CircuitBreaker.should_attempt():
             return False, {"error": "Circuit breaker OPEN"}
 
-        # Construir payload MegaAPI
+        recipient = cls._format_phone(phone)
+
         payload = {
-            "number": phone,
-            "type": "interactive",
-            "interactive": {
-                "type": "list",
-                "header": {"type": "text", "text": header},
-                "body": {"text": body},
-                "action": {
-                    "button": button_text,
-                    "sections": sections
-                }
+            "messageData": {
+                "to": recipient,
+                "buttonText": button_text,
+                "text": body,
+                "title": header,
+                "sections": sections
             }
         }
 
-        return cls._send_request(payload)
+        return cls._send_request("listMessage", payload)
 
     @classmethod
     def send_buttons_message(cls, phone: str, body: str, buttons: list):
@@ -193,123 +144,126 @@ class WhatsAppService:
             phone: Telefone no formato 5511999999999
             body: Texto da mensagem
             buttons: Lista de botões (máx 3)
-                Exemplo: [
-                    {"type": "reply", "reply": {"id": "aprovar_123", "title": "✅ Aprovar"}},
-                    {"type": "reply", "reply": {"id": "rejeitar_123", "title": "❌ Rejeitar"}}
-                ]
-
-        Returns:
-            tuple: (sucesso: bool, resposta: dict)
         """
-        # Validações
         if not cls.validar_telefone(phone):
             return False, {"error": "Telefone inválido"}
-
         if len(buttons) > 3:
             return False, {"error": "Máximo de 3 botões permitido"}
-
-        # Circuit Breaker
         if not CircuitBreaker.should_attempt():
             return False, {"error": "Circuit breaker OPEN"}
 
-        # Construir payload MegaAPI
+        recipient = cls._format_phone(phone)
+
         payload = {
-            "number": phone,
-            "type": "interactive",
-            "interactive": {
-                "type": "button",
-                "body": {"text": body},
-                "action": {"buttons": buttons}
+            "messageData": {
+                "to": recipient,
+                "text": body,
+                "buttons": buttons
             }
         }
 
-        return cls._send_request(payload)
+        return cls._send_request("buttonMessage", payload)
 
     @classmethod
     def enviar_documento(cls, phone: str, document_url: str, filename: str, caption: str = None):
         """
-        Envia documento (PDF, etc) via WhatsApp.
+        Envia documento (PDF, etc) via WhatsApp usando URL.
 
         Args:
             phone: Telefone no formato 5511999999999
             document_url: URL pública do documento
             filename: Nome do arquivo
             caption: Legenda opcional
-
-        Returns:
-            tuple: (sucesso: bool, resposta: dict)
         """
-        # Validação
         if not cls.validar_telefone(phone):
             return False, {"error": "Telefone inválido"}
-
-        # Circuit Breaker
         if not CircuitBreaker.should_attempt():
             return False, {"error": "Circuit breaker OPEN"}
 
-        # Construir payload MegaAPI
+        recipient = cls._format_phone(phone)
+
         payload = {
-            "number": phone,
-            "type": "document",
-            "document": {
-                "link": document_url,
-                "filename": filename
+            "messageData": {
+                "to": recipient,
+                "url": document_url,
+                "fileName": filename,
+                "type": "document",
+                "caption": caption or ""
             }
         }
 
-        if caption:
-            payload["document"]["caption"] = caption
-
-        return cls._send_request(payload)
+        return cls._send_request("mediaUrl", payload)
 
     @classmethod
-    def _send_request(cls, payload: dict):
+    def _send_media(cls, recipient: str, arquivo_path: str, tipo_midia: str, caption: str = None):
+        """Envia mídia usando base64."""
+        import os
+        import base64
+        import mimetypes
+
+        if not os.path.exists(arquivo_path):
+            return False, {"error": f"Arquivo não encontrado: {arquivo_path}"}
+
+        try:
+            mime_type, _ = mimetypes.guess_type(arquivo_path)
+            if not mime_type:
+                mime_type = 'application/octet-stream'
+
+            with open(arquivo_path, 'rb') as f:
+                file_data = base64.b64encode(f.read()).decode('utf-8')
+
+            base64_str = f"data:{mime_type};base64,{file_data}"
+
+            payload = {
+                "messageData": {
+                    "to": recipient,
+                    "base64": base64_str,
+                    "fileName": os.path.basename(arquivo_path),
+                    "type": tipo_midia,
+                    "caption": caption or "",
+                    "mimeType": mime_type
+                }
+            }
+
+            return cls._send_request("mediaBase64", payload)
+
+        except Exception as e:
+            logger.error(f"Erro ao preparar mídia: {e}")
+            return False, {"error": str(e)}
+
+    @classmethod
+    def _send_request(cls, endpoint_type: str, payload: dict):
         """
         Método interno para enviar requisição à MegaAPI.
 
         Args:
+            endpoint_type: Tipo de endpoint (text, mediaBase64, listMessage, buttonMessage, etc.)
             payload: Payload completo da requisição
 
         Returns:
             tuple: (sucesso: bool, resposta: dict)
         """
-        # Get Credentials
-        from app.models.whatsapp_models import ConfiguracaoWhatsApp
-        config = ConfiguracaoWhatsApp.query.filter_by(ativo=True).first()
+        url, token, instance_id = cls._get_credentials()
 
-        if config and config.api_key_encrypted:
-            try:
-                fernet_key = current_app.config.get('FERNET_KEY')
-                api_key = config.decrypt_key(fernet_key)
-                url = current_app.config.get('MEGA_API_URL')
-            except Exception as e:
-                logger.error(f"Error decrypting API Key: {str(e)}")
-                return False, {"error": "Decryption failed"}
-        else:
-            url = current_app.config.get('MEGA_API_URL')
-            api_key = current_app.config.get('MEGA_API_KEY')
+        if not url or not token or not instance_id:
+            logger.error("Configuração MegaAPI incompleta. Verifique MEGA_API_URL, MEGA_API_TOKEN e MEGA_API_ID no .env")
+            return False, {"error": "Configuração MegaAPI incompleta (URL, TOKEN ou ID ausente)"}
 
-        if not url or not api_key:
-            return False, {"error": "MegaAPI configuration missing"}
+        # Montar URL: {base}/rest/sendMessage/{instance_id}/{type}
+        base_url = url.rstrip('/')
+        endpoint = f"{base_url}/rest/sendMessage/{instance_id}/{endpoint_type}"
 
-        # API Request
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
+
         try:
-            # Garante que o payload vai para o endpoint correto (Interactive ou Default)
-            base_url = url.rstrip('/')
-            endpoint = base_url
-            if payload.get('type') == 'interactive' and not base_url.endswith('sendInteractive'):
-                endpoint = f"{base_url}/send-message" # Interactive also often goes to same endpoint or specific one
-            elif not any(x in base_url for x in ['send-message', 'sendInteractive', 'sendMedia']):
-                endpoint = f"{base_url}/send-message"
-
             response = requests.post(
                 endpoint,
                 json=payload,
-                headers={
-                    "Authorization": f"Bearer {api_key}",
-                    "Content-Type": "application/json"
-                },
-                timeout=5
+                headers=headers,
+                timeout=10
             )
 
             if response.status_code in [200, 201]:
@@ -318,7 +272,7 @@ class WhatsAppService:
                 return True, response.json()
             else:
                 CircuitBreaker.record_failure()
-                logger.warning(f"MegaAPI failure: {response.status_code} - {response.text}")
+                logger.warning(f"MegaAPI failure [{endpoint_type}]: {response.status_code} - {response.text}")
                 return False, {"status": response.status_code, "text": response.text}
 
         except requests.exceptions.RequestException as e:

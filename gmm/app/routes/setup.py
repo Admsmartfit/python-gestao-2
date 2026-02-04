@@ -145,10 +145,6 @@ def test_database():
 def step4_connectivity():
     """Configuração de WhatsApp e Email"""
     if request.method == 'POST':
-        # WhatsApp
-        session['MEGA_API_KEY'] = request.form.get('mega_api_key', '')
-        session['MEGA_API_URL'] = request.form.get('mega_api_url', 'https://api.mega.chat/v1')
-
         # Email SMTP
         session['SMTP_SERVER'] = request.form.get('smtp_server', '')
         session['SMTP_PORT'] = request.form.get('smtp_port', '587')
@@ -169,29 +165,42 @@ def test_whatsapp():
     data = request.json
 
     try:
-        import requests
+        import requests as http_requests
 
-        payload = {
-            'number': data.get('test_number'),
-            'message': '🎉 Olá! Este é um teste do GMM Setup Wizard.'
-        }
+        api_url = data.get('api_url', '').rstrip('/')
+        api_token = data.get('api_token', '')
+        instance_id = data.get('instance_id', '')
+        test_number = data.get('test_number', '')
+
+        if not all([api_url, api_token, instance_id, test_number]):
+            return jsonify({'success': False, 'message': 'Preencha todos os campos'}), 400
+
+        # Formatar telefone: 5511999999999 -> 5511999999999@s.whatsapp.net
+        phone = test_number.strip().replace('+', '')
+        recipient = f"{phone}@s.whatsapp.net"
+
+        # Endpoint correto da MegaAPI
+        endpoint = f"{api_url}/rest/sendMessage/{instance_id}/text"
 
         headers = {
-            'Authorization': f"Bearer {data.get('api_key')}",
+            'Authorization': f'Bearer {api_token}',
             'Content-Type': 'application/json'
         }
 
-        response = requests.post(
-            f"{data.get('api_url')}/send-message",
-            json=payload,
-            headers=headers,
-            timeout=10
-        )
+        payload = {
+            "messageData": {
+                "to": recipient,
+                "text": "Teste do GMM Setup Wizard - Conexao OK!"
+            }
+        }
 
-        if response.status_code == 200:
-            return jsonify({'success': True, 'message': 'Mensagem enviada!'})
+        response = http_requests.post(endpoint, json=payload, headers=headers, timeout=10)
+
+        if response.status_code in [200, 201]:
+            return jsonify({'success': True, 'message': 'Mensagem enviada com sucesso!'})
         else:
-            return jsonify({'success': False, 'message': f'HTTP {response.status_code}'}), 400
+            detail = response.text[:200] if response.text else f'HTTP {response.status_code}'
+            return jsonify({'success': False, 'message': f'Erro {response.status_code}: {detail}'}), 400
 
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 400
@@ -333,10 +342,10 @@ def complete():
     """Finalização: Salva .env e cria setup.lock"""
     if request.method == 'POST':
         # Montar conteúdo do .env
-        env_content = f"""# GMM - Arquivo de Configuração
+        env_content = f"""# GMM - Arquivo de Configuracao
 # Gerado automaticamente pelo Setup Wizard em {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
-# === SEGURANÇA ===
+# === SEGURANCA ===
 SECRET_KEY={session.get('SECRET_KEY')}
 FERNET_KEY={session.get('FERNET_KEY')}
 
@@ -344,8 +353,10 @@ FERNET_KEY={session.get('FERNET_KEY')}
 DATABASE_URL={session.get('DATABASE_URL')}
 
 # === WHATSAPP (MegaAPI) ===
-MEGA_API_KEY={session.get('MEGA_API_KEY', '')}
-MEGA_API_URL={session.get('MEGA_API_URL', 'https://api.mega.chat/v1')}
+# Configure manualmente as variaveis abaixo:
+MEGA_API_URL=
+MEGA_API_TOKEN=
+MEGA_API_ID=
 
 # === EMAIL ===
 SMTP_SERVER={session.get('SMTP_SERVER', '')}
@@ -355,7 +366,7 @@ SMTP_PASSWORD={session.get('SMTP_PASSWORD', '')}
 IMAP_SERVER={session.get('IMAP_SERVER', '')}
 IMAP_PORT={session.get('IMAP_PORT', 993)}
 
-# === INTELIGÊNCIA ARTIFICIAL ===
+# === INTELIGENCIA ARTIFICIAL ===
 AI_PROVIDER={session.get('AI_PROVIDER', 'openai')}
 OPENAI_API_KEY={session.get('OPENAI_API_KEY', '')}
 GEMINI_API_KEY={session.get('GEMINI_API_KEY', '')}
@@ -390,8 +401,7 @@ FLASK_DEBUG=0
     ai_configured = bool(session.get('OPENAI_API_KEY')) if ai_provider == 'openai' else bool(session.get('GEMINI_API_KEY'))
 
     config_summary = {
-        'database': session.get('DATABASE_URL', '').split('://')[0] if session.get('DATABASE_URL') else 'não configurado',
-        'whatsapp': bool(session.get('MEGA_API_KEY')),
+        'database': session.get('DATABASE_URL', '').split('://')[0] if session.get('DATABASE_URL') else 'nao configurado',
         'email': bool(session.get('SMTP_SERVER')),
         'ai': ai_configured,
         'ai_provider': ai_provider.upper() if ai_configured else None

@@ -18,8 +18,11 @@ class Config:
     CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL') or 'redis://localhost:6379/0'
     CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND') or 'redis://localhost:6379/0'
     
+    # WhatsApp (MegaAPI)
+    MEGA_API_URL = os.environ.get('MEGA_API_URL') or 'https://apistart01.megaapi.com.br'
     MEGA_API_KEY = os.environ.get('MEGA_API_KEY')
-    MEGA_API_URL = os.environ.get('MEGA_API_URL') or "https://api.mega.chat/v1"
+    MEGA_API_TOKEN = os.environ.get('MEGA_API_TOKEN')
+    MEGA_API_ID = os.environ.get('MEGA_API_ID')
     
     # Inteligência Artificial
     AI_PROVIDER = os.environ.get('AI_PROVIDER') or 'openai'  # 'openai' ou 'gemini'
