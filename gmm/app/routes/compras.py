@@ -430,6 +430,7 @@ _Solicitado por: {current_user.nome}_
             if fornecedor.telefone:
                 try:
                     from app.services.whatsapp_service import WhatsAppService
+                    logger.info(f"Enviando WhatsApp para {fornecedor.nome} - Tel: {fornecedor.telefone}")
                     ok, resp = WhatsAppService.enviar_mensagem(
                         telefone=fornecedor.telefone,
                         texto=mensagem,
@@ -438,10 +439,11 @@ _Solicitado por: {current_user.nome}_
                     if ok:
                         tipo_comunicacao = 'whatsapp'
                         sucesso = True
+                        logger.info(f"WhatsApp enviado com sucesso para {fornecedor.nome}")
                     else:
                         logger.warning(f"WhatsApp falhou para {fornecedor.nome}: {resp}")
                 except Exception as e:
-                    logger.error(f"Erro ao enviar WhatsApp: {e}")
+                    logger.error(f"Erro ao enviar WhatsApp para {fornecedor.nome}: {e}", exc_info=True)
 
             # Fallback para Email
             if not sucesso and fornecedor.email:

@@ -219,17 +219,48 @@
 
 <script>
 async function enviarWhatsApp(fornecedorId) {
-    ToastModule.show("Enviando mensagem via WhatsApp...", "info");
-    // Implementar lógica de envio
+    ToastModule.show("Enviando WhatsApp...", "info");
+    try {
+        const resp = await fetch("{{ url_for('compras.solicitar_orcamento', pedido_id=pedido.id) }}", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({fornecedor_ids: [fornecedorId]})
+        });
+        const data = await resp.json();
+        if (data.success && data.enviados && data.enviados.length > 0) {
+            ToastModule.show("WhatsApp enviado com sucesso!", "success");
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            const erro = (data.erros && data.erros.length > 0) ? data.erros[0].motivo : (data.erro || "Falha ao enviar");
+            ToastModule.show("Erro: " + erro, "danger");
+        }
+    } catch (e) {
+        ToastModule.show("Erro de conexão: " + e.message, "danger");
+    }
 }
 
 async function enviarEmail(fornecedorId) {
     ToastModule.show("Enviando email...", "info");
-    // Implementar lógica de envio
+    try {
+        const resp = await fetch("{{ url_for('compras.solicitar_orcamento', pedido_id=pedido.id) }}", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({fornecedor_ids: [fornecedorId]})
+        });
+        const data = await resp.json();
+        if (data.success && data.enviados && data.enviados.length > 0) {
+            ToastModule.show("Email enviado com sucesso!", "success");
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            const erro = (data.erros && data.erros.length > 0) ? data.erros[0].motivo : (data.erro || "Falha ao enviar");
+            ToastModule.show("Erro: " + erro, "danger");
+        }
+    } catch (e) {
+        ToastModule.show("Erro de conexão: " + e.message, "danger");
+    }
 }
 
 async function atualizarHistorico() {
-    ToastModule.show("Atualizando histórico...", "info");
     location.reload();
 }
 </script>

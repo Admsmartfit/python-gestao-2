@@ -18,9 +18,22 @@ class WhatsAppService:
     """
 
     @staticmethod
+    def normalizar_telefone(telefone: str) -> str:
+        """
+        Normaliza telefone para formato 55XXXXXXXXXXX (13 dígitos).
+        Aceita formatos: (11) 99999-9999, 11999999999, 5511999999999, +55 11 99999-9999, etc.
+        """
+        phone = re.sub(r'[^0-9]', '', str(telefone))
+        if len(phone) == 11:  # 11999999999 -> 5511999999999
+            phone = '55' + phone
+        elif len(phone) == 10:  # 1199999999 (fixo) -> 551199999999
+            phone = '55' + phone
+        return phone
+
+    @staticmethod
     def validar_telefone(telefone: str) -> bool:
-        """Valida formato: 5511999999999 (13 dígitos)"""
-        return bool(re.match(r'^55\d{11}$', str(telefone)))
+        """Valida formato: 55 + 10 ou 11 dígitos (fixo ou celular)"""
+        return bool(re.match(r'^55\d{10,11}$', str(telefone)))
 
     @staticmethod
     def _get_credentials():
@@ -60,8 +73,10 @@ class WhatsAppService:
             tipo_midia: Tipo de mídia: 'text', 'image', 'audio', 'document'
             caption: Legenda para mídia (opcional)
         """
-        # 1. Validação
+        # 1. Normalização e Validação
+        telefone = cls.normalizar_telefone(telefone)
         if not cls.validar_telefone(telefone):
+            logger.warning(f"Telefone inválido após normalização: {telefone}")
             return False, {"error": "Telefone inválido"}
 
         # 2. Circuit Breaker
@@ -109,6 +124,7 @@ class WhatsAppService:
             sections: Lista de seções com opções
             button_text: Texto do botão
         """
+        phone = cls.normalizar_telefone(phone)
         if not cls.validar_telefone(phone):
             return False, {"error": "Telefone inválido"}
         if not CircuitBreaker.should_attempt():
@@ -138,6 +154,7 @@ class WhatsAppService:
             body: Texto da mensagem
             buttons: Lista de botões (máx 3)
         """
+        phone = cls.normalizar_telefone(phone)
         if not cls.validar_telefone(phone):
             return False, {"error": "Telefone inválido"}
         if len(buttons) > 3:
@@ -168,6 +185,7 @@ class WhatsAppService:
             filename: Nome do arquivo
             caption: Legenda opcional
         """
+        phone = cls.normalizar_telefone(phone)
         if not cls.validar_telefone(phone):
             return False, {"error": "Telefone inválido"}
         if not CircuitBreaker.should_attempt():
