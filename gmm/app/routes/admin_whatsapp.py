@@ -278,16 +278,8 @@ def configuracao():
         config.rate_limit = int(request.form.get('rate_limit', 60))
         config.circuit_breaker_threshold = int(request.form.get('cb_threshold', 5))
         
-        # API Key (Criptografada)
-        api_key = request.form.get('api_key')
-        if api_key and api_key.strip():
-            fernet_key = current_app.config.get('FERNET_KEY')
-            if fernet_key:
-                f = Fernet(fernet_key)
-                config.api_key_encrypted = f.encrypt(api_key.encode())
-            else:
-                # Fallback inseguro se chave não configurada (não ideal, mas evita crash)
-                current_app.config['MEGA_API_KEY'] = api_key 
+        # O campo api_key foi removido do form conforme pedido do usuário
+        # pois agora é configurado via .env
         
         db.session.commit()
         return render_template('admin/whatsapp_config.html', config=config, success=True)

@@ -96,7 +96,7 @@ class WhatsAppService:
                 with open(arquivo_path, 'rb') as f:
                     files = {'file': (os.path.basename(arquivo_path), f)}
                     data = {
-                        'phone': telefone,
+                        'number': telefone,
                         'type': tipo_midia,  # image, audio, document
                         'caption': caption or texto
                     }
@@ -110,11 +110,12 @@ class WhatsAppService:
                     )
             else:
                 # Envia mensagem de texto normal
-                # Ajuste: A MegaAPI geralmente requer um endpoint específico para texto
-                endpoint = f"{url}/message/sendText" if not url.endswith('/sendText') else url
+                # Ajuste: Alinhado com setup.py que usa /send-message e o campo 'number'
+                base_url = url.rstrip('/')
+                endpoint = f"{base_url}/send-message" if not base_url.endswith('send-message') else base_url
                 response = requests.post(
                     endpoint,
-                    json={"phone": telefone, "message": texto},
+                    json={"number": telefone, "message": texto},
                     headers=headers,
                     timeout=5
                 )
@@ -168,7 +169,7 @@ class WhatsAppService:
 
         # Construir payload MegaAPI
         payload = {
-            "to": phone,
+            "number": phone,
             "type": "interactive",
             "interactive": {
                 "type": "list",
@@ -213,7 +214,7 @@ class WhatsAppService:
 
         # Construir payload MegaAPI
         payload = {
-            "to": phone,
+            "number": phone,
             "type": "interactive",
             "interactive": {
                 "type": "button",
@@ -248,7 +249,7 @@ class WhatsAppService:
 
         # Construir payload MegaAPI
         payload = {
-            "to": phone,
+            "number": phone,
             "type": "document",
             "document": {
                 "link": document_url,
@@ -294,11 +295,12 @@ class WhatsAppService:
         # API Request
         try:
             # Garante que o payload vai para o endpoint correto (Interactive ou Default)
-            endpoint = url
-            if payload.get('type') == 'interactive' and not url.endswith('sendInteractive'):
-                endpoint = f"{url}/message/sendInteractive"
-            elif not any(x in url for x in ['sendText', 'sendInteractive', 'sendMedia']):
-                endpoint = f"{url}/message/sendText"
+            base_url = url.rstrip('/')
+            endpoint = base_url
+            if payload.get('type') == 'interactive' and not base_url.endswith('sendInteractive'):
+                endpoint = f"{base_url}/send-message" # Interactive also often goes to same endpoint or specific one
+            elif not any(x in base_url for x in ['send-message', 'sendInteractive', 'sendMedia']):
+                endpoint = f"{base_url}/send-message"
 
             response = requests.post(
                 endpoint,
