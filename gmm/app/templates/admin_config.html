@@ -324,11 +324,13 @@
                                     class="bg-light px-2 py-1 rounded text-dark">{{ u.faixa_ip_permitida }}</code></td>
                             <td class="text-end pe-4" data-label="Ações">
                                 <div class="d-flex justify-content-end gap-1">
-                                    <button class="btn btn-sm btn-outline-secondary btn-editar-unidade"
+                                    <button class="btn btn-sm btn-outline-secondary"
                                         data-id="{{ u.id }}" data-nome="{{ u.nome }}"
                                         data-endereco="{{ u.endereco or '' }}" data-razao="{{ u.razao_social or '' }}"
                                         data-cnpj="{{ u.cnpj or '' }}" data-telefone="{{ u.telefone or '' }}"
-                                        data-ip="{{ u.faixa_ip_permitida or '' }}" title="Editar">
+                                        data-ip="{{ u.faixa_ip_permitida or '' }}"
+                                        onclick="var d=this.dataset; editarUnidade(d.id, d.nome, d.endereco, d.razao, d.cnpj, d.telefone, d.ip)"
+                                        title="Editar">
                                         <i class="bi bi-pencil"></i>
                                     </button>
                                     <a href="{{ url_for('admin.excluir_unidade', id=u.id) }}"
