@@ -19,7 +19,7 @@ class Config:
     CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND') or 'redis://localhost:6379/0'
     
     MEGA_API_KEY = os.environ.get('MEGA_API_KEY')
-    MEGA_API_URL = "https://api.megaapi.com.br/v1/messages/send"
+    MEGA_API_URL = os.environ.get('MEGA_API_URL') or "https://api.mega.chat/v1"
     
     # Inteligência Artificial
     AI_PROVIDER = os.environ.get('AI_PROVIDER') or 'openai'  # 'openai' ou 'gemini'

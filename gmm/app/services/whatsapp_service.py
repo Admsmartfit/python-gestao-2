@@ -110,8 +110,10 @@ class WhatsAppService:
                     )
             else:
                 # Envia mensagem de texto normal
+                # Ajuste: A MegaAPI geralmente requer um endpoint específico para texto
+                endpoint = f"{url}/message/sendText" if not url.endswith('/sendText') else url
                 response = requests.post(
-                    url,
+                    endpoint,
                     json={"phone": telefone, "message": texto},
                     headers=headers,
                     timeout=5
@@ -291,8 +293,15 @@ class WhatsAppService:
 
         # API Request
         try:
+            # Garante que o payload vai para o endpoint correto (Interactive ou Default)
+            endpoint = url
+            if payload.get('type') == 'interactive' and not url.endswith('sendInteractive'):
+                endpoint = f"{url}/message/sendInteractive"
+            elif not any(x in url for x in ['sendText', 'sendInteractive', 'sendMedia']):
+                endpoint = f"{url}/message/sendText"
+
             response = requests.post(
-                url,
+                endpoint,
                 json=payload,
                 headers={
                     "Authorization": f"Bearer {api_key}",
