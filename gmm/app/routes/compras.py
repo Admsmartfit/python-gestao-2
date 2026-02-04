@@ -429,10 +429,17 @@ _Solicitado por: {current_user.nome}_
             # Tentar WhatsApp primeiro
             if fornecedor.telefone:
                 try:
-                    from app.tasks.whatsapp_tasks import enviar_whatsapp_task
-                    enviar_whatsapp_task.delay(fornecedor.telefone, mensagem)
-                    tipo_comunicacao = 'whatsapp'
-                    sucesso = True
+                    from app.services.whatsapp_service import WhatsAppService
+                    ok, resp = WhatsAppService.enviar_mensagem(
+                        telefone=fornecedor.telefone,
+                        texto=mensagem,
+                        prioridade=1
+                    )
+                    if ok:
+                        tipo_comunicacao = 'whatsapp'
+                        sucesso = True
+                    else:
+                        logger.warning(f"WhatsApp falhou para {fornecedor.nome}: {resp}")
                 except Exception as e:
                     logger.error(f"Erro ao enviar WhatsApp: {e}")
 

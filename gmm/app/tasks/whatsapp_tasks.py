@@ -297,11 +297,11 @@ def enviar_pedido_fornecedor(self, pedido_id):
         # 1. Gerar PDF
         pdf_path = PDFGeneratorService.gerar_pdf_pedido(pedido_id)
 
-        # 2. Enviar via WhatsApp (se fornecedor tem whatsapp)
-        if pedido.fornecedor and pedido.fornecedor.whatsapp:
+        # 2. Enviar via WhatsApp (se fornecedor tem telefone)
+        if pedido.fornecedor and pedido.fornecedor.telefone:
             mensagem = f"📦 *PEDIDO DE COMPRA*\n\n*Número:* {pedido.numero_pedido or pedido.id}\n*Data:* {pedido.data_solicitacao.strftime('%d/%m/%Y')}\n*Valor Total:* R$ {pedido.valor_total or 0:.2f}\n\nSegue em anexo o pedido completo."
             WhatsAppService.enviar_mensagem(
-                telefone=pedido.fornecedor.whatsapp,
+                telefone=pedido.fornecedor.telefone,
                 texto=mensagem,
                 prioridade=1,
                 arquivo_path=pdf_path,
