@@ -418,6 +418,7 @@ def solicitar_orcamento(pedido_id):
 
         fornecedor_ids = data.get('fornecedor_ids', [])
         mensagem_custom = data.get('mensagem')
+        canal_preferido = data.get('canal')  # 'whatsapp', 'email' ou None (auto)
 
         if not fornecedor_ids:
             return jsonify({'success': False, 'erro': 'Nenhum fornecedor selecionado'}), 400
@@ -444,7 +445,7 @@ def solicitar_orcamento(pedido_id):
                 if unidade.telefone:
                     unidade_info += f"\nTelefone: {unidade.telefone}"
 
-            # Mensagem padrão
+            # Mensagem padrao
             mensagem = mensagem_custom or f"""*SOLICITACAO DE ORCAMENTO*
 
 Pedido: #{pedido.id}
@@ -460,8 +461,8 @@ Solicitado por: {current_user.nome}"""
             tipo_comunicacao = None
             sucesso = False
 
-            # Tentar WhatsApp primeiro
-            if fornecedor.telefone:
+            # Enviar por WhatsApp (se canal preferido ou auto com telefone)
+            if canal_preferido != 'email' and fornecedor.telefone:
                 try:
                     from app.services.whatsapp_service import WhatsAppService
                     logger.info(f"Enviando WhatsApp para {fornecedor.nome} - Tel: {fornecedor.telefone}")
@@ -479,15 +480,19 @@ Solicitado por: {current_user.nome}"""
                 except Exception as e:
                     logger.error(f"Erro ao enviar WhatsApp para {fornecedor.nome}: {e}", exc_info=True)
 
-            # Fallback para Email
+            # Enviar por Email (se canal preferido ou fallback)
             if not sucesso and fornecedor.email:
                 try:
                     from app.services.email_service import EmailService
-                    EmailService.enviar_solicitacao_orcamento(pedido, fornecedor, mensagem, cc=current_user.email)
-                    tipo_comunicacao = 'email'
-                    sucesso = True
+                    ok = EmailService.enviar_solicitacao_orcamento(pedido, fornecedor, mensagem, cc=current_user.email)
+                    if ok:
+                        tipo_comunicacao = 'email'
+                        sucesso = True
+                        logger.info(f"Email enviado com sucesso para {fornecedor.nome}")
+                    else:
+                        logger.warning(f"Email falhou para {fornecedor.nome}")
                 except Exception as e:
-                    logger.error(f"Erro ao enviar email: {e}")
+                    logger.error(f"Erro ao enviar email para {fornecedor.nome}: {e}", exc_info=True)
 
             # Registrar comunicação
             if sucesso:
