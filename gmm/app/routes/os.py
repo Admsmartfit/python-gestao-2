@@ -263,6 +263,10 @@ def solicitar_compra_peca(id):
             status_inicial = 'aprovado'
             aprovador_id = 0 # ID 0 ou ID do sistema para aprovacao automatica
 
+        # Buscar unidade da OS para vincular ao pedido
+        os_obj = OrdemServico.query.get(id)
+        unidade_os_id = os_obj.unidade_id if os_obj else None
+
         novo_pedido = PedidoCompra(
             fornecedor_id=fornecedor_id,
             estoque_id=estoque_id,
@@ -270,7 +274,8 @@ def solicitar_compra_peca(id):
             status=status_inicial,
             data_solicitacao=datetime.now(),
             solicitante_id=current_user.id,
-            aprovador_id=aprovador_id
+            aprovador_id=aprovador_id,
+            unidade_destino_id=unidade_os_id
         )
         
         db.session.add(novo_pedido)
@@ -516,13 +521,17 @@ def solicitar_compra():
         if valor_total <= 500:
             status_inicial = 'aprovado'
 
+        # Unidade de destino (enviada pelo frontend ou do item de estoque)
+        unidade_destino_id = data.get('unidade_destino_id') or (item.unidade_id if item.unidade_id else None)
+
         pedido = PedidoCompra(
             estoque_id=estoque_id,
             fornecedor_id=fornecedor_id,
             quantidade=int(quantidade),
             status=status_inicial,
             data_solicitacao=datetime.now(),
-            solicitante_id=current_user.id
+            solicitante_id=current_user.id,
+            unidade_destino_id=unidade_destino_id
         )
 
         db.session.add(pedido)
@@ -946,9 +955,10 @@ Por favor, envie seu orçamento até a data limite."""
                     direcao='outbound'
                 )
                 db.session.add(notif)
+                db.session.flush()
 
                 # Enfileirar envio
-                enviar_whatsapp_task.delay(prestador.telefone, mensagem)
+                enviar_whatsapp_task.delay(notif.id)
 
             # Enviar email se tiver e não tiver WhatsApp
             elif prestador.email:

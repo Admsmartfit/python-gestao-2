@@ -20,7 +20,7 @@
             <div class="card-body p-4">
                 <div class="row mb-4">
                     <div class="col-md-6">
-                        <label class="small text-muted fw-bold text-uppercase">Peça Solicitada</label>
+                        <label class="small text-muted fw-bold text-uppercase">Peca Solicitada</label>
                         <div class="fs-5 fw-bold">{{ pedido.peca.nome }}</div>
                         <div class="text-muted small">{{ pedido.peca.codigo }}</div>
                     </div>
@@ -29,24 +29,50 @@
                         <div class="fs-4 fw-bold text-primary">{{ "{:g}".format(pedido.quantidade) }} {{ pedido.peca.unidade_medida }}</div>
                     </div>
                     <div class="col-md-3">
-                        <label class="small text-muted fw-bold text-uppercase">Destino</label>
-                        <div>{{ pedido.unidade_destino.nome if pedido.unidade_destino else 'Central' }}</div>
-                    </div>
-                </div>
-
-                <div class="row mb-4">
-                    <div class="col-md-6">
                         <label class="small text-muted fw-bold text-uppercase">Solicitado por</label>
                         <div>{{ pedido.solicitante.nome if pedido.solicitante else 'Sistema' }}</div>
                         <small class="text-muted">{{ pedido.data_solicitacao.strftime('%d/%m/%Y %H:%M') }}</small>
                     </div>
-                    {% if pedido.aprovador %}
+                </div>
+
+                {% if pedido.aprovador %}
+                <div class="row mb-4">
                     <div class="col-md-6">
                         <label class="small text-muted fw-bold text-uppercase">Aprovado por</label>
                         <div>{{ pedido.aprovador.nome }}</div>
                     </div>
+                </div>
+                {% endif %}
+
+                <!-- Unidade Solicitante -->
+                {% if pedido.unidade_destino %}
+                <div class="alert alert-info mb-0">
+                    <h6 class="fw-bold mb-2"><i class="bi bi-building me-2"></i>Unidade Solicitante</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="fw-bold">{{ pedido.unidade_destino.nome }}</div>
+                            {% if pedido.unidade_destino.razao_social %}
+                            <small class="text-muted">{{ pedido.unidade_destino.razao_social }}</small>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            {% if pedido.unidade_destino.cnpj %}
+                            <div class="small"><strong>CNPJ:</strong> {{ pedido.unidade_destino.cnpj }}</div>
+                            {% endif %}
+                            {% if pedido.unidade_destino.telefone %}
+                            <div class="small"><strong>Tel:</strong> {{ pedido.unidade_destino.telefone }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if pedido.unidade_destino.endereco %}
+                    <div class="small mt-1"><strong>Endereco:</strong> {{ pedido.unidade_destino.endereco }}</div>
                     {% endif %}
                 </div>
+                {% else %}
+                <div class="alert alert-warning mb-0">
+                    <i class="bi bi-exclamation-triangle me-1"></i> Unidade solicitante nao informada
+                </div>
+                {% endif %}
             </div>
         </div>
 
