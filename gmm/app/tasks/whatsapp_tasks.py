@@ -153,12 +153,24 @@ def baixar_midia_task(self, notificacao_id, url_megaapi, tipo_conteudo):
     Retry: 3 tentativas com backoff exponencial (1min, 5min, 25min)
     """
     try:
-        # Busca configuração
-        config = ConfiguracaoWhatsApp.query.first()
-        if not config:
-            raise Exception("Configuração do WhatsApp não encontrada")
+        # Busca configuração (DB ou .env)
+        config = ConfiguracaoWhatsApp.query.filter_by(ativo=True).first()
+        if config and config.api_key_encrypted:
+            try:
+                from flask import current_app
+                fernet_key = current_app.config.get('FERNET_KEY')
+                bearer_token = config.decrypt_key(fernet_key)
+            except Exception:
+                bearer_token = None
+        else:
+            bearer_token = None
 
-        bearer_token = config.api_key_decrypted
+        if not bearer_token:
+            from flask import current_app
+            bearer_token = current_app.config.get('MEGA_API_KEY') or current_app.config.get('MEGA_API_TOKEN')
+
+        if not bearer_token:
+            raise Exception("Token MegaAPI não encontrado (DB ou .env)")
 
         # Download
         logger.info(f"Iniciando download de mídia para notificação {notificacao_id}")

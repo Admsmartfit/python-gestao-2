@@ -41,7 +41,8 @@ class WhatsAppService:
 
         # Fallback: credenciais do .env
         url = current_app.config.get('MEGA_API_URL')
-        token = current_app.config.get('MEGA_API_TOKEN')
+        # MEGA_API_KEY é a chave completa (ex: megastart-XXXXX) usada como Bearer token
+        token = current_app.config.get('MEGA_API_KEY') or current_app.config.get('MEGA_API_TOKEN')
         instance_id = current_app.config.get('MEGA_API_ID')
 
         return url, token, instance_id

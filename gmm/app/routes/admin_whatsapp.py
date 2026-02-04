@@ -322,10 +322,19 @@ def enviar_teste():
         db.session.add(hs)
         db.session.commit()
 
-    return jsonify({
-        'success': sucesso,
-        'resposta': resposta
-    })
+    if sucesso:
+        return jsonify({
+            'success': True,
+            'resposta': resposta
+        })
+    else:
+        # Extrair mensagem de erro para o frontend
+        error_msg = resposta.get('error') or resposta.get('text') or str(resposta)
+        return jsonify({
+            'success': False,
+            'error': error_msg,
+            'resposta': resposta
+        })
 
 # ==================== PHASE 2: CENTRAL DE MENSAGENS ====================
 
