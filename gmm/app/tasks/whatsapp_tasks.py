@@ -166,10 +166,10 @@ def baixar_midia_task(self, notificacao_id, url_megaapi, tipo_conteudo):
 
         if not bearer_token:
             from flask import current_app
-            bearer_token = current_app.config.get('MEGA_API_KEY')
+            bearer_token = current_app.config.get('MEGA_API_TOKEN')
 
         if not bearer_token:
-            raise Exception("MEGA_API_KEY não encontrada (DB ou .env)")
+            raise Exception("MEGA_API_TOKEN não encontrado (DB ou .env)")
 
         # Download
         logger.info(f"Iniciando download de mídia para notificação {notificacao_id}")

@@ -29,29 +29,15 @@ class WhatsAppService:
 
         Na MegaAPI:
         - instance_key: identificador da instância na URL (ex: megastart-MkOyNxUpCFB)
+          Corresponde a MEGA_API_KEY no .env
         - bearer_token: token de autenticação no header Authorization
-        - Normalmente ambos são o mesmo valor (MEGA_API_KEY)
+          Corresponde a MEGA_API_TOKEN no .env (valor diferente da instance_key)
         """
-        # Tentar credenciais do banco (encriptadas)
-        try:
-            from app.models.whatsapp_models import ConfiguracaoWhatsApp
-            config = ConfiguracaoWhatsApp.query.filter_by(ativo=True).first()
-            if config and config.api_key_encrypted:
-                fernet_key = current_app.config.get('FERNET_KEY')
-                api_key = config.decrypt_key(fernet_key)
-                url = current_app.config.get('MEGA_API_URL')
-                if url and api_key:
-                    return url, api_key, api_key
-        except Exception as e:
-            logger.debug(f"Credenciais do banco não disponíveis: {e}")
-
-        # Fallback: credenciais do .env
         url = current_app.config.get('MEGA_API_URL')
-        # MEGA_API_KEY é a chave da instância (ex: megastart-XXXXX)
-        # Serve como instance_key na URL e como Bearer token
-        api_key = current_app.config.get('MEGA_API_KEY')
+        instance_key = current_app.config.get('MEGA_API_KEY')
+        bearer_token = current_app.config.get('MEGA_API_TOKEN')
 
-        return url, api_key, api_key
+        return url, instance_key, bearer_token
 
     @staticmethod
     def _format_phone(telefone: str) -> str:

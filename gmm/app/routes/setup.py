@@ -353,10 +353,10 @@ FERNET_KEY={session.get('FERNET_KEY')}
 DATABASE_URL={session.get('DATABASE_URL')}
 
 # === WHATSAPP (MegaAPI) ===
-# Configure manualmente as variaveis abaixo:
+# Configure manualmente: instance_key e token do painel MegaAPI
 MEGA_API_URL=
+MEGA_API_KEY=
 MEGA_API_TOKEN=
-MEGA_API_ID=
 
 # === EMAIL ===
 SMTP_SERVER={session.get('SMTP_SERVER', '')}
