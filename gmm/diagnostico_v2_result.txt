@@ -1,0 +1,14 @@
+--- TESTING KEY: megastart-MkOyNxUpCFB ---
+GET https://apistart01.megaapi.com.br/rest/instance/megastart-MkOyNxUpCFB/connectionState
+STATUS: 404
+BODY: {"name":"NOT_FOUND","message":"Resource \"/rest/instance/megastart-MkOyNxUpCFB/connectionState\" not
+POST https://apistart01.megaapi.com.br/rest/webhook/megastart-MkOyNxUpCFB/configWebhook
+STATUS: 500
+BODY: {"name":"INTERNAL_SERVER_ERROR","message":"Internal Server Error","statusCode":500}
+--- TESTING KEY: MkOyNxUpCFB ---
+GET https://apistart01.megaapi.com.br/rest/instance/MkOyNxUpCFB/connectionState
+STATUS: 404
+BODY: {"name":"NOT_FOUND","message":"Resource \"/rest/instance/MkOyNxUpCFB/connectionState\" not found","s
+POST https://apistart01.megaapi.com.br/rest/webhook/MkOyNxUpCFB/configWebhook
+STATUS: 404
+BODY: {"name":"NOT_FOUND","message":"Instance not found","statusCode":404}
