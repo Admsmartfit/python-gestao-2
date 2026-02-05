@@ -173,7 +173,7 @@ def webhook_whatsapp():
     GET retorna 200 para verificacao de URL pela MegaAPI.
     """
     # Log toda requisicao para debug
-    logger.info(f"=== WEBHOOK CHAMADO === method={request.method}, headers={dict(request.headers)[:200] if request.headers else 'N/A'}")
+    logger.info(f"=== WEBHOOK CHAMADO === method={request.method}, headers={str(dict(request.headers))[:200] if request.headers else 'N/A'}")
 
     # GET = verificacao de URL
     if request.method == 'GET':
