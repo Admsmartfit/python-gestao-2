@@ -172,21 +172,30 @@ def webhook_whatsapp():
     Receives POSTs from MegaAPI.
     GET retorna 200 para verificacao de URL pela MegaAPI.
     """
+    # Log toda requisicao para debug
+    logger.info(f"=== WEBHOOK CHAMADO === method={request.method}, headers={dict(request.headers)[:200] if request.headers else 'N/A'}")
+
     # GET = verificacao de URL
     if request.method == 'GET':
+        logger.info("Webhook GET - verificacao de URL")
         return jsonify({'status': 'ok', 'webhook': 'active'}), 200
 
     # Validacao de seguranca
     if not validar_webhook(request):
+        logger.warning("Webhook rejeitado - validacao falhou")
         return jsonify({'error': 'Unauthorized'}), 403
 
     # Parse do payload
     try:
+        raw_data = request.get_data(as_text=True)
+        logger.info(f"Webhook raw data (primeiros 500 chars): {raw_data[:500]}")
+
         payload = request.json
         if not payload:
+            logger.warning("Webhook payload vazio")
             return jsonify({'status': 'ignored', 'reason': 'empty_payload'}), 200
 
-        logger.info(f"Webhook recebido: event={payload.get('event', 'N/A')}")
+        logger.info(f"Webhook recebido: event={payload.get('event', 'N/A')}, instance={payload.get('instance', 'N/A')}")
 
         dados = extrair_dados_megaapi(payload)
         if not dados:
@@ -300,3 +309,71 @@ def webhook_whatsapp():
         return jsonify({'error': 'Processing failed', 'details': str(e)}), 500
 
     return jsonify({'success': True, 'processed_at': datetime.utcnow().isoformat()})
+
+
+@bp.route('/webhook/teste-inbound', methods=['POST'])
+def teste_inbound():
+    """
+    Rota de teste para simular uma mensagem inbound.
+    Use para verificar se o sistema esta salvando mensagens corretamente.
+
+    POST /webhook/teste-inbound
+    Body: {"telefone": "5527999888777", "mensagem": "Ola, teste!"}
+    """
+    try:
+        data = request.json or {}
+        telefone = data.get('telefone', '5527999999999')
+        mensagem = data.get('mensagem', 'Mensagem de teste inbound')
+
+        # Simular payload MegaAPI
+        payload_simulado = {
+            "event": "messages.upsert",
+            "instance": "teste-local",
+            "data": {
+                "key": {
+                    "remoteJid": f"{telefone}@s.whatsapp.net",
+                    "fromMe": False,
+                    "id": f"teste_{datetime.utcnow().timestamp()}"
+                },
+                "message": {
+                    "conversation": mensagem
+                },
+                "messageType": "conversation",
+                "messageTimestamp": int(datetime.utcnow().timestamp())
+            }
+        }
+
+        logger.info(f"=== TESTE INBOUND === telefone={telefone}, msg={mensagem}")
+
+        # Processar como se fosse webhook real
+        dados = extrair_dados_megaapi(payload_simulado)
+        if not dados:
+            return jsonify({'error': 'Falha ao extrair dados do payload simulado'}), 400
+
+        # Salvar no banco
+        notif = HistoricoNotificacao(
+            tipo='resposta_auto',
+            direcao='inbound',
+            remetente=dados['remetente'],
+            destinatario='sistema',
+            status_envio='recebido',
+            mensagem=dados['texto'],
+            megaapi_id=dados['msg_id'],
+            tipo_conteudo='text',
+            status_leitura='nao_lida',
+        )
+        db.session.add(notif)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'notificacao_id': notif.id,
+            'remetente': dados['remetente'],
+            'mensagem': dados['texto'],
+            'info': 'Mensagem de teste salva. Verifique a Central de Mensagens.'
+        })
+
+    except Exception as e:
+        logger.error(f"Erro no teste inbound: {e}", exc_info=True)
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500

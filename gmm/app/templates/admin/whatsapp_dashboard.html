@@ -17,14 +17,20 @@
             </div>
         </div>
         <div class="d-flex gap-2">
+            <a href="{{ url_for('admin_whatsapp.chat_central') }}" class="btn btn-success btn-sm">
+                <i class="bi bi-chat-dots me-1"></i> Central de Mensagens
+            </a>
             <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#testMessageModal">
                 <i class="bi bi-send me-1"></i> Testar Envio
+            </button>
+            <button class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#webhookModal">
+                <i class="bi bi-link-45deg me-1"></i> Webhook
             </button>
             <a href="{{ url_for('admin_whatsapp.listar_regras') }}" class="btn btn-outline-secondary btn-sm">
                 <i class="bi bi-robot me-1"></i> Regras
             </a>
             <a href="{{ url_for('admin_whatsapp.configuracao') }}" class="btn btn-outline-secondary btn-sm">
-                <i class="bi bi-gear me-1"></i> Configurações
+                <i class="bi bi-gear me-1"></i> Configuracoes
             </a>
             <button class="btn btn-primary btn-sm" onclick="location.reload()">
                 <i class="bi bi-arrow-clockwise me-1"></i> Atualizar
@@ -127,6 +133,44 @@
                         </table>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Webhook Configuration Modal -->
+<div class="modal fade" id="webhookModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title h6 fw-bold">Configurar Webhook MegaAPI</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info small">
+                    <i class="bi bi-info-circle me-1"></i>
+                    O webhook permite que o sistema receba mensagens do WhatsApp.
+                    Configure a URL do ngrok ou seu servidor de producao.
+                </div>
+                <form id="webhookForm">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">URL do Webhook</label>
+                        <input type="url" id="webhookUrl" class="form-control"
+                               placeholder="https://seu-dominio.ngrok-free.dev/webhook/whatsapp" required>
+                        <div class="form-text small">
+                            Exemplo: <code>https://carla-gritty-wearifully.ngrok-free.dev/webhook/whatsapp</code>
+                        </div>
+                    </div>
+                    <div id="webhookFeedback" class="d-none alert small mb-0"></div>
+                </form>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light btn-sm" onclick="verificarStatusWebhook()">
+                    <i class="bi bi-search me-1"></i> Verificar Status
+                </button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="configurarWebhook()">
+                    <i class="bi bi-save me-1"></i> Configurar
+                </button>
             </div>
         </div>
     </div>
@@ -299,6 +343,73 @@
         if (['enviado', 'entregue', 'recebido'].includes(status)) return 'success';
         if (['falhou', 'erro'].includes(status)) return 'danger';
         return 'warning';
+    }
+
+    function configurarWebhook() {
+        const btn = document.querySelector('#webhookModal .btn-primary');
+        const feedback = document.getElementById('webhookFeedback');
+        const webhookUrl = document.getElementById('webhookUrl').value;
+
+        if (!webhookUrl) {
+            alert('Informe a URL do webhook!');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Configurando...';
+        feedback.className = 'd-none alert small mb-0';
+
+        fetch('/admin/whatsapp/configurar-webhook', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ webhook_url: webhookUrl })
+        })
+        .then(res => res.json())
+        .then(data => {
+            feedback.classList.remove('d-none');
+            if (data.success) {
+                feedback.className = 'alert alert-success small mb-0';
+                feedback.innerHTML = '<i class="bi bi-check-circle me-1"></i> ' + data.mensagem;
+            } else {
+                feedback.className = 'alert alert-danger small mb-0';
+                feedback.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i> Erro: ' + (data.error || 'Falha desconhecida');
+                if (data.detalhes) {
+                    feedback.innerHTML += '<br><small>' + data.detalhes + '</small>';
+                }
+            }
+        })
+        .catch(err => {
+            feedback.classList.remove('d-none');
+            feedback.className = 'alert alert-danger small mb-0';
+            feedback.innerText = 'Erro de conexao: ' + err.message;
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-save me-1"></i> Configurar';
+        });
+    }
+
+    function verificarStatusWebhook() {
+        const feedback = document.getElementById('webhookFeedback');
+        feedback.classList.remove('d-none');
+        feedback.className = 'alert alert-info small mb-0';
+        feedback.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Verificando...';
+
+        fetch('/admin/whatsapp/status-webhook')
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                feedback.className = 'alert alert-success small mb-0';
+                feedback.innerHTML = '<i class="bi bi-check-circle me-1"></i> Status obtido:<br><pre class="mb-0 small">' + JSON.stringify(data.dados, null, 2) + '</pre>';
+            } else {
+                feedback.className = 'alert alert-warning small mb-0';
+                feedback.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i> ' + (data.error || 'Nao foi possivel verificar') + (data.dica ? '<br><small>' + data.dica + '</small>' : '');
+            }
+        })
+        .catch(err => {
+            feedback.className = 'alert alert-danger small mb-0';
+            feedback.innerText = 'Erro: ' + err.message;
+        });
     }
 </script>
 {% endblock %}

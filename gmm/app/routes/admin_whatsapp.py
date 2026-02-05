@@ -363,62 +363,116 @@ def listar_conversas():
     filtro = request.args.get('filtro', 'todas')
 
     from app.models.terceirizados_models import Terceirizado
-    from sqlalchemy import func, or_
+    from sqlalchemy import func, or_, literal_column
 
-    # Query principal
-    query = db.session.query(
+    # Extrair telefone de cada mensagem (remetente para inbound, destinatario para outbound)
+    # Criar subquery para unificar todos os telefones
+    subq_inbound = db.session.query(
         HistoricoNotificacao.remetente.label('telefone'),
-        Terceirizado.nome,
-        func.max(HistoricoNotificacao.criado_em).label('ultima_msg_em'),
+        HistoricoNotificacao.criado_em,
+        HistoricoNotificacao.direcao,
+        HistoricoNotificacao.status_leitura,
+        HistoricoNotificacao.tipo_conteudo,
+        HistoricoNotificacao.mensagem,
+        HistoricoNotificacao.tipo
+    ).filter(
+        HistoricoNotificacao.direcao == 'inbound',
+        HistoricoNotificacao.remetente.isnot(None),
+        HistoricoNotificacao.remetente != '',
+        HistoricoNotificacao.remetente != 'sistema'
+    )
+
+    subq_outbound = db.session.query(
+        HistoricoNotificacao.destinatario.label('telefone'),
+        HistoricoNotificacao.criado_em,
+        HistoricoNotificacao.direcao,
+        HistoricoNotificacao.status_leitura,
+        HistoricoNotificacao.tipo_conteudo,
+        HistoricoNotificacao.mensagem,
+        HistoricoNotificacao.tipo
+    ).filter(
+        HistoricoNotificacao.direcao == 'outbound',
+        HistoricoNotificacao.destinatario.isnot(None),
+        HistoricoNotificacao.destinatario != '',
+        HistoricoNotificacao.destinatario != 'sistema'
+    )
+
+    # Unir inbound e outbound
+    union_query = subq_inbound.union_all(subq_outbound).subquery()
+
+    # Agrupar por telefone
+    query = db.session.query(
+        union_query.c.telefone,
+        func.max(union_query.c.criado_em).label('ultima_msg_em'),
         func.count(
             db.case(
                 (db.and_(
-                    HistoricoNotificacao.direcao == 'inbound',
+                    union_query.c.direcao == 'inbound',
                     or_(
-                        HistoricoNotificacao.status_leitura == None,
-                        HistoricoNotificacao.status_leitura == 'nao_lida'
+                        union_query.c.status_leitura == None,
+                        union_query.c.status_leitura == 'nao_lida'
                     )
                 ), 1)
             )
         ).label('nao_lidas')
-    ).outerjoin(
-        Terceirizado, Terceirizado.telefone == HistoricoNotificacao.remetente
-    ).group_by(
-        HistoricoNotificacao.remetente, Terceirizado.nome
-    )
+    ).group_by(union_query.c.telefone)
 
     # Aplicar filtros
     if filtro == 'nao_lidas':
         query = query.having(func.count(
             db.case(
                 (db.and_(
-                    HistoricoNotificacao.direcao == 'inbound',
+                    union_query.c.direcao == 'inbound',
                     or_(
-                        HistoricoNotificacao.status_leitura == None,
-                        HistoricoNotificacao.status_leitura == 'nao_lida'
+                        union_query.c.status_leitura == None,
+                        union_query.c.status_leitura == 'nao_lida'
                     )
                 ), 1)
             )
         ) > 0)
     elif filtro == 'ativas':
         limite_24h = datetime.utcnow() - timedelta(hours=24)
-        query = query.having(func.max(HistoricoNotificacao.criado_em) >= limite_24h)
+        query = query.having(func.max(union_query.c.criado_em) >= limite_24h)
 
-    conversas_raw = query.order_by(func.max(HistoricoNotificacao.criado_em).desc()).limit(50).all()
+    conversas_raw = query.order_by(func.max(union_query.c.criado_em).desc()).limit(50).all()
 
-    # Buscar preview da última mensagem para cada conversa
+    # Buscar preview da última mensagem e nome do contato para cada conversa
+    from app.models.terceirizados_models import Terceirizado
+    from app.models.compras_models import Fornecedor
+
     conversas = []
     for conv in conversas_raw:
-        ultima = HistoricoNotificacao.query.filter_by(
-            remetente=conv.telefone
+        telefone = conv.telefone
+        if not telefone:
+            continue
+
+        # Buscar última mensagem (inbound OU outbound com este telefone)
+        ultima = HistoricoNotificacao.query.filter(
+            or_(
+                HistoricoNotificacao.remetente == telefone,
+                HistoricoNotificacao.destinatario == telefone
+            )
         ).order_by(HistoricoNotificacao.criado_em.desc()).first()
+
+        if not ultima:
+            continue
+
+        # Tentar encontrar nome do contato (Terceirizado ou Fornecedor)
+        nome = None
+        terceirizado = Terceirizado.query.filter_by(telefone=telefone).first()
+        if terceirizado:
+            nome = terceirizado.nome
+        else:
+            fornecedor = Fornecedor.query.filter_by(telefone=telefone).first()
+            if fornecedor:
+                nome = fornecedor.nome
 
         # Calcular tempo relativo
         tempo_diff = datetime.utcnow() - conv.ultima_msg_em
-        if tempo_diff.seconds < 60:
+        if tempo_diff.total_seconds() < 60:
             tempo_str = 'agora'
-        elif tempo_diff.seconds < 3600:
-            tempo_str = f'{tempo_diff.seconds // 60}min'
+        elif tempo_diff.total_seconds() < 3600:
+            tempo_str = f'{int(tempo_diff.total_seconds() // 60)}min'
         elif tempo_diff.days == 0:
             tempo_str = conv.ultima_msg_em.strftime('%H:%M')
         elif tempo_diff.days == 1:
@@ -427,20 +481,25 @@ def listar_conversas():
             tempo_str = conv.ultima_msg_em.strftime('%d/%m')
 
         # Preview da mensagem
-        if ultima.tipo_conteudo == 'text':
+        tipo_conteudo = ultima.tipo_conteudo or 'text'
+        if tipo_conteudo == 'text':
             preview = ultima.mensagem[:50] + '...' if len(ultima.mensagem or '') > 50 else (ultima.mensagem or '')
-        elif ultima.tipo_conteudo == 'audio':
+        elif tipo_conteudo == 'audio':
             preview = '🎤 Áudio'
-        elif ultima.tipo_conteudo == 'image':
+        elif tipo_conteudo == 'image':
             preview = '📷 Imagem'
-        elif ultima.tipo_conteudo == 'document':
+        elif tipo_conteudo == 'document':
             preview = '📄 Documento'
         else:
-            preview = ultima.tipo
+            preview = ultima.tipo or tipo_conteudo
+
+        # Indicar direção na preview
+        if ultima.direcao == 'outbound':
+            preview = '↗ ' + preview
 
         conversas.append({
-            'telefone': conv.telefone,
-            'nome': conv.nome or conv.telefone,
+            'telefone': telefone,
+            'nome': nome or telefone,
             'ultima_msg_tempo': tempo_str,
             'ultima_msg_preview': preview,
             'nao_lidas': int(conv.nao_lidas)
@@ -589,4 +648,141 @@ def excluir_mensagem(msg_id):
         'success': True,
         'api_excluida': api_ok,
         'mensagem': 'Mensagem excluida'
+    })
+
+
+@bp.route('/admin/whatsapp/configurar-webhook', methods=['POST'])
+@login_required
+def configurar_webhook_megaapi():
+    """
+    Configura o webhook na MegaAPI para receber mensagens.
+    Endpoint: POST {MEGA_API_URL}/rest/webhook/{MEGA_API_KEY}/configWebhook
+    """
+    if current_user.tipo != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    import requests
+    from flask import current_app
+
+    # Obter configuracoes do .env
+    url_base = current_app.config.get('MEGA_API_URL')
+    instance_key = current_app.config.get('MEGA_API_KEY')
+    bearer_token = current_app.config.get('MEGA_API_TOKEN')
+
+    if not url_base or not instance_key:
+        return jsonify({
+            'success': False,
+            'error': 'Configuracao MegaAPI incompleta. Verifique MEGA_API_URL e MEGA_API_KEY no .env'
+        }), 400
+
+    # URL do webhook (ngrok ou producao)
+    data = request.json or {}
+    webhook_url = data.get('webhook_url')
+
+    if not webhook_url:
+        return jsonify({
+            'success': False,
+            'error': 'webhook_url e obrigatorio. Ex: https://seu-ngrok.ngrok-free.dev/webhook/whatsapp'
+        }), 400
+
+    # Montar endpoint
+    base_url = url_base.rstrip('/')
+    endpoint = f"{base_url}/rest/webhook/{instance_key}/configWebhook"
+
+    headers = {
+        "Authorization": f"Bearer {bearer_token}",
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "messageData": {
+            "webhookUrl": webhook_url,
+            "webhookEnabled": True,
+            "webhookSecondaryUrl": "",
+            "webhookSecondaryEnabled": False
+        }
+    }
+
+    logger.info(f"Configurando webhook MegaAPI: {endpoint}")
+    logger.info(f"Webhook URL: {webhook_url}")
+
+    try:
+        response = requests.post(endpoint, json=payload, headers=headers, timeout=15)
+
+        if response.status_code in [200, 201]:
+            logger.info(f"Webhook configurado com sucesso: {response.text}")
+            return jsonify({
+                'success': True,
+                'mensagem': f'Webhook configurado para: {webhook_url}',
+                'resposta_megaapi': response.json() if response.text else {}
+            })
+        else:
+            logger.warning(f"Falha ao configurar webhook: {response.status_code} - {response.text}")
+            return jsonify({
+                'success': False,
+                'error': f'MegaAPI retornou status {response.status_code}',
+                'detalhes': response.text
+            }), 400
+
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Erro ao configurar webhook: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@bp.route('/admin/whatsapp/status-webhook', methods=['GET'])
+@login_required
+def status_webhook_megaapi():
+    """
+    Verifica status atual do webhook na MegaAPI.
+    """
+    if current_user.tipo != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    import requests
+    from flask import current_app
+
+    url_base = current_app.config.get('MEGA_API_URL')
+    instance_key = current_app.config.get('MEGA_API_KEY')
+    bearer_token = current_app.config.get('MEGA_API_TOKEN')
+
+    if not url_base or not instance_key:
+        return jsonify({
+            'success': False,
+            'error': 'Configuracao MegaAPI incompleta'
+        }), 400
+
+    # Tentar buscar configuracao atual (pode variar conforme versao da API)
+    base_url = url_base.rstrip('/')
+
+    # Tentar endpoint de info/status da instancia
+    endpoints_tentar = [
+        f"{base_url}/rest/instance/{instance_key}/fetchInstances",
+        f"{base_url}/rest/instance/{instance_key}/connectionState",
+        f"{base_url}/rest/webhook/{instance_key}/find"
+    ]
+
+    headers = {
+        "Authorization": f"Bearer {bearer_token}",
+        "Content-Type": "application/json"
+    }
+
+    for endpoint in endpoints_tentar:
+        try:
+            response = requests.get(endpoint, headers=headers, timeout=10)
+            if response.status_code == 200:
+                return jsonify({
+                    'success': True,
+                    'endpoint': endpoint,
+                    'dados': response.json() if response.text else {}
+                })
+        except Exception:
+            continue
+
+    return jsonify({
+        'success': False,
+        'error': 'Nao foi possivel obter status do webhook',
+        'dica': 'Verifique a configuracao no painel da MegaAPI'
     })
