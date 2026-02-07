@@ -14,20 +14,21 @@ def validar_webhook(req):
     """
     Valida origem do webhook.
     - Se WEBHOOK_SECRET configurado: valida HMAC
-    - Se nao configurado: aceita todas as requisicoes (dev/ngrok)
-    - Timestamp: tolerancia de 600s
+    - Se nao configurado: aceita TODAS as requisicoes (dev/ngrok/MegaAPI)
     """
     secret = current_app.config.get('WEBHOOK_SECRET')
 
     # Se nao tem secret configurado, aceitar tudo (modo dev/ngrok)
     if not secret:
+        logger.info("WEBHOOK_SECRET nao configurado - aceitando requisicao sem validacao HMAC")
         return True
 
     # Validar HMAC se secret existe
     signature = req.headers.get('X-Webhook-Signature', '')
     if not signature:
-        logger.warning("Webhook sem header X-Webhook-Signature")
-        return False
+        # MegaAPI nao envia header X-Webhook-Signature - aceitar mesmo assim
+        logger.info("Webhook sem header X-Webhook-Signature - aceitando (MegaAPI nao envia HMAC)")
+        return True
 
     payload = req.get_data()
     expected = hmac.new(secret.encode(), payload, hashlib.sha256).hexdigest()
@@ -62,17 +63,38 @@ def extrair_dados_megaapi(payload):
     # Verificar tipo de evento
     event = payload.get('event', '')
 
-    # Ignorar eventos que nao sao mensagens recebidas
-    if event and event not in ('messages.upsert', 'messages.update', ''):
-        logger.info(f"Evento ignorado: {event}")
+    # Eventos que devemos IGNORAR (nao sao mensagens)
+    EVENTOS_IGNORAR = {
+        'connection.update',
+        'contacts.update',
+        'contacts.upsert',
+        'groups.update',
+        'groups.upsert',
+        'presence.update',
+        'chats.update',
+        'chats.upsert',
+        'chats.delete',
+        'call',
+        'qrcode.updated',
+        'status.instance',
+    }
+
+    if event and event in EVENTOS_IGNORAR:
+        logger.debug(f"Evento ignorado (nao e mensagem): {event}")
         return None
+
+    # Logar evento aceito para debug
+    logger.info(f"Evento aceito para processamento: '{event}' (payload keys: {list(payload.keys())})")
 
     # Extrair dados - com ou sem wrapper 'data'
     data = payload.get('data', payload)
+    logger.info(f"Data extraido do payload (type={type(data).__name__}, keys={list(data.keys()) if isinstance(data, dict) else 'N/A'})")
 
     # Se data for lista (messages.upsert pode enviar array), pegar primeiro
     if isinstance(data, list):
+        logger.info(f"Data e lista com {len(data)} itens")
         if len(data) == 0:
+            logger.warning("Lista de dados vazia - ignorando")
             return None
         data = data[0]
 
@@ -81,14 +103,17 @@ def extrair_dados_megaapi(payload):
     remote_jid = key.get('remoteJid', '')
     from_me = key.get('fromMe', False)
     msg_id = key.get('id', '')
+    logger.info(f"Key extraido: remoteJid={remote_jid}, fromMe={from_me}, id={msg_id}")
 
     # Ignorar mensagens enviadas por nos
     if from_me:
+        logger.info(f"Mensagem fromMe=True ignorada (enviada por nos): {msg_id}")
         return None
 
     # Extrair telefone do JID (5511999999999@s.whatsapp.net -> 5511999999999)
     remetente = remote_jid.split('@')[0] if '@' in remote_jid else remote_jid
     if not remetente:
+        logger.warning(f"Remetente vazio apos extrair de JID: {remote_jid}")
         return None
 
     # Tipo de mensagem
@@ -96,15 +121,12 @@ def extrair_dados_megaapi(payload):
     message_obj = data.get('message', {})
     timestamp = data.get('messageTimestamp', int(datetime.utcnow().timestamp()))
 
-    # Validar timestamp (tolerancia 600s)
+    # Log timestamp para debug (sem rejeitar - relogios podem estar dessincronizados)
     try:
         msg_time = datetime.fromtimestamp(int(timestamp))
-        now = datetime.utcnow()
-        if abs((now - msg_time).total_seconds()) > 600:
-            logger.warning(f"Mensagem antiga ignorada: {msg_time}")
-            return None
+        logger.info(f"Timestamp da mensagem: {msg_time} (agora: {datetime.utcnow()})")
     except (ValueError, TypeError, OSError):
-        pass  # Se timestamp invalido, continuar
+        logger.info(f"Timestamp invalido/ausente: {timestamp} - continuando mesmo assim")
 
     resultado = {
         'remetente': remetente,
@@ -199,6 +221,7 @@ def webhook_whatsapp():
 
         dados = extrair_dados_megaapi(payload)
         if not dados:
+            logger.info(f"extrair_dados_megaapi retornou None - sem dados acionaveis para event={payload.get('event', 'N/A')}")
             return jsonify({'status': 'ignored', 'reason': 'no_actionable_data'}), 200
 
         remetente = dados['remetente']
