@@ -75,10 +75,10 @@ def novo():
             flash("Erro ao processar pedido.", "danger")
 
     pecas = Estoque.query.order_by(Estoque.nome).all()
-    fornecedores = Fornecedor.query.order_by(Fornecedor.nome).all()
+    fornecedores = Fornecedor.query.filter_by(ativo=True).order_by(Fornecedor.nome).all()
     from app.models.models import Unidade
     unidades = Unidade.query.all()
-    
+
     return render_template('compras/novo.html', pecas=pecas, fornecedores=fornecedores, unidades=unidades)
 
 @bp.route('/<int:id>')
@@ -206,7 +206,7 @@ def buscar_fornecedores():
 
         # Se não houver no catálogo, retornar todos os fornecedores ativos
         if not fornecedores_resultado:
-            todos_fornecedores = Fornecedor.query.all()
+            todos_fornecedores = Fornecedor.query.filter_by(ativo=True).all()
             for f in todos_fornecedores:
                 fornecedores_resultado.append({
                     'id': f.id,

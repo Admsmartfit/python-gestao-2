@@ -122,6 +122,7 @@ class Fornecedor(db.Model):
     forma_contato_alternativa = db.Column(db.Text, nullable=True)  # Site, telefone fixo, etc.
     prazo_medio_entrega_dias = db.Column(db.Float, default=7.0)
     total_pedidos_entregues = db.Column(db.Integer, default=0)
+    ativo = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class CatalogoFornecedor(db.Model):

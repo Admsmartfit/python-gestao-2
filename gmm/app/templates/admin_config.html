@@ -438,8 +438,12 @@
                     </thead>
                     <tbody>
                         {% for f in fornecedores %}
-                        <tr>
-                            <td class="ps-4 fw-bold" data-label="Fornecedor">{{ f.nome }}</td>
+                        <tr{% if not f.ativo %} class="table-secondary opacity-75"{% endif %}>
+                            <td class="ps-4 fw-bold" data-label="Fornecedor">{{ f.nome }}
+                                {% if not f.ativo %}
+                                <span class="badge bg-danger bg-opacity-10 text-danger ms-1">Pausado</span>
+                                {% endif %}
+                            </td>
                             <td data-label="Contato">
                                 <div class="small">{{ f.email }}</div>
                                 <div class="small text-muted">{{ f.telefone }}</div>
@@ -461,9 +465,24 @@
                                         data-prazo="{{ f.prazo_medio_entrega_dias }}" title="Editar">
                                         <i class="bi bi-pencil"></i>
                                     </button>
+                                    {% if f.ativo %}
+                                    <a href="{{ url_for('admin.toggle_fornecedor_status', id=f.id) }}"
+                                        class="btn btn-sm btn-outline-warning"
+                                        onclick="return confirm('Pausar fornecedor {{ f.nome }}?')"
+                                        title="Pausar">
+                                        <i class="bi bi-pause-circle"></i>
+                                    </a>
+                                    {% else %}
+                                    <a href="{{ url_for('admin.toggle_fornecedor_status', id=f.id) }}"
+                                        class="btn btn-sm btn-outline-success"
+                                        onclick="return confirm('Reativar fornecedor {{ f.nome }}?')"
+                                        title="Reativar">
+                                        <i class="bi bi-play-circle"></i>
+                                    </a>
+                                    {% endif %}
                                     <a href="{{ url_for('admin.excluir_fornecedor', id=f.id) }}"
                                         class="btn btn-sm btn-outline-danger"
-                                        onclick="return confirm('Tem certeza que deseja excluir o fornecedor {{ f.nome }}?')"
+                                        onclick="return confirm('Tem certeza? Se possuir histórico, será apenas desativado.')"
                                         title="Excluir">
                                         <i class="bi bi-trash"></i>
                                     </a>
@@ -540,9 +559,13 @@
                     </thead>
                     <tbody>
                         {% for t in terceirizados %}
-                        <tr>
+                        <tr{% if not t.ativo %} class="table-secondary opacity-75"{% endif %}>
                             <td class="ps-4" data-label="Nome">
-                                <div class="fw-bold">{{ t.nome }}</div>
+                                <div class="fw-bold">{{ t.nome }}
+                                    {% if not t.ativo %}
+                                    <span class="badge bg-danger bg-opacity-10 text-danger ms-1">Pausado</span>
+                                    {% endif %}
+                                </div>
                                 <small class="text-muted">{{ t.nome_empresa or '' }}</small>
                             </td>
                             <td data-label="Detalhes">
@@ -572,8 +595,22 @@
                                     title="Editar">
                                     <i class="bi bi-pencil"></i>
                                 </button>
+                                {% if t.ativo %}
+                                <a href="{{ url_for('admin.toggle_terceirizado_status', id=t.id) }}"
+                                    class="btn btn-sm btn-outline-warning me-1" onclick="return confirm('Pausar prestador? Ele não aparecerá nas listas de OS.')"
+                                    title="Pausar">
+                                    <i class="bi bi-pause-circle"></i>
+                                </a>
+                                {% else %}
+                                <a href="{{ url_for('admin.toggle_terceirizado_status', id=t.id) }}"
+                                    class="btn btn-sm btn-outline-success me-1" onclick="return confirm('Reativar prestador?')"
+                                    title="Reativar">
+                                    <i class="bi bi-play-circle"></i>
+                                </a>
+                                {% endif %}
                                 <a href="{{ url_for('admin.excluir_terceirizado', id=t.id) }}"
-                                    class="btn btn-sm btn-outline-danger" onclick="return confirm('Tem certeza?')">
+                                    class="btn btn-sm btn-outline-danger" onclick="return confirm('Tem certeza? Se possuir histórico, será apenas desativado.')"
+                                    title="Excluir">
                                     <i class="bi bi-trash"></i>
                                 </a>
                             </td>

@@ -385,20 +385,31 @@ def editar_fornecedor():
 def excluir_fornecedor(id):
     fornecedor = Fornecedor.query.get_or_404(id)
     nome = fornecedor.nome
-    
+
     try:
-        # Verificar se tem pedidos vinculados
-        if fornecedor.pedidos:
-            flash(f'Não é possível excluir {nome} pois existem pedidos vinculados.', 'danger')
-            return redirect(url_for('admin.dashboard', tab='fornecedores'))
-            
         db.session.delete(fornecedor)
         db.session.commit()
         flash(f'Fornecedor {nome} removido com sucesso!', 'success')
-    except Exception as e:
+    except:
         db.session.rollback()
-        flash(f'Erro ao excluir fornecedor: {str(e)}', 'danger')
-        
+        fornecedor.ativo = False
+        db.session.commit()
+        flash(f'Fornecedor {nome} desativado (possui histórico).', 'warning')
+
+    return redirect(url_for('admin.dashboard', tab='fornecedores'))
+
+
+@bp.route('/fornecedor/toggle-status/<int:id>')
+@login_required
+def toggle_fornecedor_status(id):
+    """Pausar ou reativar um fornecedor."""
+    fornecedor = Fornecedor.query.get_or_404(id)
+    fornecedor.ativo = not fornecedor.ativo
+    db.session.commit()
+    if fornecedor.ativo:
+        flash(f'Fornecedor "{fornecedor.nome}" reativado com sucesso.', 'success')
+    else:
+        flash(f'Fornecedor "{fornecedor.nome}" pausado.', 'warning')
     return redirect(url_for('admin.dashboard', tab='fornecedores'))
 
 @bp.route('/estoque/novo', methods=['POST'])
@@ -554,6 +565,21 @@ def excluir_terceirizado(id):
         flash('Prestador desativado (possui histórico).', 'warning')
         
     return redirect(url_for('admin.dashboard', tab='terceirizados'))
+
+
+@bp.route('/terceirizado/toggle-status/<int:id>')
+@login_required
+def toggle_terceirizado_status(id):
+    """Pausar ou reativar um prestador (toggle ativo/inativo)."""
+    prestador = Terceirizado.query.get_or_404(id)
+    prestador.ativo = not prestador.ativo
+    db.session.commit()
+    if prestador.ativo:
+        flash(f'Prestador "{prestador.nome}" reativado com sucesso.', 'success')
+    else:
+        flash(f'Prestador "{prestador.nome}" pausado. Não aparecerá nas listas de OS.', 'warning')
+    return redirect(url_for('admin.dashboard', tab='terceirizados'))
+
 
 # ==============================================================================
 # APIs (JSON)
