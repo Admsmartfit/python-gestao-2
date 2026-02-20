@@ -5,12 +5,22 @@ class Config:
     
     # Detecção automática: Se houver DATABASE_URL (Render/Heroku/AWS), usa Postgres.
     # Senão, usa SQLite local.
+    basedir = os.path.abspath(os.path.dirname(__file__))
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
-    if SQLALCHEMY_DATABASE_URI and SQLALCHEMY_DATABASE_URI.startswith("postgres://"):
-        SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace("postgres://", "postgresql://", 1)
     
-    if not SQLALCHEMY_DATABASE_URI:
-        SQLALCHEMY_DATABASE_URI = 'sqlite:///gmm.db'
+    if SQLALCHEMY_DATABASE_URI:
+        if SQLALCHEMY_DATABASE_URI.startswith("postgres://"):
+            SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace("postgres://", "postgresql://", 1)
+        
+        # Se for SQLite relativo, tornar absoluto baseado no basedir
+        if SQLALCHEMY_DATABASE_URI.startswith("sqlite:///"):
+            path = SQLALCHEMY_DATABASE_URI.replace("sqlite:///", "")
+            # Verifica se não é absoluto (Linux ou Windows)
+            if not os.path.isabs(path) and not path.startswith('/'):
+                SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, path)
+    else:
+        # Fallback padrão
+        SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'instance', 'gmm.db')
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
