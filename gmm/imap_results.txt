@@ -1,0 +1,34 @@
+Total emails: 297
+- Subject: [Product Update] Automatic enablement of new OpenTelemetry ingestion
+
+ API
+- Subject: [Product Update] Automatic enablement of new OpenTelemetry ingestion
+
+ API
+- Subject: [GitHub] A third-party OAuth application has been added to your
+
+ account
+- Subject: 🧜‍♀️ Invite your first teammate - Start real-time collaboration
+- Subject: 🧜‍♀️ Share diagrams easily with centralized team projects
+- Subject: [Action Advised] Review Google Cloud credential security best
+
+ practices
+- Subject: 🧜‍♀️ Real-time collaboration is ready for your team
+- Subject: Sobre sua conta: corrija possíveis problemas de segurança
+- Subject: 🧜‍♀️ Upgrade to Pro: Unlimited AI, privacy controls, and powerful diagramming
+- Subject: 🧜‍♀️ Your team is growing - save 10% on Mermaid Pro or Enterprise
+- Subject: 💬 Type what you need → get diagrams (with AI). It's that simple
+- Subject: [GitHub] Sudo email verification code
+- Subject: 📕 Your Mermaid cheat sheet (bookmark this)
+- Subject: [GitHub] Sudo email verification code
+- Subject: [GitHub] A personal access token (classic) has been added to your
+
+ account
+- Subject: Olá, uma cobrança foi gerada paravocê
+- Subject: Seu pagamento foi confirmado - Fatura 748227656
+- Subject: 🛒 Nova Solicitação de Compra: cabo 8 polegadas
+- Subject: Re: 🛒 Solicitação de Orçamento [Ref: Pedido #14] [Ref: N/A] - cabo 3 polegadas
+  [MATCH FOUND!]
+- Subject: Re: 🛒 Solicitação de Orçamento [Ref: Pedido #14] [Ref: N/A] - cabo 3 polegadas
+  [MATCH FOUND!]
+\\\\\\\\\\\

@@ -244,12 +244,14 @@ class EmailService:
                         subject += part
 
                 logger.info(f"Processando email: {subject}")
-
-                # Tentar identificar Pedido pelo assunto
+                
+                # Tentar identificar Pedido ou Chamado pelo assunto
                 pedido_match = re.search(r"Ref:\s*Pedido\s*#(\d+)", subject, re.IGNORECASE)
+                chamado_match = re.search(r"Ref:\s*Chamado\s*#([\w-]+)", subject, re.IGNORECASE)
 
                 if pedido_match:
                     pedido_id = int(pedido_match.group(1))
+                    logger.info(f"Identificado padrao Pedido #{pedido_id}")
                     pedido = PedidoCompra.query.get(pedido_id)
 
                     if pedido:
@@ -305,6 +307,35 @@ class EmailService:
                         db.session.add(com)
                         db.session.commit()
                         logger.info(f"Resposta email arquivada para Pedido #{pedido_id}")
+
+                elif chamado_match:
+                    from app.models.terceirizados_models import ChamadoExterno, HistoricoNotificacao
+                    
+                    numero_chamado = chamado_match.group(1)
+                    logger.info(f"Identificado padrao Chamado #{numero_chamado}")
+                    chamado = ChamadoExterno.query.filter_by(numero_chamado=numero_chamado).first()
+                    
+                    if chamado:
+                        email_remetente = EmailService._extrair_email_remetente(msg)
+                        corpo = EmailService._extrair_corpo_email(msg)
+                        
+                        # Criar registro de resposta no histórico de notificações
+                        hist = HistoricoNotificacao(
+                            chamado_id=chamado.id,
+                            tipo='resposta',
+                            mensagem=corpo[:2000],
+                            direcao='inbound',
+                            status_envio='entregue',
+                            remetente=email_remetente[:20],
+                            criado_em=datetime.now()
+                        )
+                        db.session.add(hist)
+                        db.session.commit()
+                        logger.info(f"Resposta email arquivada para Chamado #{numero_chamado}")
+                    else:
+                        logger.warning(f"Chamado #{numero_chamado} nao encontrado no banco.")
+                else:
+                    logger.debug(f"Padrão Pedido/Chamado não encontrado no assunto: {subject}")
 
                 # Marcar como lido para nao reprocessar
                 mail.store(num, '+FLAGS', '\\Seen')

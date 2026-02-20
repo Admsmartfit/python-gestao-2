@@ -359,12 +359,12 @@ MEGA_API_KEY=
 MEGA_API_TOKEN=
 
 # === EMAIL ===
-SMTP_SERVER={session.get('SMTP_SERVER', '')}
-SMTP_PORT={session.get('SMTP_PORT', 587)}
-SMTP_USER={session.get('SMTP_USER', '')}
-SMTP_PASSWORD={session.get('SMTP_PASSWORD', '')}
-IMAP_SERVER={session.get('IMAP_SERVER', '')}
-IMAP_PORT={session.get('IMAP_PORT', 993)}
+MAIL_SERVER={session.get('SMTP_SERVER', '')}
+MAIL_PORT={session.get('SMTP_PORT', 587)}
+MAIL_USERNAME={session.get('SMTP_USER', '')}
+MAIL_PASSWORD={session.get('SMTP_PASSWORD', '')}
+MAIL_IMAP_SERVER={session.get('IMAP_SERVER', '')}
+MAIL_IMAP_PORT={session.get('IMAP_PORT', 993)}
 
 # === INTELIGENCIA ARTIFICIAL ===
 AI_PROVIDER={session.get('AI_PROVIDER', 'openai')}

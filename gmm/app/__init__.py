@@ -2,10 +2,17 @@ from flask import Flask, redirect, url_for, request
 from app.extensions import db, login_manager, migrate
 from app.models.models import Usuario
 from celery import Celery
-from config import Config
 from datetime import datetime
 from pathlib import Path
 import os as os_module
+from dotenv import load_dotenv
+
+# Carregar variáveis de ambiente o mais cedo possível
+env_file = Path(__file__).parent.parent / '.env'
+if env_file.exists():
+    load_dotenv(env_file)
+
+from config import Config
 
 def make_celery(app):
     celery = Celery(
@@ -46,10 +53,8 @@ def create_app():
             if setup_lock.exists():
                 return "Setup já foi concluído. Delete o arquivo .env para reconfigurar.", 403
 
-    # Se .env existe, carregar configurações normalmente
+    # Se .env existe, configurar app
     if env_file.exists():
-        from dotenv import load_dotenv
-        load_dotenv(env_file)
         app.config.from_object('config.Config')
 
         db.init_app(app)
