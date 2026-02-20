@@ -307,35 +307,54 @@ def criar_pedidos_multiplos():
 @bp.route('/<int:pedido_id>/registrar_comunicacao', methods=['POST'])
 @login_required
 def registrar_comunicacao(pedido_id):
-    """Registra uma comunicação enviada ao fornecedor"""
+    """Registra uma comunicação (enviada ou recebida) com fornecedor"""
     try:
         # Verificar se o pedido existe
         PedidoCompra.query.get_or_404(pedido_id)
         data = request.json
 
         fornecedor_id = data.get('fornecedor_id')
-        tipo_comunicacao = data.get('tipo_comunicacao')  # whatsapp, email, telefone, site
+        tipo_comunicacao = data.get('tipo', data.get('tipo_comunicacao'))  # whatsapp, email, telefone, site
         mensagem = data.get('mensagem')
+        direcao = data.get('direcao', 'enviado')  # enviado ou recebido
+        status = data.get('status', 'enviado')
 
         if not fornecedor_id or not tipo_comunicacao:
             return jsonify({'success': False, 'erro': 'Dados incompletos'}), 400
+
+        if direcao not in ('enviado', 'recebido'):
+            return jsonify({'success': False, 'erro': 'Direcao invalida'}), 400
 
         comunicacao = ComunicacaoFornecedor(
             pedido_compra_id=pedido_id,
             fornecedor_id=fornecedor_id,
             tipo_comunicacao=tipo_comunicacao,
-            direcao='enviado',
+            direcao=direcao,
             mensagem=mensagem,
-            status='enviado',
+            status=status,
             data_envio=datetime.now()
         )
+
+        # Se for resposta recebida, atualizar a comunicacao original
+        if direcao == 'recebido':
+            comunicacao_original = ComunicacaoFornecedor.query.filter(
+                ComunicacaoFornecedor.pedido_compra_id == pedido_id,
+                ComunicacaoFornecedor.fornecedor_id == fornecedor_id,
+                ComunicacaoFornecedor.direcao == 'enviado',
+                ComunicacaoFornecedor.status.in_(['enviado', 'entregue', 'pendente'])
+            ).order_by(ComunicacaoFornecedor.data_envio.desc()).first()
+
+            if comunicacao_original:
+                comunicacao_original.resposta = mensagem[:2000] if mensagem else None
+                comunicacao_original.status = 'respondido'
+                comunicacao_original.data_resposta = datetime.now()
 
         db.session.add(comunicacao)
         db.session.commit()
 
         return jsonify({
             'success': True,
-            'mensagem': 'Comunicação registrada com sucesso',
+            'mensagem': 'Comunicacao registrada com sucesso',
             'comunicacao_id': comunicacao.id
         })
 

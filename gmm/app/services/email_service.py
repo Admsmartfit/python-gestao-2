@@ -148,13 +148,60 @@ class EmailService:
         return EmailService.send_email(subject, terceirizado.email, body, cc=cc)
 
     @staticmethod
+    def _extrair_email_remetente(msg):
+        """Extrai o endereco de email do campo From."""
+        import re
+        from_header = msg.get("From", "")
+        # Extrair email de formatos como "Nome <email@dominio.com>" ou "email@dominio.com"
+        match = re.search(r'[\w.+-]+@[\w-]+\.[\w.-]+', from_header)
+        return match.group(0).lower() if match else None
+
+    @staticmethod
+    def _extrair_corpo_email(msg):
+        """Extrai o corpo do email, preferindo text/plain, fallback para text/html."""
+        import html
+        corpo = ""
+        if msg.is_multipart():
+            texto_plain = ""
+            texto_html = ""
+            for part in msg.walk():
+                content_type = part.get_content_type()
+                charset = part.get_content_charset() or 'utf-8'
+                if content_type == "text/plain" and not texto_plain:
+                    try:
+                        texto_plain = part.get_payload(decode=True).decode(charset, errors='replace')
+                    except Exception:
+                        texto_plain = part.get_payload(decode=True).decode('utf-8', errors='replace')
+                elif content_type == "text/html" and not texto_html:
+                    try:
+                        raw = part.get_payload(decode=True).decode(charset, errors='replace')
+                        # Remover tags HTML basicas
+                        import re
+                        texto_html = re.sub(r'<[^>]+>', ' ', raw)
+                        texto_html = html.unescape(texto_html)
+                        texto_html = re.sub(r'\s+', ' ', texto_html).strip()
+                    except Exception:
+                        pass
+            corpo = texto_plain or texto_html
+        else:
+            charset = msg.get_content_charset() or 'utf-8'
+            try:
+                corpo = msg.get_payload(decode=True).decode(charset, errors='replace')
+            except Exception:
+                corpo = msg.get_payload(decode=True).decode('utf-8', errors='replace')
+        return corpo
+
+    @staticmethod
     def fetch_and_process_replies():
         """
-        Monitora a caixa postal (IMAP) em busca de respostas.
+        Monitora a caixa postal (IMAP) em busca de respostas de fornecedores.
+        Vincula respostas ao ComunicacaoFornecedor pelo assunto (Ref: Pedido #X)
+        e identifica o fornecedor pelo email remetente.
         """
         import imaplib
         import email
         import re
+        from datetime import datetime
         from email.header import decode_header
         from app.models.estoque_models import ComunicacaoFornecedor, PedidoCompra, Fornecedor
         from app.extensions import db
@@ -173,65 +220,94 @@ class EmailService:
             mail.login(imap_user, imap_pass)
             mail.select("INBOX")
 
-            # Buscar emails não lidos
+            # Buscar emails nao lidos
             status, messages = mail.search(None, '(UNSEEN)')
             if status != 'OK':
                 return
 
             for num in messages[0].split():
-                status, data = mail.fetch(num, '(RFC822)')
+                status, data = mail.fetch(num, '(BODY.PEEK[])')
                 if status != 'OK':
                     continue
 
                 raw_email = data[0][1]
                 msg = email.message_from_bytes(raw_email)
-                
+
                 # Decodificar assunto
-                subject, encoding = decode_header(msg["Subject"])[0]
-                if isinstance(subject, bytes):
-                    subject = subject.decode(encoding or "utf-8")
-                
+                subject_raw = msg.get("Subject", "")
+                subject_parts = decode_header(subject_raw)
+                subject = ""
+                for part, enc in subject_parts:
+                    if isinstance(part, bytes):
+                        subject += part.decode(enc or "utf-8", errors='replace')
+                    else:
+                        subject += part
+
                 logger.info(f"Processando email: {subject}")
 
-                # Tentar identificar Pedido ou Chamado pelo assunto
-                pedido_match = re.search(r"Ref: Pedido #(\d+)", subject)
-                
+                # Tentar identificar Pedido pelo assunto
+                pedido_match = re.search(r"Ref:\s*Pedido\s*#(\d+)", subject, re.IGNORECASE)
+
                 if pedido_match:
                     pedido_id = int(pedido_match.group(1))
                     pedido = PedidoCompra.query.get(pedido_id)
-                    
-                    if pedido:
-                        # Extrair corpo da mensagem
-                        corpo = ""
-                        if msg.is_multipart():
-                            for part in msg.walk():
-                                if part.get_content_type() == "text/plain":
-                                    corpo = part.get_payload(decode=True).decode()
-                                    break
-                        else:
-                            corpo = msg.get_payload(decode=True).decode()
 
-                        # Salvar como resposta recebida
+                    if pedido:
+                        # Extrair email do remetente e corpo
+                        email_remetente = EmailService._extrair_email_remetente(msg)
+                        corpo = EmailService._extrair_corpo_email(msg)
+
+                        # Identificar fornecedor pelo email remetente
+                        fornecedor_id = None
+                        if email_remetente:
+                            fornecedor = Fornecedor.query.filter(
+                                db.func.lower(Fornecedor.email) == email_remetente,
+                                Fornecedor.ativo == True
+                            ).first()
+                            if fornecedor:
+                                fornecedor_id = fornecedor.id
+                                logger.info(f"Fornecedor identificado pelo email: {fornecedor.nome}")
+
+                        # Fallback: usar fornecedor do pedido
+                        if not fornecedor_id and pedido.fornecedor_id:
+                            fornecedor_id = pedido.fornecedor_id
+
+                        if not fornecedor_id:
+                            logger.warning(f"Nao foi possivel identificar fornecedor para email de {email_remetente} no Pedido #{pedido_id}")
+                            # Marcar como lido mesmo assim para nao reprocessar
+                            mail.store(num, '+FLAGS', '\\Seen')
+                            continue
+
+                        # Atualizar comunicacao original (enviada) com a resposta
+                        comunicacao_original = ComunicacaoFornecedor.query.filter(
+                            ComunicacaoFornecedor.pedido_compra_id == pedido.id,
+                            ComunicacaoFornecedor.fornecedor_id == fornecedor_id,
+                            ComunicacaoFornecedor.tipo_comunicacao == 'email',
+                            ComunicacaoFornecedor.direcao == 'enviado',
+                            ComunicacaoFornecedor.status.in_(['enviado', 'entregue', 'pendente'])
+                        ).order_by(ComunicacaoFornecedor.data_envio.desc()).first()
+
+                        if comunicacao_original:
+                            comunicacao_original.resposta = corpo[:2000]
+                            comunicacao_original.status = 'respondido'
+                            comunicacao_original.data_resposta = datetime.now()
+
+                        # Criar registro de resposta recebida
                         com = ComunicacaoFornecedor(
                             pedido_compra_id=pedido.id,
-                            fornecedor_id=pedido.fornecedor_id,
+                            fornecedor_id=fornecedor_id,
                             tipo_comunicacao='email',
                             direcao='recebido',
-                            mensagem=corpo[:1000], # Limitar tamanho
+                            mensagem=corpo[:2000],
                             status='respondido',
                             data_envio=datetime.now()
                         )
                         db.session.add(com)
-                        
-                        # Atualizar status do pedido se necessário
-                        # pedido.status = 'cotado' 
-                        
                         db.session.commit()
-                        logger.info(f"Resposta arquivada para Pedido #{pedido_id}")
-                
-                # Marcar como lido (imaplib faz isso por padrão no fetch RFC822 se não especificado o contrário, 
-                # mas garantimos aqui)
-                # mail.store(num, '+FLAGS', '\\Seen')
+                        logger.info(f"Resposta email arquivada para Pedido #{pedido_id}")
+
+                # Marcar como lido para nao reprocessar
+                mail.store(num, '+FLAGS', '\\Seen')
 
             mail.close()
             mail.logout()

@@ -100,59 +100,144 @@
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                 <h5 class="fw-bold mb-0">
-                    <i class="bi bi-chat-dots text-primary me-2"></i>Histórico de Comunicações
+                    <i class="bi bi-chat-dots text-primary me-2"></i>Historico de Comunicacoes
                 </h5>
-                <button class="btn btn-sm btn-outline-primary" onclick="atualizarHistorico()">
-                    <i class="bi bi-arrow-clockwise me-1"></i>Atualizar
-                </button>
+                <div>
+                    <button class="btn btn-sm btn-outline-success me-1" data-bs-toggle="modal" data-bs-target="#modalRegistrarResposta">
+                        <i class="bi bi-reply-fill me-1"></i>Registrar Resposta
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary" onclick="atualizarHistorico()">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Atualizar
+                    </button>
+                </div>
             </div>
-            <div class="card-body p-0">
+            <div class="card-body p-3">
                 <div id="historicoComunicacoes">
                     {% if pedido.comunicacoes %}
-                    <div class="list-group list-group-flush">
+                    <div class="d-flex flex-column gap-3">
                         {% for com in pedido.comunicacoes|sort(attribute='data_envio', reverse=True) %}
-                        <div class="list-group-item">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <div>
-                                    <strong>{{ com.fornecedor.nome }}</strong>
-                                    <span class="badge bg-{{ 'info' if com.direcao=='enviado' else 'success' }} bg-opacity-10 text-{{ 'info' if com.direcao=='enviado' else 'success' }} ms-2">
-                                        {{ com.direcao }}
-                                    </span>
-                                    <span class="badge bg-secondary bg-opacity-10 text-secondary ms-1">
-                                        <i class="bi bi-{{ 'whatsapp' if com.tipo_comunicacao=='whatsapp' else 'envelope' }}"></i>
-                                        {{ com.tipo_comunicacao }}
-                                    </span>
+                        <!-- Mensagem {{ com.direcao }} -->
+                        <div class="d-flex {{ 'justify-content-end' if com.direcao=='enviado' else 'justify-content-start' }}">
+                            <div class="card border-0 shadow-sm {{ 'bg-primary bg-opacity-10' if com.direcao=='enviado' else 'bg-success bg-opacity-10' }}" style="max-width: 85%; min-width: 50%;">
+                                <div class="card-body p-3">
+                                    <!-- Cabecalho -->
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <div>
+                                            <span class="badge bg-{{ 'primary' if com.direcao=='enviado' else 'success' }} me-1">
+                                                <i class="bi bi-{{ 'arrow-up-right' if com.direcao=='enviado' else 'arrow-down-left' }} me-1"></i>
+                                                {{ 'Enviado' if com.direcao=='enviado' else 'Recebido' }}
+                                            </span>
+                                            <span class="badge bg-{{ 'success' if com.tipo_comunicacao=='whatsapp' else 'primary' }} bg-opacity-75">
+                                                <i class="bi bi-{{ 'whatsapp' if com.tipo_comunicacao=='whatsapp' else 'envelope' }} me-1"></i>
+                                                {{ com.tipo_comunicacao|capitalize }}
+                                            </span>
+                                        </div>
+                                        <span class="badge bg-{{ 'success' if com.status=='respondido' else ('info' if com.status in ['enviado', 'entregue'] else ('warning' if com.status=='pendente' else 'secondary')) }}">
+                                            {{ com.status }}
+                                        </span>
+                                    </div>
+                                    <!-- Fornecedor -->
+                                    <div class="fw-bold text-dark mb-1">
+                                        <i class="bi bi-shop me-1"></i>{{ com.fornecedor.nome }}
+                                    </div>
+                                    <!-- Mensagem -->
+                                    {% if com.mensagem %}
+                                    <div class="small {{ 'text-dark' if com.direcao=='recebido' else 'text-muted' }}" id="msg-{{ com.id }}">
+                                        {% if com.mensagem|length > 300 %}
+                                        <span class="msg-preview-{{ com.id }}">{{ com.mensagem[:300] }}...
+                                            <a href="#" class="text-primary" onclick="event.preventDefault(); toggleMsg({{ com.id }})">ver mais</a>
+                                        </span>
+                                        <span class="msg-full-{{ com.id }}" style="display:none;">{{ com.mensagem }}
+                                            <a href="#" class="text-primary" onclick="event.preventDefault(); toggleMsg({{ com.id }})">ver menos</a>
+                                        </span>
+                                        {% else %}
+                                        {{ com.mensagem }}
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                    <!-- Resposta inline (quando a comunicacao enviada recebeu resposta) -->
+                                    {% if com.resposta and com.direcao == 'enviado' %}
+                                    <div class="mt-2 p-2 rounded bg-success bg-opacity-10 border-start border-3 border-success">
+                                        <div class="d-flex align-items-center mb-1">
+                                            <i class="bi bi-reply-fill text-success me-1"></i>
+                                            <strong class="small text-success">Resposta do Fornecedor</strong>
+                                            {% if com.data_resposta %}
+                                            <small class="text-muted ms-auto">{{ com.data_resposta.strftime('%d/%m/%Y %H:%M') }}</small>
+                                            {% endif %}
+                                        </div>
+                                        <div class="small text-dark" id="resp-{{ com.id }}">
+                                            {% if com.resposta|length > 300 %}
+                                            <span class="resp-preview-{{ com.id }}">{{ com.resposta[:300] }}...
+                                                <a href="#" class="text-primary" onclick="event.preventDefault(); toggleResp({{ com.id }})">ver mais</a>
+                                            </span>
+                                            <span class="resp-full-{{ com.id }}" style="display:none;">{{ com.resposta }}
+                                                <a href="#" class="text-primary" onclick="event.preventDefault(); toggleResp({{ com.id }})">ver menos</a>
+                                            </span>
+                                            {% else %}
+                                            {{ com.resposta }}
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    <!-- Timestamp -->
+                                    <div class="text-end mt-2">
+                                        <small class="text-muted">
+                                            <i class="bi bi-clock me-1"></i>{{ com.data_envio.strftime('%d/%m/%Y %H:%M') }}
+                                        </small>
+                                    </div>
                                 </div>
-                                <div class="text-end">
-                                    <small class="text-muted">{{ com.data_envio.strftime('%d/%m/%Y %H:%M') }}</small>
-                                    <br>
-                                    <span class="badge bg-{{ 'success' if com.status=='entregue' else ('warning' if com.status=='enviado' else 'secondary') }}">
-                                        {{ com.status }}
-                                    </span>
-                                </div>
                             </div>
-                            {% if com.mensagem %}
-                            <div class="small text-muted mb-2">
-                                <i class="bi bi-arrow-right me-1"></i>{{ com.mensagem[:100] }}{% if com.mensagem|length > 100 %}...{% endif %}
-                            </div>
-                            {% endif %}
-                            {% if com.resposta %}
-                            <div class="alert alert-success alert-sm mb-0 mt-2">
-                                <i class="bi bi-reply-fill me-1"></i>
-                                <strong>Resposta:</strong> {{ com.resposta }}
-                                <br>
-                                <small class="text-muted">{{ com.data_resposta.strftime('%d/%m/%Y %H:%M') if com.data_resposta else '' }}</small>
-                            </div>
-                            {% endif %}
                         </div>
                         {% endfor %}
                     </div>
                     {% else %}
                     <div class="p-4 text-center text-muted">
                         <i class="bi bi-chat-dots fs-1 opacity-25 d-block mb-2"></i>
-                        Nenhuma comunicação registrada ainda
+                        Nenhuma comunicacao registrada ainda
                     </div>
                     {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Registrar Resposta Manual -->
+        <div class="modal fade" id="modalRegistrarResposta" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-reply-fill me-2"></i>Registrar Resposta de Fornecedor</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Fornecedor</label>
+                            <select id="respostaFornecedor" class="form-select">
+                                <option value="">-- Selecione --</option>
+                                {% for quote in quotes %}
+                                <option value="{{ quote.fornecedor.id }}">{{ quote.fornecedor.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Canal</label>
+                            <select id="respostaCanal" class="form-select">
+                                <option value="email">Email</option>
+                                <option value="whatsapp">WhatsApp</option>
+                                <option value="telefone">Telefone</option>
+                                <option value="site">Site</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Mensagem / Cotacao Recebida</label>
+                            <textarea id="respostaMensagem" class="form-control" rows="5" placeholder="Cole aqui a cotacao ou resposta recebida do fornecedor..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-success" onclick="registrarResposta()">
+                            <i class="bi bi-check-circle me-1"></i>Registrar
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -308,6 +393,68 @@ async function enviarEmail(fornecedorId) {
 
 async function atualizarHistorico() {
     location.reload();
+}
+
+function toggleMsg(id) {
+    var preview = document.querySelector('.msg-preview-' + id);
+    var full = document.querySelector('.msg-full-' + id);
+    if (preview && full) {
+        if (preview.style.display === 'none') {
+            preview.style.display = '';
+            full.style.display = 'none';
+        } else {
+            preview.style.display = 'none';
+            full.style.display = '';
+        }
+    }
+}
+
+function toggleResp(id) {
+    var preview = document.querySelector('.resp-preview-' + id);
+    var full = document.querySelector('.resp-full-' + id);
+    if (preview && full) {
+        if (preview.style.display === 'none') {
+            preview.style.display = '';
+            full.style.display = 'none';
+        } else {
+            preview.style.display = 'none';
+            full.style.display = '';
+        }
+    }
+}
+
+async function registrarResposta() {
+    var fornecedorId = document.getElementById('respostaFornecedor').value;
+    var canal = document.getElementById('respostaCanal').value;
+    var mensagem = document.getElementById('respostaMensagem').value;
+
+    if (!fornecedorId || !mensagem.trim()) {
+        ToastModule.show("Selecione o fornecedor e digite a mensagem.", "warning");
+        return;
+    }
+
+    try {
+        const resp = await fetch("{{ url_for('compras.registrar_comunicacao', pedido_id=pedido.id) }}", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                fornecedor_id: parseInt(fornecedorId),
+                tipo: canal,
+                direcao: "recebido",
+                mensagem: mensagem,
+                status: "respondido"
+            })
+        });
+        const data = await resp.json();
+        if (data.success) {
+            ToastModule.show("Resposta registrada com sucesso!", "success");
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            ToastModule.show("Erro: " + (data.erro || "Falha ao registrar"), "danger");
+        }
+    } catch (e) {
+        ToastModule.show("Erro: " + e.message, "danger");
+    }
 }
 
 function toggleAlterarUnidade() {

@@ -5,9 +5,86 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify, current_app
 from app.extensions import db
 from app.models.terceirizados_models import HistoricoNotificacao
+from app.models.estoque_models import ComunicacaoFornecedor, Fornecedor
 
 bp = Blueprint('webhook', __name__)
 logger = logging.getLogger(__name__)
+
+
+def vincular_whatsapp_fornecedor(remetente, texto):
+    """
+    Tenta vincular uma mensagem WhatsApp recebida a um ComunicacaoFornecedor.
+    Busca o fornecedor pelo telefone e vincula a comunicacao pendente mais recente.
+    """
+    try:
+        from app.services.whatsapp_service import WhatsAppService
+        try:
+            telefone_normalizado = WhatsAppService.normalizar_telefone(remetente)
+        except Exception:
+            telefone_normalizado = None
+
+        # Buscar fornecedor pelo telefone ou whatsapp (ultimos 10 digitos)
+        digitos = remetente[-10:] if remetente else None
+        if not digitos:
+            return
+
+        filtros = [
+            Fornecedor.telefone.contains(digitos),
+            Fornecedor.whatsapp.contains(digitos),
+        ]
+        if telefone_normalizado:
+            digitos_norm = telefone_normalizado[-10:]
+            filtros.append(Fornecedor.telefone.contains(digitos_norm))
+            filtros.append(Fornecedor.whatsapp.contains(digitos_norm))
+
+        fornecedor = Fornecedor.query.filter(
+            db.or_(*filtros),
+            Fornecedor.ativo == True
+        ).first()
+
+        if not fornecedor:
+            logger.debug(f"Nenhum fornecedor encontrado para telefone {remetente}")
+            return
+
+        logger.info(f"Fornecedor encontrado: {fornecedor.nome} (ID {fornecedor.id}) para telefone {remetente}")
+
+        # Buscar comunicacao enviada mais recente para este fornecedor (ultimos 30 dias)
+        from datetime import timedelta
+        limite = datetime.utcnow() - timedelta(days=30)
+
+        comunicacao_pendente = ComunicacaoFornecedor.query.filter(
+            ComunicacaoFornecedor.fornecedor_id == fornecedor.id,
+            ComunicacaoFornecedor.tipo_comunicacao == 'whatsapp',
+            ComunicacaoFornecedor.direcao == 'enviado',
+            ComunicacaoFornecedor.status.in_(['enviado', 'entregue', 'pendente']),
+            ComunicacaoFornecedor.data_envio >= limite
+        ).order_by(ComunicacaoFornecedor.data_envio.desc()).first()
+
+        if comunicacao_pendente:
+            # Atualizar a comunicacao original com a resposta
+            comunicacao_pendente.resposta = texto[:2000]
+            comunicacao_pendente.status = 'respondido'
+            comunicacao_pendente.data_resposta = datetime.utcnow()
+            logger.info(f"Comunicacao #{comunicacao_pendente.id} atualizada com resposta do fornecedor {fornecedor.nome}")
+
+            # Criar registro de recebimento no historico
+            com_recebida = ComunicacaoFornecedor(
+                pedido_compra_id=comunicacao_pendente.pedido_compra_id,
+                fornecedor_id=fornecedor.id,
+                tipo_comunicacao='whatsapp',
+                direcao='recebido',
+                mensagem=texto[:2000],
+                status='respondido',
+                data_envio=datetime.utcnow()
+            )
+            db.session.add(com_recebida)
+            db.session.commit()
+            logger.info(f"Resposta WhatsApp vinculada ao Pedido #{comunicacao_pendente.pedido_compra_id}")
+        else:
+            logger.debug(f"Nenhuma comunicacao pendente para fornecedor {fornecedor.nome}")
+
+    except Exception as e:
+        logger.error(f"Erro ao vincular WhatsApp ao fornecedor: {e}", exc_info=True)
 
 
 def validar_webhook(req):
@@ -254,6 +331,9 @@ def webhook_whatsapp():
             )
             db.session.add(notif)
             db.session.commit()
+
+            # Vincular ao historico de comunicacoes de compras (se for fornecedor)
+            vincular_whatsapp_fornecedor(remetente, texto)
 
             # Processar assincronamente (chamar direto se Celery nao estiver rodando)
             try:

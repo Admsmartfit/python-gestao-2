@@ -15,7 +15,8 @@
       "WebFetch(domain:doc.mega-api.app.br)",
       "Bash(python -m flask db migrate:*)",
       "Bash(sqlite3:*)",
-      "Bash(python -c:*)"
+      "Bash(python -c:*)",
+      "Bash(grep:*)"
     ]
   }
 }
