@@ -119,6 +119,8 @@ class Fornecedor(db.Model):
     endereco = db.Column(db.String(255), nullable=True)
     email = db.Column(db.String(120), nullable=False)
     telefone = db.Column(db.String(20), nullable=True)
+    whatsapp = db.Column(db.String(20), nullable=True)
+    cnpj = db.Column(db.String(20), nullable=True)
     forma_contato_alternativa = db.Column(db.Text, nullable=True)  # Site, telefone fixo, etc.
     prazo_medio_entrega_dias = db.Column(db.Float, default=7.0)
     total_pedidos_entregues = db.Column(db.Integer, default=0)
