@@ -95,7 +95,7 @@ def vincular_whatsapp_fornecedor(remetente, texto):
                     tipo_comunicacao='whatsapp',
                     direcao='recebido',
                     mensagem=texto[:2000],
-                    status='pendente',
+                    status='respondido',
                     data_envio=datetime.utcnow()
                 )
                 db.session.add(nova_com)
@@ -279,9 +279,16 @@ def extrair_dados_megaapi(payload):
             resultado['interactive_title'] = br.get('selectedDisplayText')
 
     else:
-        # Tentar extrair texto de formatos desconhecidos
-        resultado['tipo'] = 'text'
-        resultado['texto'] = str(message_obj) if message_obj else None
+        resultado['tipo'] = 'unknown'
+        if 'reactionMessage' in message_obj:
+            resultado['texto'] = '[Reação com Emoji]'
+        elif 'stickerMessage' in message_obj:
+            resultado['texto'] = '[Figurinha]'
+        elif 'locationMessage' in message_obj:
+            resultado['texto'] = '[Localização]'
+        else:
+            resultado['texto'] = '[Formato não suportado]'
+            logger.debug(f"Tipo de mensagem desconhecido: {message_type}")
 
     return resultado
 
