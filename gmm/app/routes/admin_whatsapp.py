@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Blueprint, jsonify, request, render_template, abort
 from flask_login import login_required, current_user
 from sqlalchemy import or_
@@ -8,6 +8,15 @@ from app.models.whatsapp_models import RegrasAutomacao
 from app.models.terceirizados_models import HistoricoNotificacao
 
 logger = logging.getLogger(__name__)
+
+# Offset do fuso horario do Brasil (UTC-3, sem horario de verao desde 2019)
+BRAZIL_UTC_OFFSET = timedelta(hours=-3)
+
+def utc_to_local(dt):
+    """Converte datetime UTC para horario local do Brasil (UTC-3)."""
+    if dt is None:
+        return None
+    return dt + BRAZIL_UTC_OFFSET
 
 bp = Blueprint('admin_whatsapp', __name__)
 
@@ -254,7 +263,7 @@ def historico_recente():
     ).limit(20).all()
     
     return jsonify([{
-        'hora': n.criado_em.strftime('%H:%M'),
+        'hora': utc_to_local(n.criado_em).strftime('%H:%M'),
         'direcao': n.direcao,
         'destinatario': (n.destinatario or '')[-4:],
         'tipo': n.tipo,
@@ -474,18 +483,19 @@ def listar_conversas():
                 if usuario:
                     nome = usuario.nome
 
-        # Calcular tempo relativo
+        # Calcular tempo relativo (usando hora local Brasil UTC-3)
+        ultima_msg_local = utc_to_local(conv.ultima_msg_em)
         tempo_diff = datetime.utcnow() - conv.ultima_msg_em
         if tempo_diff.total_seconds() < 60:
             tempo_str = 'agora'
         elif tempo_diff.total_seconds() < 3600:
             tempo_str = f'{int(tempo_diff.total_seconds() // 60)}min'
         elif tempo_diff.days == 0:
-            tempo_str = conv.ultima_msg_em.strftime('%H:%M')
+            tempo_str = ultima_msg_local.strftime('%H:%M')
         elif tempo_diff.days == 1:
             tempo_str = 'ontem'
         else:
-            tempo_str = conv.ultima_msg_em.strftime('%d/%m')
+            tempo_str = ultima_msg_local.strftime('%d/%m')
 
         # Preview da mensagem
         tipo_conteudo = ultima.tipo_conteudo or 'text'
@@ -521,11 +531,25 @@ def listar_mensagens(telefone):
     if current_user.tipo != 'admin':
         return jsonify({'error': 'Unauthorized'}), 403
 
-    # Buscar mensagens (inbound e outbound) deste telefone, excluindo as deletadas
+    # Normalizar telefone e gerar variantes para retrocompatibilidade com registros antigos
+    from app.services.whatsapp_service import WhatsAppService
+    try:
+        telefone_norm = WhatsAppService.normalizar_telefone(telefone)
+    except Exception:
+        telefone_norm = telefone
+
+    # Gerar variante sem prefixo 55 (para mensagens antigas)
+    telefone_sem55 = telefone_norm[2:] if telefone_norm.startswith('55') and len(telefone_norm) > 11 else telefone_norm
+
+    # Buscar mensagens por ambos os formatos (retrocompatibilidade)
     mensagens = db.session.query(HistoricoNotificacao).filter(
         or_(
+            HistoricoNotificacao.remetente == telefone_norm,
+            HistoricoNotificacao.destinatario == telefone_norm,
+            HistoricoNotificacao.remetente == telefone_sem55,
+            HistoricoNotificacao.destinatario == telefone_sem55,
             HistoricoNotificacao.remetente == telefone,
-            HistoricoNotificacao.destinatario == telefone
+            HistoricoNotificacao.destinatario == telefone,
         ),
         HistoricoNotificacao.excluido_em.is_(None)
     ).order_by(HistoricoNotificacao.criado_em.asc()).all()
@@ -540,6 +564,7 @@ def listar_mensagens(telefone):
         else:
             direcao = 'inbound'
 
+        criado_local = utc_to_local(msg.criado_em)
         resultado.append({
             'id': msg.id,
             'direcao': direcao,
@@ -549,8 +574,8 @@ def listar_mensagens(telefone):
             'mimetype': msg.mimetype,
             'caption': msg.caption,
             'status': msg.status_envio,
-            'hora': msg.criado_em.strftime('%H:%M'),
-            'data_completa': msg.criado_em.isoformat(),
+            'hora': criado_local.strftime('%H:%M'),
+            'data_completa': criado_local.isoformat(),
             'excluido_em': msg.excluido_em.isoformat() if msg.excluido_em else None
         })
 
@@ -572,18 +597,25 @@ def enviar_mensagem_chat():
 
     from app.services.whatsapp_service import WhatsAppService
 
+    # Normalizar telefone para formato consistente antes de enviar e salvar
+    try:
+        telefone_norm = WhatsAppService.normalizar_telefone(telefone)
+    except Exception:
+        telefone_norm = telefone
+
     # Enviar mensagem com prioridade alta (gerente respondendo)
     sucesso, resposta = WhatsAppService.enviar_mensagem(
-        telefone=telefone,
+        telefone=telefone_norm,
         texto=mensagem,
         prioridade=1
     )
 
-    # Registrar no histórico
+    # Registrar no histórico com telefone normalizado para consistência com inbound
     if sucesso:
         hs = HistoricoNotificacao(
             tipo='resposta_manual',
-            destinatario=telefone,
+            remetente='sistema',
+            destinatario=telefone_norm,
             mensagem=mensagem,
             status_envio='enviado',
             direcao='outbound',

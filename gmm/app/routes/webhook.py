@@ -302,10 +302,17 @@ def webhook_whatsapp():
             logger.info(f"extrair_dados_megaapi retornou None - sem dados acionaveis para event={payload.get('event', 'N/A')}")
             return jsonify({'status': 'ignored', 'reason': 'no_actionable_data'}), 200
 
-        remetente = dados['remetente']
+        remetente_raw = dados['remetente']
         tipo = dados['tipo']
 
-        logger.info(f"Mensagem de {remetente} tipo={tipo}")
+        # Normalizar telefone para formato consistente (5527988010899)
+        try:
+            from app.services.whatsapp_service import WhatsAppService
+            remetente = WhatsAppService.normalizar_telefone(remetente_raw)
+        except Exception:
+            remetente = remetente_raw
+
+        logger.info(f"Mensagem de {remetente} (raw: {remetente_raw}) tipo={tipo}")
 
     except Exception as e:
         logger.error(f"Erro ao parsear payload: {e}", exc_info=True)
