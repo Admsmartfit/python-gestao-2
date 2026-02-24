@@ -400,7 +400,13 @@
         .then(data => {
             if (data.success) {
                 feedback.className = 'alert alert-success small mb-0';
-                feedback.innerHTML = '<i class="bi bi-check-circle me-1"></i> Status obtido:<br><pre class="mb-0 small">' + JSON.stringify(data.dados, null, 2) + '</pre>';
+                let detalhes = '';
+                if (data.webhook || data.instancia) {
+                    const info = { webhook: data.webhook, instancia: data.instancia };
+                    detalhes = '<br><pre class="mb-0 small">' + JSON.stringify(info, null, 2) + '</pre>';
+                }
+                const dica = data.dica ? '<br><small class="text-muted">' + data.dica + '</small>' : '';
+                feedback.innerHTML = '<i class="bi bi-check-circle me-1"></i> ' + (data.mensagem || 'Status obtido') + detalhes + dica;
             } else {
                 feedback.className = 'alert alert-warning small mb-0';
                 feedback.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i> ' + (data.error || 'Nao foi possivel verificar') + (data.dica ? '<br><small>' + data.dica + '</small>' : '');
