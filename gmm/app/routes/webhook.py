@@ -11,6 +11,33 @@ bp = Blueprint('webhook', __name__)
 logger = logging.getLogger(__name__)
 
 
+def vincular_notificacao_chamado(notif, remetente):
+    """
+    Se o remetente for um Terceirizado, vincula a notificacao ao chamado ativo mais recente.
+    Isso faz a mensagem aparecer na Central de Mensagens (/terceirizados/central-mensagens).
+    """
+    try:
+        from app.models.terceirizados_models import Terceirizado, ChamadoExterno
+        termo = remetente[-8:]
+        terceirizado = Terceirizado.query.filter(
+            Terceirizado.telefone.like(f'%{termo}'),
+            Terceirizado.ativo == True
+        ).first()
+        if not terceirizado:
+            return
+        chamado = ChamadoExterno.query.filter(
+            ChamadoExterno.terceirizado_id == terceirizado.id,
+            ChamadoExterno.status.notin_(['concluido', 'cancelado'])
+        ).order_by(ChamadoExterno.criado_em.desc()).first()
+        if chamado:
+            notif.chamado_id = chamado.id
+            db.session.add(notif)
+            db.session.commit()
+            logger.info(f"[CENTRAL] Mensagem de {terceirizado.nome} vinculada ao Chamado #{chamado.id}")
+    except Exception as e:
+        logger.warning(f"Erro ao vincular notificacao ao chamado: {e}")
+
+
 def vincular_whatsapp_fornecedor(remetente, texto):
     """
     Tenta vincular uma mensagem WhatsApp recebida a um ComunicacaoFornecedor.
@@ -366,6 +393,9 @@ def webhook_whatsapp():
             )
             db.session.add(notif)
             db.session.commit()
+
+            # Vincular ao chamado ativo (para aparecer na Central de Mensagens de Terceirizados)
+            vincular_notificacao_chamado(notif, remetente)
 
             # Vincular ao historico de comunicacoes de compras (se for fornecedor)
             vincular_whatsapp_fornecedor(remetente, texto)

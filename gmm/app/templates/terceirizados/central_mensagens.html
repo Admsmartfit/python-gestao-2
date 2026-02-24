@@ -770,15 +770,17 @@
                 body: `mensagem=${encodeURIComponent(texto)}`
             });
 
-            if (res.ok) {
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data.success !== false) {
                 input.value = '';
                 carregarMensagens();
-                carregarConversas(); // Atualiza sidebar
+                carregarConversas();
             } else {
-                ToastModule.show('Erro ao enviar mensagem', 'danger');
+                const motivo = data.msg || `Erro ${res.status}`;
+                ToastModule.show('Erro ao enviar: ' + motivo, 'danger');
             }
         } catch (err) {
-            ToastModule.show('Erro de conexão', 'danger');
+            ToastModule.show('Erro de conexão: ' + err.message, 'danger');
         } finally {
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-send-fill"></i>';
