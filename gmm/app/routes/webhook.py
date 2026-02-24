@@ -65,7 +65,7 @@ def vincular_whatsapp_fornecedor(remetente, texto):
             comunicacao_pendente.resposta = texto[:2000]
             comunicacao_pendente.status = 'respondido'
             comunicacao_pendente.data_resposta = datetime.utcnow()
-            db.session.add(comunicacao_pendente)  # Garantir rastreamento da sessao
+            db.session.add(comunicacao_pendente)
             logger.info(f"Comunicacao #{comunicacao_pendente.id} atualizada com resposta do fornecedor {fornecedor.nome} (Pedido #{comunicacao_pendente.pedido_compra_id})")
 
             # Criar registro de recebimento no historico
@@ -82,7 +82,27 @@ def vincular_whatsapp_fornecedor(remetente, texto):
             db.session.commit()
             logger.info(f"[COMPRAS] Resposta WhatsApp salva - Pedido #{comunicacao_pendente.pedido_compra_id} - Fornecedor: {fornecedor.nome}")
         else:
-            logger.info(f"[COMPRAS] Nenhuma comunicacao pendente encontrada para fornecedor {fornecedor.nome} (ID {fornecedor.id}) nos ultimos 30 dias - mensagem nao vinculada a nenhum pedido")
+            # Sem comunicacao pendente recente - tentar vincular ao pedido mais recente do fornecedor
+            from app.models.estoque_models import PedidoCompra
+            pedido_recente = PedidoCompra.query.filter(
+                PedidoCompra.fornecedor_id == fornecedor.id
+            ).order_by(PedidoCompra.data_solicitacao.desc()).first()
+
+            if pedido_recente:
+                nova_com = ComunicacaoFornecedor(
+                    pedido_compra_id=pedido_recente.id,
+                    fornecedor_id=fornecedor.id,
+                    tipo_comunicacao='whatsapp',
+                    direcao='recebido',
+                    mensagem=texto[:2000],
+                    status='pendente',
+                    data_envio=datetime.utcnow()
+                )
+                db.session.add(nova_com)
+                db.session.commit()
+                logger.info(f"[COMPRAS] Mensagem espontanea de {fornecedor.nome} vinculada ao Pedido #{pedido_recente.id}")
+            else:
+                logger.info(f"[COMPRAS] Nenhum pedido encontrado para fornecedor {fornecedor.nome} - mensagem apenas no HistoricoNotificacao")
 
     except Exception as e:
         logger.error(f"Erro ao vincular WhatsApp ao fornecedor: {e}", exc_info=True)
@@ -351,7 +371,7 @@ def webhook_whatsapp():
                 logger.warning(f"Celery indisponivel, processando sincrono: {e}")
                 try:
                     from app.services.roteamento_service import RoteamentoService
-                    RoteamentoService.processar_mensagem(remetente, texto)
+                    RoteamentoService.processar(remetente, texto)
                 except Exception as e2:
                     logger.error(f"Erro ao processar mensagem: {e2}")
 
