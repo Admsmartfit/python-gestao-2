@@ -371,9 +371,22 @@ def webhook_whatsapp():
                 logger.warning(f"Celery indisponivel, processando sincrono: {e}")
                 try:
                     from app.services.roteamento_service import RoteamentoService
-                    RoteamentoService.processar(remetente, texto)
+                    from app.services.whatsapp_service import WhatsAppService
+                    resultado = RoteamentoService.processar(remetente, texto)
+                    if resultado:
+                        acao = resultado.get('acao')
+                        if acao == 'responder' and resultado.get('resposta'):
+                            WhatsAppService.enviar_mensagem(
+                                telefone=remetente,
+                                texto=resultado['resposta']
+                            )
+                        elif acao == 'enviar_mensagem' and resultado.get('mensagem'):
+                            WhatsAppService.enviar_mensagem(
+                                telefone=resultado.get('telefone', remetente),
+                                texto=resultado['mensagem']
+                            )
                 except Exception as e2:
-                    logger.error(f"Erro ao processar mensagem: {e2}")
+                    logger.error(f"Erro no roteamento sincrono: {e2}", exc_info=True)
 
         elif tipo == 'interactive':
             interactive_id = dados['interactive_id']

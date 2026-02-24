@@ -33,8 +33,18 @@ class RoteamentoService:
         from app.models.models import Usuario
 
         # 1. Identify Sender - PRD v2.0: Busca em Terceirizado E Usuario
-        terceirizado = Terceirizado.query.filter_by(telefone=remetente).first()
-        usuario = Usuario.query.filter_by(telefone=remetente, ativo=True).first()
+        # Usa LIKE nos últimos 8 dígitos para ignorar formatação (com/sem 55, com máscara, etc.)
+        termo_busca = remetente[-8:]
+        terceirizado = Terceirizado.query.filter(
+            Terceirizado.telefone.like(f'%{termo_busca}'),
+            Terceirizado.ativo == True
+        ).first()
+        usuario = None
+        if not terceirizado:
+            usuario = Usuario.query.filter(
+                Usuario.telefone.like(f'%{termo_busca}'),
+                Usuario.ativo == True
+            ).first()
 
         if not terceirizado and not usuario:
             # Telefone não cadastrado - envia mensagem de orientação
