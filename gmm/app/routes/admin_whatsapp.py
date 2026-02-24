@@ -437,8 +437,8 @@ def listar_conversas():
     conversas_raw = query.order_by(func.max(union_query.c.criado_em).desc()).limit(50).all()
 
     # Buscar preview da última mensagem e nome do contato para cada conversa
-    from app.models.terceirizados_models import Terceirizado
-    from app.models.compras_models import Fornecedor
+    from app.models.estoque_models import Fornecedor
+    from app.models.models import Usuario
 
     conversas = []
     for conv in conversas_raw:
@@ -446,26 +446,33 @@ def listar_conversas():
         if not telefone:
             continue
 
-        # Buscar última mensagem (inbound OU outbound com este telefone)
+        # Buscar última mensagem (inbound OU outbound), excluindo mensagens deletadas
         ultima = HistoricoNotificacao.query.filter(
             or_(
                 HistoricoNotificacao.remetente == telefone,
                 HistoricoNotificacao.destinatario == telefone
-            )
+            ),
+            HistoricoNotificacao.excluido_em.is_(None)
         ).order_by(HistoricoNotificacao.criado_em.desc()).first()
 
         if not ultima:
             continue
 
-        # Tentar encontrar nome do contato (Terceirizado ou Fornecedor)
+        # Tentar encontrar nome do contato (Terceirizado, Fornecedor ou Usuario)
         nome = None
         terceirizado = Terceirizado.query.filter_by(telefone=telefone).first()
         if terceirizado:
             nome = terceirizado.nome
         else:
             fornecedor = Fornecedor.query.filter_by(telefone=telefone).first()
+            if not fornecedor:
+                fornecedor = Fornecedor.query.filter_by(whatsapp=telefone).first()
             if fornecedor:
                 nome = fornecedor.nome
+            else:
+                usuario = Usuario.query.filter_by(telefone=telefone).first()
+                if usuario:
+                    nome = usuario.nome
 
         # Calcular tempo relativo
         tempo_diff = datetime.utcnow() - conv.ultima_msg_em
@@ -514,12 +521,13 @@ def listar_mensagens(telefone):
     if current_user.tipo != 'admin':
         return jsonify({'error': 'Unauthorized'}), 403
 
-    # Buscar mensagens (inbound e outbound) deste telefone
+    # Buscar mensagens (inbound e outbound) deste telefone, excluindo as deletadas
     mensagens = db.session.query(HistoricoNotificacao).filter(
         or_(
             HistoricoNotificacao.remetente == telefone,
             HistoricoNotificacao.destinatario == telefone
-        )
+        ),
+        HistoricoNotificacao.excluido_em.is_(None)
     ).order_by(HistoricoNotificacao.criado_em.asc()).all()
 
     resultado = []
