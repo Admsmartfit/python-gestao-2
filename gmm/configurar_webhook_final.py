@@ -7,7 +7,7 @@ MEGA_API_KEY = "megastart-MkOyNxUpCFB"
 MEGA_API_TOKEN = "MkOyNxUpCFB"
 
 # URL fornecida pelo usuário
-NGROK_URL = "https://carla-gritty-wearifully.ngrok-free.dev"
+NGROK_URL = "https://reuters-griffin-cancel-abstract.trycloudflare.com"
 WEBHOOK_URL = f"{NGROK_URL}/webhook/whatsapp"
 
 def configurar_webhook():

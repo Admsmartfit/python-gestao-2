@@ -480,13 +480,14 @@ Solicitado por: {current_user.nome}"""
             tipo_comunicacao = None
             sucesso = False
 
-            # Enviar por WhatsApp (se canal preferido ou auto com telefone)
-            if canal_preferido != 'email' and fornecedor.telefone:
+            # Enviar por WhatsApp (usa campo whatsapp OU telefone do fornecedor)
+            numero_whatsapp = fornecedor.whatsapp or fornecedor.telefone
+            if canal_preferido != 'email' and numero_whatsapp:
                 try:
                     from app.services.whatsapp_service import WhatsAppService
-                    logger.info(f"Enviando WhatsApp para {fornecedor.nome} - Tel: {fornecedor.telefone}")
+                    logger.info(f"Enviando WhatsApp para {fornecedor.nome} - Tel: {numero_whatsapp}")
                     ok, resp = WhatsAppService.enviar_mensagem(
-                        telefone=fornecedor.telefone,
+                        telefone=numero_whatsapp,
                         texto=mensagem,
                         prioridade=1
                     )

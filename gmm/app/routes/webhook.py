@@ -52,9 +52,9 @@ def vincular_whatsapp_fornecedor(remetente, texto):
         from datetime import timedelta
         limite = datetime.utcnow() - timedelta(days=30)
 
+        # Buscar qualquer comunicacao enviada pendente (whatsapp ou email) - fornecedor pode responder por outro canal
         comunicacao_pendente = ComunicacaoFornecedor.query.filter(
             ComunicacaoFornecedor.fornecedor_id == fornecedor.id,
-            ComunicacaoFornecedor.tipo_comunicacao == 'whatsapp',
             ComunicacaoFornecedor.direcao == 'enviado',
             ComunicacaoFornecedor.status.in_(['enviado', 'entregue', 'pendente']),
             ComunicacaoFornecedor.data_envio >= limite
@@ -65,7 +65,8 @@ def vincular_whatsapp_fornecedor(remetente, texto):
             comunicacao_pendente.resposta = texto[:2000]
             comunicacao_pendente.status = 'respondido'
             comunicacao_pendente.data_resposta = datetime.utcnow()
-            logger.info(f"Comunicacao #{comunicacao_pendente.id} atualizada com resposta do fornecedor {fornecedor.nome}")
+            db.session.add(comunicacao_pendente)  # Garantir rastreamento da sessao
+            logger.info(f"Comunicacao #{comunicacao_pendente.id} atualizada com resposta do fornecedor {fornecedor.nome} (Pedido #{comunicacao_pendente.pedido_compra_id})")
 
             # Criar registro de recebimento no historico
             com_recebida = ComunicacaoFornecedor(
@@ -79,9 +80,9 @@ def vincular_whatsapp_fornecedor(remetente, texto):
             )
             db.session.add(com_recebida)
             db.session.commit()
-            logger.info(f"Resposta WhatsApp vinculada ao Pedido #{comunicacao_pendente.pedido_compra_id}")
+            logger.info(f"[COMPRAS] Resposta WhatsApp salva - Pedido #{comunicacao_pendente.pedido_compra_id} - Fornecedor: {fornecedor.nome}")
         else:
-            logger.debug(f"Nenhuma comunicacao pendente para fornecedor {fornecedor.nome}")
+            logger.info(f"[COMPRAS] Nenhuma comunicacao pendente encontrada para fornecedor {fornecedor.nome} (ID {fornecedor.id}) nos ultimos 30 dias - mensagem nao vinculada a nenhum pedido")
 
     except Exception as e:
         logger.error(f"Erro ao vincular WhatsApp ao fornecedor: {e}", exc_info=True)

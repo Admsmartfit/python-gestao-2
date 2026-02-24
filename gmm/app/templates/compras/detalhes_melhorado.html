@@ -275,7 +275,7 @@
                         <div>
                             <strong class="text-dark d-block">{{ quote.fornecedor.nome }}</strong>
                             <small class="text-muted">
-                                {% if quote.fornecedor.telefone %}
+                                {% if quote.fornecedor.whatsapp or quote.fornecedor.telefone %}
                                 <i class="bi bi-whatsapp text-success" title="WhatsApp"></i>
                                 {% endif %}
                                 {% if quote.fornecedor.email %}
@@ -283,6 +283,9 @@
                                 {% endif %}
                                 {% if quote.fornecedor.forma_contato_alternativa %}
                                 <i class="bi bi-globe text-info" title="Contato Alternativo"></i>
+                                {% endif %}
+                                {% if not (quote.fornecedor.whatsapp or quote.fornecedor.telefone or quote.fornecedor.email) %}
+                                <span class="text-warning"><i class="bi bi-exclamation-triangle"></i> Sem contato</span>
                                 {% endif %}
                             </small>
                         </div>
@@ -303,7 +306,7 @@
 
                     <!-- Ações Rápidas -->
                     <div class="d-flex gap-2 mt-2">
-                        {% if quote.fornecedor.telefone %}
+                        {% if quote.fornecedor.whatsapp or quote.fornecedor.telefone %}
                         <button class="btn btn-sm btn-success flex-grow-1" onclick="enviarWhatsApp({{ quote.fornecedor.id }})">
                             <i class="bi bi-whatsapp me-1"></i>WhatsApp
                         </button>
@@ -312,6 +315,11 @@
                         <button class="btn btn-sm btn-primary flex-grow-1" onclick="enviarEmail({{ quote.fornecedor.id }})">
                             <i class="bi bi-envelope me-1"></i>Email
                         </button>
+                        {% endif %}
+                        {% if not (quote.fornecedor.whatsapp or quote.fornecedor.telefone or quote.fornecedor.email) %}
+                        <span class="small text-warning w-100 text-center">
+                            <i class="bi bi-exclamation-triangle me-1"></i>Cadastre telefone ou email no fornecedor
+                        </span>
                         {% endif %}
                     </div>
                 </div>
