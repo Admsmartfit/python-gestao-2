@@ -295,7 +295,7 @@ def api_listar_terceirizados():
     return jsonify([{
         'id': t.id,
         'nome': t.nome,
-        'empresa': t.empresa,
+        'empresa': t.nome_empresa,
         'telefone': t.telefone
     } for t in terceirizados])
 

@@ -20,14 +20,18 @@ class WhatsAppService:
     @staticmethod
     def normalizar_telefone(telefone: str) -> str:
         """
-        Normaliza telefone para formato 55XXXXXXXXXXX (13 dígitos).
-        Aceita formatos: (11) 99999-9999, 11999999999, 5511999999999, +55 11 99999-9999, etc.
+        Normaliza telefone para formato 55XXXXXXXXXXX (12 ou 13 dígitos).
+        Aceita: (11) 99999-9999, 11999999999, 5511999999999, +55 11 99999-9999, etc.
         """
         phone = re.sub(r'[^0-9]', '', str(telefone))
-        if len(phone) == 11:  # 11999999999 -> 5511999999999
+        if phone.startswith('55') and len(phone) in (12, 13):
+            return phone  # já normalizado
+        if len(phone) == 11:    # DDD + 9 dígitos móvel: 11999999999
             phone = '55' + phone
-        elif len(phone) == 10:  # 1199999999 (fixo) -> 551199999999
+        elif len(phone) == 10:  # DDD + 8 dígitos fixo: 1199999999
             phone = '55' + phone
+        # < 10 dígitos: número incompleto no cadastro; retorna como está
+        # validar_telefone vai rejeitar com mensagem clara
         return phone
 
     @staticmethod

@@ -776,8 +776,8 @@
                 carregarMensagens();
                 carregarConversas();
             } else {
-                const motivo = data.msg || `Erro ${res.status}`;
-                ToastModule.show('Erro ao enviar: ' + motivo, 'danger');
+                const motivo = data.msg || `Erro ao enviar (${res.status})`;
+                ToastModule.show(motivo, 'danger');
             }
         } catch (err) {
             ToastModule.show('Erro de conexão: ' + err.message, 'danger');
