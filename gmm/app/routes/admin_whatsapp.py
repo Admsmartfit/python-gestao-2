@@ -374,16 +374,16 @@ def listar_conversas():
     from app.models.terceirizados_models import Terceirizado
     from sqlalchemy import func, or_, literal_column
 
-    # Extrair telefone de cada mensagem (remetente para inbound, destinatario para outbound)
-    # Criar subquery para unificar todos os telefones
+    # SQLAlchemy 2.x: colunas sem .label() recebem prefixo da tabela no UNION subquery.
+    # Solução: usar .label() explícito em TODAS as colunas.
     subq_inbound = db.session.query(
         HistoricoNotificacao.remetente.label('telefone'),
-        HistoricoNotificacao.criado_em,
-        HistoricoNotificacao.direcao,
-        HistoricoNotificacao.status_leitura,
-        HistoricoNotificacao.tipo_conteudo,
-        HistoricoNotificacao.mensagem,
-        HistoricoNotificacao.tipo
+        HistoricoNotificacao.criado_em.label('criado_em'),
+        HistoricoNotificacao.direcao.label('direcao'),
+        HistoricoNotificacao.status_leitura.label('status_leitura'),
+        HistoricoNotificacao.tipo_conteudo.label('tipo_conteudo'),
+        HistoricoNotificacao.mensagem.label('mensagem'),
+        HistoricoNotificacao.tipo.label('tipo')
     ).filter(
         HistoricoNotificacao.direcao == 'inbound',
         HistoricoNotificacao.remetente.isnot(None),
@@ -393,12 +393,12 @@ def listar_conversas():
 
     subq_outbound = db.session.query(
         HistoricoNotificacao.destinatario.label('telefone'),
-        HistoricoNotificacao.criado_em,
-        HistoricoNotificacao.direcao,
-        HistoricoNotificacao.status_leitura,
-        HistoricoNotificacao.tipo_conteudo,
-        HistoricoNotificacao.mensagem,
-        HistoricoNotificacao.tipo
+        HistoricoNotificacao.criado_em.label('criado_em'),
+        HistoricoNotificacao.direcao.label('direcao'),
+        HistoricoNotificacao.status_leitura.label('status_leitura'),
+        HistoricoNotificacao.tipo_conteudo.label('tipo_conteudo'),
+        HistoricoNotificacao.mensagem.label('mensagem'),
+        HistoricoNotificacao.tipo.label('tipo')
     ).filter(
         HistoricoNotificacao.direcao == 'outbound',
         HistoricoNotificacao.destinatario.isnot(None),
@@ -410,35 +410,27 @@ def listar_conversas():
     union_query = subq_inbound.union_all(subq_outbound).subquery()
 
     # Agrupar por telefone
+    nao_lidas_expr = func.count(
+        db.case(
+            (db.and_(
+                union_query.c.direcao == 'inbound',
+                or_(
+                    union_query.c.status_leitura == None,
+                    union_query.c.status_leitura == 'nao_lida'
+                )
+            ), 1)
+        )
+    )
+
     query = db.session.query(
         union_query.c.telefone,
         func.max(union_query.c.criado_em).label('ultima_msg_em'),
-        func.count(
-            db.case(
-                (db.and_(
-                    union_query.c.direcao == 'inbound',
-                    or_(
-                        union_query.c.status_leitura == None,
-                        union_query.c.status_leitura == 'nao_lida'
-                    )
-                ), 1)
-            )
-        ).label('nao_lidas')
+        nao_lidas_expr.label('nao_lidas')
     ).group_by(union_query.c.telefone)
 
     # Aplicar filtros
     if filtro == 'nao_lidas':
-        query = query.having(func.count(
-            db.case(
-                (db.and_(
-                    union_query.c.direcao == 'inbound',
-                    or_(
-                        union_query.c.status_leitura == None,
-                        union_query.c.status_leitura == 'nao_lida'
-                    )
-                ), 1)
-            )
-        ) > 0)
+        query = query.having(nao_lidas_expr > 0)
     elif filtro == 'ativas':
         limite_24h = datetime.utcnow() - timedelta(hours=24)
         query = query.having(func.max(union_query.c.criado_em) >= limite_24h)
