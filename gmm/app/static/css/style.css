@@ -911,3 +911,70 @@ p {
         font-size: 0.8rem;
     }
 }
+
+/* --- SIDEBAR ACCORDION DARK THEME --- */
+.sidebar-nav .accordion-item {
+    border: none;
+}
+
+.sidebar-nav .accordion-button {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 0.625rem 0.75rem;
+    background: transparent;
+    box-shadow: none;
+    gap: 0;
+}
+
+.sidebar-nav .accordion-button:not(.collapsed) {
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.08);
+    box-shadow: none;
+}
+
+.sidebar-nav .accordion-button:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #fff;
+}
+
+.sidebar-nav .accordion-button:focus {
+    box-shadow: none;
+}
+
+/* Seta branca (Bootstrap usa filtro SVG azul por padrão) */
+.sidebar-nav .accordion-button::after {
+    filter: invert(1) grayscale(100%) brightness(200%);
+    transform: scale(0.75);
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.sidebar-nav .accordion-button.collapsed::after {
+    transform: scale(0.75) rotate(0deg);
+}
+
+/* Sub-links dentro do accordion */
+.sidebar-nav .nav-link-sub {
+    font-size: 0.85rem;
+    font-weight: 500;
+    opacity: 0.8;
+    border-left: 2px solid rgba(255, 255, 255, 0.15);
+    border-radius: 0 8px 8px 0;
+    padding-left: 1rem;
+}
+
+.sidebar-nav .nav-link-sub:hover {
+    opacity: 1;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-nav .nav-link-sub.active {
+    background-color: var(--accent);
+    border-left-color: var(--accent);
+    opacity: 1;
+}
+
+.sidebar-nav .accordion-body {
+    padding: 0.25rem 0;
+}

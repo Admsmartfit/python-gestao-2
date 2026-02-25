@@ -37,87 +37,144 @@
                     data-bs-target="#sidebar" aria-label="Close"></button>
             </div>
 
-            <div class="sidebar-nav">
+            {% if current_user.is_authenticated %}
+            {% set grp_operacao  = request.endpoint in ['os.nova_os'] or 'equipamentos' in request.endpoint %}
+            {% set grp_estoque   = 'estoque' in request.endpoint or 'compras' in request.endpoint or 'transferencias' in request.endpoint %}
+            {% set grp_terceiros = 'terceirizados' in request.endpoint or 'admin_whatsapp' in request.endpoint %}
+            {% set grp_gestao    = 'manutencao' in request.endpoint or 'analytics' in request.endpoint or request.endpoint in ['admin.dashboard', 'admin_whatsapp.dashboard'] %}
+            {% endif %}
+
+            <div class="sidebar-nav accordion" id="sidebarAccordion">
                 {% if current_user.is_authenticated %}
 
-                <div class="nav-group">
-                    <div class="nav-group-title">Atendimento</div>
-                    <a href="{{ url_for('ponto.index') }}"
-                        class="nav-link-saas {{ 'active' if request.endpoint == 'ponto.index' }}">
-                        <i class="bi bi-speedometer2"></i> Dashboard
-                    </a>
-                    <a href="{{ url_for('os.nova_os') }}"
-                        class="nav-link-saas {{ 'active' if request.endpoint == 'os.nova_os' }}">
-                        <i class="bi bi-plus-circle"></i> Nova OS
-                    </a>
-                    <a href="{{ url_for('ponto.index') }}#minhas-os" class="nav-link-saas">
-                        <i class="bi bi-tools"></i> Minhas Tarefas
-                    </a>
+                <!-- Dashboard - link direto -->
+                <a href="{{ url_for('ponto.index') }}"
+                    class="nav-link-saas mb-1 {{ 'active' if request.endpoint == 'ponto.index' }}">
+                    <i class="bi bi-speedometer2"></i> Dashboard
+                </a>
+
+                <!-- Operação -->
+                <div class="accordion-item bg-transparent border-0">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button nav-link-saas {{ '' if grp_operacao else 'collapsed' }}"
+                            type="button" data-bs-toggle="collapse" data-bs-target="#grpOperacao"
+                            aria-expanded="{{ 'true' if grp_operacao else 'false' }}">
+                            <i class="bi bi-tools me-2"></i> Operação
+                        </button>
+                    </h2>
+                    <div id="grpOperacao" class="accordion-collapse collapse {{ 'show' if grp_operacao }}"
+                        data-bs-parent="#sidebarAccordion">
+                        <div class="accordion-body py-1 ps-3">
+                            <a href="{{ url_for('os.nova_os') }}"
+                                class="nav-link-saas nav-link-sub {{ 'active' if request.endpoint == 'os.nova_os' }}">
+                                <i class="bi bi-plus-circle"></i> Nova OS
+                            </a>
+                            <a href="{{ url_for('ponto.index') }}#minhas-os" class="nav-link-saas nav-link-sub">
+                                <i class="bi bi-list-check"></i> Minhas Tarefas
+                            </a>
+                            <a href="{{ url_for('equipamentos.listar') }}"
+                                class="nav-link-saas nav-link-sub {{ 'active' if 'equipamentos' in request.endpoint }}">
+                                <i class="bi bi-hdd-network"></i> Equipamentos
+                            </a>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="nav-group">
-                    <div class="nav-group-title">Recursos</div>
-                    <a href="{{ url_for('equipamentos.listar') }}"
-                        class="nav-link-saas {{ 'active' if 'equipamentos' in request.endpoint }}">
-                        <i class="bi bi-hdd-network"></i> Equipamentos
-                    </a>
-                    {% if current_user.tipo in ['admin', 'gerente', 'tecnico'] %}
-                    <a href="{{ url_for('manutencao.listar_planos') }}"
-                        class="nav-link-saas {{ 'active' if 'manutencao' in request.endpoint }}">
-                        <i class="bi bi-calendar-check"></i> Manutenção Preventiva
-                    </a>
-                    {% endif %}
-                    <a href="{{ url_for('os.painel_estoque') }}"
-                        class="nav-link-saas {{ 'active' if 'estoque' in request.endpoint }}">
-                        <i class="bi bi-box-seam"></i> Estoque Global
-                    </a>
-                    {% if current_user.tipo in ['admin', 'comprador', 'gerente'] %}
-                    <a href="{{ url_for('admin.compras_painel') }}"
-                        class="nav-link-saas {{ 'active' if 'compras' in request.endpoint }}">
-                        <i class="bi bi-cart3"></i> Compras
-                    </a>
-                    <a href="{{ url_for('admin.transferencias_painel') }}"
-                        class="nav-link-saas {{ 'active' if 'transferencias' in request.endpoint }}">
-                        <i class="bi bi-arrow-left-right"></i> Transferências
-                    </a>
-                    {% endif %}
+                <!-- Estoque & Compras -->
+                <div class="accordion-item bg-transparent border-0">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button nav-link-saas {{ '' if grp_estoque else 'collapsed' }}"
+                            type="button" data-bs-toggle="collapse" data-bs-target="#grpEstoque"
+                            aria-expanded="{{ 'true' if grp_estoque else 'false' }}">
+                            <i class="bi bi-box-seam me-2"></i> Estoque & Compras
+                        </button>
+                    </h2>
+                    <div id="grpEstoque" class="accordion-collapse collapse {{ 'show' if grp_estoque }}"
+                        data-bs-parent="#sidebarAccordion">
+                        <div class="accordion-body py-1 ps-3">
+                            <a href="{{ url_for('os.painel_estoque') }}"
+                                class="nav-link-saas nav-link-sub {{ 'active' if 'estoque' in request.endpoint }}">
+                                <i class="bi bi-box-seam"></i> Estoque Global
+                            </a>
+                            {% if current_user.tipo in ['admin', 'comprador', 'gerente'] %}
+                            <a href="{{ url_for('admin.compras_painel') }}"
+                                class="nav-link-saas nav-link-sub {{ 'active' if 'compras' in request.endpoint }}">
+                                <i class="bi bi-cart3"></i> Compras
+                            </a>
+                            <a href="{{ url_for('admin.transferencias_painel') }}"
+                                class="nav-link-saas nav-link-sub {{ 'active' if 'transferencias' in request.endpoint }}">
+                                <i class="bi bi-arrow-left-right"></i> Transferências
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
 
-                <div class="nav-group">
-                    <div class="nav-group-title">Externo</div>
-                    <a href="{{ url_for('terceirizados.central_mensagens') }}"
-                        class="nav-link-saas {{ 'active' if request.endpoint == 'terceirizados.central_mensagens' }}">
-                        <i class="bi bi-whatsapp"></i> Central de Mensagens
-                    </a>
-                    <a href="{{ url_for('terceirizados.listar_chamados') }}"
-                        class="nav-link-saas {{ 'active' if request.endpoint == 'terceirizados.listar_chamados' }}">
-                        <i class="bi bi-list-task"></i> Lista de Chamados
-                    </a>
-                    {% if current_user.tipo in ['admin', 'gerente'] %}
-                    <a href="{{ url_for('terceirizados.listar_prestadores') }}"
-                        class="nav-link-saas {{ 'active' if request.endpoint == 'terceirizados.listar_prestadores' }}">
-                        <i class="bi bi-people"></i> Prestadores
-                    </a>
-                    {% endif %}
+                <!-- Terceiros & WhatsApp -->
+                <div class="accordion-item bg-transparent border-0">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button nav-link-saas {{ '' if grp_terceiros else 'collapsed' }}"
+                            type="button" data-bs-toggle="collapse" data-bs-target="#grpTerceiros"
+                            aria-expanded="{{ 'true' if grp_terceiros else 'false' }}">
+                            <i class="bi bi-whatsapp me-2"></i> Terceiros & WhatsApp
+                        </button>
+                    </h2>
+                    <div id="grpTerceiros" class="accordion-collapse collapse {{ 'show' if grp_terceiros }}"
+                        data-bs-parent="#sidebarAccordion">
+                        <div class="accordion-body py-1 ps-3">
+                            <a href="{{ url_for('admin_whatsapp.listar_conversas') }}"
+                                class="nav-link-saas nav-link-sub {{ 'active' if 'admin_whatsapp' in request.endpoint and request.endpoint != 'admin_whatsapp.dashboard' }}">
+                                <i class="bi bi-chat-dots"></i> Central de Mensagens
+                            </a>
+                            <a href="{{ url_for('terceirizados.listar_chamados') }}"
+                                class="nav-link-saas nav-link-sub {{ 'active' if request.endpoint == 'terceirizados.listar_chamados' or request.endpoint == 'terceirizados.detalhes_chamado' }}">
+                                <i class="bi bi-list-task"></i> Lista de Chamados
+                            </a>
+                            {% if current_user.tipo in ['admin', 'gerente'] %}
+                            <a href="{{ url_for('terceirizados.listar_prestadores') }}"
+                                class="nav-link-saas nav-link-sub {{ 'active' if request.endpoint == 'terceirizados.listar_prestadores' }}">
+                                <i class="bi bi-people"></i> Prestadores
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
 
+                <!-- Gestão (admin/gerente) -->
                 {% if current_user.tipo in ['admin', 'gerente'] %}
-                <div class="nav-group">
-                    <div class="nav-group-title">Gestão</div>
-                    <a href="{{ url_for('analytics.dashboard') }}"
-                        class="nav-link-saas {{ 'active' if 'analytics' in request.endpoint }}">
-                        <i class="bi bi-pie-chart-fill"></i> Analytics
-                    </a>
-                    {% if current_user.tipo == 'admin' %}
-                    <a href="{{ url_for('admin.dashboard') }}"
-                        class="nav-link-saas {{ 'active' if request.endpoint == 'admin.dashboard' }}">
-                        <i class="bi bi-gear"></i> Configurações
-                    </a>
-                    <a href="{{ url_for('admin_whatsapp.dashboard') }}"
-                        class="nav-link-saas {{ 'active' if 'whatsapp' in request.endpoint }}">
-                        <i class="bi bi-whatsapp"></i> WhatsApp Bot
-                    </a>
-                    {% endif %}
+                <div class="accordion-item bg-transparent border-0">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button nav-link-saas {{ '' if grp_gestao else 'collapsed' }}"
+                            type="button" data-bs-toggle="collapse" data-bs-target="#grpGestao"
+                            aria-expanded="{{ 'true' if grp_gestao else 'false' }}">
+                            <i class="bi bi-briefcase me-2"></i> Gestão
+                        </button>
+                    </h2>
+                    <div id="grpGestao" class="accordion-collapse collapse {{ 'show' if grp_gestao }}"
+                        data-bs-parent="#sidebarAccordion">
+                        <div class="accordion-body py-1 ps-3">
+                            {% if current_user.tipo in ['admin', 'gerente', 'tecnico'] %}
+                            <a href="{{ url_for('manutencao.listar_planos') }}"
+                                class="nav-link-saas nav-link-sub {{ 'active' if 'manutencao' in request.endpoint }}">
+                                <i class="bi bi-calendar-check"></i> Manutenção Preventiva
+                            </a>
+                            {% endif %}
+                            <a href="{{ url_for('analytics.dashboard') }}"
+                                class="nav-link-saas nav-link-sub {{ 'active' if 'analytics' in request.endpoint }}">
+                                <i class="bi bi-pie-chart-fill"></i> Analytics
+                            </a>
+                            {% if current_user.tipo == 'admin' %}
+                            <a href="{{ url_for('admin_whatsapp.dashboard') }}"
+                                class="nav-link-saas nav-link-sub {{ 'active' if request.endpoint == 'admin_whatsapp.dashboard' }}">
+                                <i class="bi bi-robot"></i> WhatsApp Bot
+                            </a>
+                            <a href="{{ url_for('admin.dashboard') }}"
+                                class="nav-link-saas nav-link-sub {{ 'active' if request.endpoint == 'admin.dashboard' }}">
+                                <i class="bi bi-gear"></i> Configurações
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
                 {% endif %}
 
@@ -342,8 +399,18 @@
                 } catch (e) { console.error("Flash msg parse error", e); }
             }
 
-            // Fix offcanvas sidebar scroll issues on mobile
+            // Fechar offcanvas ao clicar em qualquer link (mobile)
             const sidebar = document.getElementById('sidebar');
+            if (sidebar) {
+                sidebar.querySelectorAll('a.nav-link-saas').forEach(link => {
+                    link.addEventListener('click', function () {
+                        const offcanvas = bootstrap.Offcanvas.getInstance(sidebar);
+                        if (offcanvas) offcanvas.hide();
+                    });
+                });
+            }
+
+            // Fix offcanvas sidebar scroll issues on mobile
             if (sidebar) {
                 sidebar.addEventListener('hidden.bs.offcanvas', () => {
                     // Ensure body is scrollable after offcanvas closes
