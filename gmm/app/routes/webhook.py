@@ -250,10 +250,16 @@ def extrair_dados_megaapi(payload):
     if jid_tipo == 'lid':
         # @lid: WhatsApp nao revela o numero real por privacidade.
         # MegaAPI fornece o numero real em senderPn (ex: "5527988010899@s.whatsapp.net")
+        # Logar TUDO para descobrir onde senderPn esta
+        import json as _json
+        logger.warning(f"@lid FULL PAYLOAD: {_json.dumps(payload, default=str)[:2000]}")
+
         phone_alternativo = (
             data.get('senderPn', '') or
             payload.get('senderPn', '') or
+            key.get('senderPn', '') or
             data.get('participant', '') or
+            key.get('participant', '') or
             payload.get('verifiedBizNumber', '') or
             data.get('verifiedBizNumber', '') or
             ''
@@ -263,13 +269,13 @@ def extrair_dados_megaapi(payload):
 
         if phone_alternativo and len(phone_alternativo) >= 10:
             remetente = phone_alternativo
-            logger.info(f"@lid {remetente_bruto} resolvido para {remetente} via senderPn/campo alternativo")
+            logger.info(f"@lid {remetente_bruto} resolvido para {remetente}")
         else:
             # Salva o @lid como remetente - aparece como ID opaco no chat
             remetente = remetente_bruto
             logger.warning(
-                f"@lid detectado: {remetente_bruto}. Numero real nao disponivel no payload. "
-                f"Payload keys: {list(payload.keys())}, data keys: {list(data.keys()) if isinstance(data, dict) else 'N/A'}"
+                f"@lid nao resolvido: {remetente_bruto}. "
+                f"payload keys={list(payload.keys())}, data keys={list(data.keys()) if isinstance(data, dict) else 'N/A'}, key keys={list(key.keys())}"
             )
     else:
         remetente = remetente_bruto
