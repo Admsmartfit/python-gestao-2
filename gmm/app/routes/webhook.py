@@ -235,8 +235,43 @@ def extrair_dados_megaapi(payload):
         logger.info(f"Mensagem fromMe=True ignorada (enviada por nos): {msg_id}")
         return None
 
-    # Extrair telefone do JID (5511999999999@s.whatsapp.net -> 5511999999999)
-    remetente = remote_jid.split('@')[0] if '@' in remote_jid else remote_jid
+    # Extrair telefone do JID
+    # @s.whatsapp.net -> numero de telefone normal (5511999999999)
+    # @lid -> identificador interno do WhatsApp (privacidade), nao e o telefone real
+    # @g.us -> grupo, ignorar por enquanto
+    jid_tipo = remote_jid.split('@')[1] if '@' in remote_jid else ''
+
+    if jid_tipo == 'g.us':
+        logger.info(f"Mensagem de grupo ignorada: {remote_jid}")
+        return None
+
+    remetente_bruto = remote_jid.split('@')[0] if '@' in remote_jid else remote_jid
+
+    if jid_tipo == 'lid':
+        # @lid: WhatsApp nao revela o numero real por privacidade.
+        # Tentar encontrar o numero em outros campos do payload (participant, verifiedBizNumber)
+        phone_alternativo = (
+            data.get('participant', '') or
+            payload.get('verifiedBizNumber', '') or
+            data.get('verifiedBizNumber', '') or
+            ''
+        )
+        if phone_alternativo and '@' in phone_alternativo:
+            phone_alternativo = phone_alternativo.split('@')[0]
+
+        if phone_alternativo and len(phone_alternativo) >= 10:
+            remetente = phone_alternativo
+            logger.info(f"@lid {remetente_bruto} resolvido para {remetente} via campo alternativo")
+        else:
+            # Salva o @lid como remetente - aparece como ID opaco no chat
+            remetente = remetente_bruto
+            logger.warning(
+                f"@lid detectado: {remetente_bruto}. Numero real nao disponivel no payload. "
+                f"Payload keys: {list(payload.keys())}, data keys: {list(data.keys()) if isinstance(data, dict) else 'N/A'}"
+            )
+    else:
+        remetente = remetente_bruto
+
     if not remetente:
         logger.warning(f"Remetente vazio apos extrair de JID: {remote_jid}")
         return None
@@ -348,6 +383,12 @@ def webhook_whatsapp():
         if not payload:
             logger.warning("Webhook payload vazio")
             return jsonify({'status': 'ignored', 'reason': 'empty_payload'}), 200
+
+        # Capturar ultimo payload para debug (@lid e outros problemas)
+        _debug_state['ultimo_payload'] = {
+            'recebido_em': datetime.utcnow().isoformat(),
+            'payload': payload
+        }
 
         logger.info(f"Webhook recebido: event={payload.get('event', 'N/A')}, instance={payload.get('instance', 'N/A')}")
 
@@ -558,6 +599,20 @@ def teste_inbound():
         logger.error(f"Erro no teste inbound: {e}", exc_info=True)
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
+
+_debug_state = {'ultimo_payload': {}}  # dict mutavel — sem necessidade de global
+
+@bp.route('/webhook/ultimo-payload', methods=['GET'])
+def ultimo_payload():
+    """
+    Retorna o último payload bruto recebido pelo webhook.
+    Use para diagnosticar o formato real que a MegaAPI envia.
+    GET /webhook/ultimo-payload
+    """
+    if not _debug_state['ultimo_payload']:
+        return jsonify({'info': 'Nenhum payload recebido ainda. Envie uma mensagem pelo WhatsApp primeiro.'})
+    return jsonify(_debug_state['ultimo_payload'])
 
 
 @bp.route('/webhook/debug-mensagens', methods=['GET'])
