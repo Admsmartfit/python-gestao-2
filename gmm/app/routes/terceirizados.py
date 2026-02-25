@@ -154,14 +154,48 @@ def criar_chamado():
 def detalhes_chamado(id):
     """Exibe detalhes e timeline de comunicação do chamado"""
     chamado = ChamadoExterno.query.get_or_404(id)
-    
-    # Carregar histórico de mensagens (ordenado por data)
-    mensagens = HistoricoNotificacao.query.filter_by(chamado_id=id)\
-        .order_by(HistoricoNotificacao.criado_em.asc()).all()
-    
-    return render_template('chamado_detalhe.html', 
-                         chamado=chamado, 
-                         mensagens=mensagens)
+    return render_template('chamado_detalhe.html', chamado=chamado)
+
+
+@bp.route('/chamados/<int:id>/mensagens', methods=['GET'])
+@login_required
+def api_mensagens_chamado(id):
+    """Retorna todas as mensagens do chamado (por chamado_id + telefone do terceirizado)"""
+    from sqlalchemy import or_
+    chamado = ChamadoExterno.query.get_or_404(id)
+    telefone = chamado.terceirizado.telefone
+
+    try:
+        telefone_norm = WhatsAppService.normalizar_telefone(telefone)
+    except Exception:
+        telefone_norm = telefone
+    telefone_sem55 = telefone_norm[2:] if telefone_norm.startswith('55') and len(telefone_norm) > 11 else telefone_norm
+
+    mensagens = HistoricoNotificacao.query.filter(
+        or_(
+            HistoricoNotificacao.chamado_id == id,
+            HistoricoNotificacao.remetente == telefone_norm,
+            HistoricoNotificacao.destinatario == telefone_norm,
+            HistoricoNotificacao.remetente == telefone_sem55,
+            HistoricoNotificacao.destinatario == telefone_sem55,
+            HistoricoNotificacao.remetente == telefone,
+            HistoricoNotificacao.destinatario == telefone,
+        ),
+        HistoricoNotificacao.excluido_em.is_(None)
+    ).order_by(HistoricoNotificacao.criado_em.asc()).all()
+
+    resultado = []
+    for msg in mensagens:
+        direcao = msg.direcao or ('outbound' if msg.destinatario in (telefone, telefone_norm, telefone_sem55) else 'inbound')
+        resultado.append({
+            'id': msg.id,
+            'direcao': direcao,
+            'mensagem': msg.mensagem or '',
+            'tipo_conteudo': msg.tipo_conteudo or 'text',
+            'status': msg.status_envio,
+            'hora': msg.criado_em.strftime('%H:%M') if msg.criado_em else '',
+        })
+    return jsonify(resultado)
 
 @bp.route('/chamados/<int:id>/cobrar', methods=['POST'])
 @login_required
@@ -279,8 +313,9 @@ def responder_manual(id):
 @bp.route('/central-mensagens')
 @login_required
 def central_mensagens():
-    """Renderiza a nova interface de Central de Atendimento (estilo WhatsApp Web)"""
-    return render_template('terceirizados/central_mensagens.html')
+    """Redireciona para o chat unificado"""
+    from flask import redirect, url_for
+    return redirect(url_for('admin_whatsapp.listar_conversas'))
 
 
 @bp.route('/api/terceirizados', methods=['GET'])

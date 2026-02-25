@@ -2,26 +2,14 @@
 
 {% block content %}
 <style>
-    /* Estilos específicos para o chat */
-    .chat-bubble {
-        max-width: 70%;
-        border-radius: 12px;
-    }
-
-    /* Define as cores via classe, evitando lógica dentro do style="" */
-    .chat-outbound {
-        background-color: #dcf8c6;
-        /* Verde WhatsApp */
-    }
-
-    .chat-inbound {
-        background-color: #fff;
-        border: 1px solid #e2e8f0;
-        /* Borda suave para diferenciar do fundo */
-    }
+    .chat-bubble { max-width: 70%; border-radius: 12px; }
+    .chat-outbound { background-color: #dcf8c6; }
+    .chat-inbound { background-color: #fff; border: 1px solid #e2e8f0; }
+    #chatContainer { background-color: #e5ddd5; overflow-y: auto; }
 </style>
 
 <div class="row h-100 g-0" style="min-height: calc(100vh - 100px);">
+    <!-- Sidebar com detalhes -->
     <div class="col-md-4 border-end bg-white h-100 overflow-auto">
         <div class="p-4">
             <a href="{{ url_for('terceirizados.listar_chamados') }}"
@@ -61,135 +49,54 @@
 
             <div class="d-grid gap-2 mt-4">
                 {% if chamado.status != 'concluido' %}
-                <button class="btn btn-outline-danger" onclick="cobrar('{{ chamado.id }}', this)">
+                <button class="btn btn-outline-danger" onclick="abrirModalCobranca()">
                     <i class="bi bi-bell me-2"></i>Enviar Cobrança
                 </button>
-                <button class="btn btn-success">Concluir Chamado</button>
                 {% endif %}
             </div>
         </div>
     </div>
 
-    <div class="col-md-8 d-flex flex-column h-100 bg-light">
+    <!-- Área do chat -->
+    <div class="col-md-8 d-flex flex-column bg-light" style="height: calc(100vh - 100px);">
         <div class="p-3 border-bottom bg-white fw-bold text-muted d-flex align-items-center gap-2">
-            <i class="bi bi-chat-text-fill text-primary"></i> Histórico de Comunicação
+            <i class="bi bi-chat-text-fill text-primary"></i>
+            Conversa com {{ chamado.terceirizado.nome }}
         </div>
 
-        <div class="flex-grow-1 p-4 overflow-auto" id="chatContainer" style="background-color: #e5ddd5;">
-            {% for msg in mensagens %}
-            <div
-                class="d-flex mb-3 {{ 'justify-content-end' if msg.direcao == 'outbound' else 'justify-content-start' }}">
-                <div
-                    class="card border-0 shadow-sm chat-bubble {{ 'chat-outbound' if msg.direcao == 'outbound' else 'chat-inbound' }}">
-                    <div class="card-body p-2 px-3">
-                        <div class="small mb-1 text-dark" style="white-space: pre-wrap;">{{ msg.mensagem }}</div>
-                        <div class="d-flex align-items-center justify-content-end gap-1 opacity-50"
-                            style="font-size: 0.65rem;">
-                            <span>{{ msg.criado_em.strftime('%H:%M') }}</span>
-                            {% if msg.direcao == 'outbound' %}
-                            <i
-                                class="bi bi-check2-all {{ 'text-primary' if msg.status_envio == 'entregue' or msg.status_envio == 'enviado' else '' }}"></i>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% else %}
-            <div class="text-center text-muted py-5">
+        <div class="flex-grow-1 p-3 overflow-auto" id="chatContainer">
+            <div class="text-center text-muted py-5" id="emptyState">
                 <i class="bi bi-chat-square-dots fs-1 d-block mb-2 opacity-25"></i>
-                <p>Nenhuma mensagem trocada ainda.</p>
+                <p>Carregando mensagens...</p>
             </div>
-            {% endfor %}
         </div>
 
         <div class="p-3 bg-white border-top">
-            <div class="input-group">
-                <input type="text" class="form-control bg-light" placeholder="Digite uma mensagem manual (em breve)..."
-                    disabled>
-                <button class="btn btn-primary" disabled><i class="bi bi-send"></i></button>
-            </div>
-            <div class="form-text small mt-1 text-muted">Use os botões de ação na esquerda para enviar notificações
-                padrão.</div>
+            <form id="formChat" onsubmit="enviarMensagem(event)">
+                <div class="input-group">
+                    <input type="text" id="inputMsg" class="form-control bg-light"
+                        placeholder="Digite uma mensagem para o prestador..." required>
+                    <button type="submit" id="btnEnviar" class="btn btn-primary">
+                        <i class="bi bi-send"></i>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
-<script>
-    // Scroll para o fim do chat ao carregar
-    document.addEventListener("DOMContentLoaded", function () {
-        const chatContainer = document.getElementById('chatContainer');
-        if (chatContainer) {
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-    });
-
-    // Variável para armazenar o ID do chamado que será cobrado
-    let chamadoIdCobranca = null;
-
-    // Abre o modal de cobrança
-    function cobrar(id, btn) {
-        chamadoIdCobranca = id;
-        const modal = new bootstrap.Modal(document.getElementById('modalCobranca'));
-
-        // Texto padrão (Hardcoded aqui para o frontend, mas poderia vir de uma API)
-        const textoPadrao = `⏰ *Prazo Vencido*\n\nChamado: {{ chamado.numero_chamado }}\nTítulo: {{ chamado.titulo }}\nPrevisão de conclusão?`;
-
-        document.getElementById('textoCobranca').value = textoPadrao;
-        modal.show();
-    }
-
-    // Função que realmente envia a cobrança
-    function confirmarCobranca() {
-        if (!chamadoIdCobranca) return;
-
-        const btn = document.getElementById('btnConfirmarCobranca');
-        const msg = document.getElementById('textoCobranca').value;
-        const originalHtml = btn.innerHTML;
-
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Enviando...';
-
-        fetch(`/terceirizados/chamados/${chamadoIdCobranca}/cobrar`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ mensagem_personalizada: msg })
-        })
-            .then(res => res.json())
-            .then(data => {
-                const modalEl = document.getElementById('modalCobranca');
-                const modal = bootstrap.Modal.getInstance(modalEl);
-                modal.hide();
-
-                if (typeof ToastModule !== 'undefined') {
-                    ToastModule.show(data.msg, data.success ? 'success' : 'danger');
-                } else {
-                    alert(data.msg);
-                }
-                if (data.success) setTimeout(() => location.reload(), 1000);
-            })
-            .catch(err => {
-                alert("Erro de conexão.");
-                btn.disabled = false;
-                btn.innerHTML = originalHtml;
-            });
-    }
-</script>
-
-<!-- Modal de Cobrança Editável -->
-<div class="modal fade" id="modalCobranca" tabindex="-1" aria-labelledby="modalCobrancaLabel" aria-hidden="true">
+<!-- Modal de Cobrança -->
+<div class="modal fade" id="modalCobranca" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header bg-light">
-                <h5 class="modal-title fw-bold" id="modalCobrancaLabel">Enviar Cobrança</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                <h5 class="modal-title fw-bold">Enviar Cobrança</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <label for="textoCobranca" class="form-label small text-muted text-uppercase fw-bold">Mensagem via
-                    WhatsApp</label>
+                <label class="form-label small text-muted text-uppercase fw-bold">Mensagem via WhatsApp</label>
                 <textarea class="form-control" id="textoCobranca" rows="6" style="resize: none;"></textarea>
-                <div class="form-text mt-2 small">Você pode editar o texto acima antes de enviar ao prestador.</div>
+                <div class="form-text mt-2 small">Você pode editar o texto antes de enviar.</div>
             </div>
             <div class="modal-footer border-0">
                 <button type="button" class="btn btn-white border" data-bs-dismiss="modal">Cancelar</button>
@@ -201,55 +108,147 @@
     </div>
 </div>
 
-<div class="p-3 bg-white border-top">
-    <form id="formChat" onsubmit="enviarMensagemManual(event)">
-        <div class="input-group">
-            <input type="text" id="inputMsgManual" class="form-control bg-light"
-                placeholder="Digite uma mensagem para o prestador..." required>
-            <button type="submit" class="btn btn-primary"><i class="bi bi-send"></i></button>
-        </div>
-    </form>
-</div>
-
 <script>
-    function enviarMensagemManual(e) {
-        e.preventDefault();
-        const input = document.getElementById('inputMsgManual');
-        const msg = input.value;
-        const btn = e.target.querySelector('button');
+const CHAMADO_ID = {{ chamado.id }};
+const NUMERO_CHAMADO = "{{ chamado.numero_chamado }}";
+const TITULO_CHAMADO = "{{ chamado.titulo }}";
+let ultimoIdVisto = 0;
+let pollingInterval = null;
 
-        btn.disabled = true;
+function criarBalao(msg) {
+    const isOut = msg.direcao === 'outbound';
+    const div = document.createElement('div');
+    div.className = `d-flex mb-3 ${isOut ? 'justify-content-end' : 'justify-content-start'}`;
+    div.dataset.msgId = msg.id;
 
-        fetch(`/terceirizados/chamados/{{ chamado.id }}/responder`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `mensagem=${encodeURIComponent(msg)}`
-        })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    // Adiciona balão no chat dinamicamente
-                    const chatContainer = document.getElementById('chatContainer');
-                    const html = `
-                <div class="d-flex mb-3 justify-content-end">
-                    <div class="card border-0 shadow-sm chat-bubble chat-outbound">
-                        <div class="card-body p-2 px-3">
-                            <div class="small mb-1 text-dark" style="white-space: pre-wrap;">${data.texto}</div>
-                            <div class="d-flex align-items-center justify-content-end gap-1 opacity-50" style="font-size: 0.65rem;">
-                                <span>${data.data}</span>
-                                <i class="bi bi-check2"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>`;
-                    chatContainer.insertAdjacentHTML('beforeend', html);
-                    chatContainer.scrollTop = chatContainer.scrollHeight;
-                    input.value = '';
-                } else {
-                    alert('Erro: ' + data.msg);
-                }
-            })
-            .finally(() => btn.disabled = false);
+    let conteudo = '';
+    if (msg.tipo_conteudo === 'audio') {
+        conteudo = '🎤 Áudio';
+    } else if (msg.tipo_conteudo === 'image') {
+        conteudo = '📷 Imagem';
+    } else if (msg.tipo_conteudo === 'document') {
+        conteudo = '📄 Documento';
+    } else {
+        conteudo = msg.mensagem.replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
+
+    div.innerHTML = `
+        <div class="card border-0 shadow-sm chat-bubble ${isOut ? 'chat-outbound' : 'chat-inbound'}">
+            <div class="card-body p-2 px-3">
+                <div class="small mb-1 text-dark" style="white-space: pre-wrap;">${conteudo}</div>
+                <div class="d-flex align-items-center justify-content-end gap-1 opacity-50" style="font-size: 0.65rem;">
+                    <span>${msg.hora}</span>
+                    ${isOut ? '<i class="bi bi-check2-all"></i>' : ''}
+                </div>
+            </div>
+        </div>`;
+    return div;
+}
+
+function carregarMensagens(scroll) {
+    fetch(`/terceirizados/chamados/${CHAMADO_ID}/mensagens`)
+        .then(r => r.json())
+        .then(msgs => {
+            const container = document.getElementById('chatContainer');
+            const emptyState = document.getElementById('emptyState');
+
+            if (msgs.length === 0) {
+                if (emptyState) emptyState.innerHTML = '<i class="bi bi-chat-square-dots fs-1 d-block mb-2 opacity-25"></i><p>Nenhuma mensagem trocada ainda.</p>';
+                return;
+            }
+
+            if (emptyState) emptyState.remove();
+
+            // Adicionar apenas mensagens novas
+            msgs.forEach(msg => {
+                if (msg.id > ultimoIdVisto) {
+                    if (!container.querySelector(`[data-msg-id="${msg.id}"]`)) {
+                        container.appendChild(criarBalao(msg));
+                    }
+                    ultimoIdVisto = msg.id;
+                }
+            });
+
+            if (scroll) {
+                container.scrollTop = container.scrollHeight;
+            }
+        })
+        .catch(err => console.error('Erro ao carregar mensagens:', err));
+}
+
+function enviarMensagem(e) {
+    e.preventDefault();
+    const input = document.getElementById('inputMsg');
+    const btn = document.getElementById('btnEnviar');
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+    fetch(`/terceirizados/chamados/${CHAMADO_ID}/responder`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `mensagem=${encodeURIComponent(msg)}`
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            input.value = '';
+            carregarMensagens(true);
+        } else {
+            alert('Erro: ' + data.msg);
+        }
+    })
+    .catch(() => alert('Erro de conexão.'))
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-send"></i>';
+    });
+}
+
+function abrirModalCobranca() {
+    const texto = `⏰ *Prazo Vencido*\n\nChamado: ${NUMERO_CHAMADO}\nTítulo: ${TITULO_CHAMADO}\nPrevisão de conclusão?`;
+    document.getElementById('textoCobranca').value = texto;
+    new bootstrap.Modal(document.getElementById('modalCobranca')).show();
+}
+
+function confirmarCobranca() {
+    const btn = document.getElementById('btnConfirmarCobranca');
+    const msg = document.getElementById('textoCobranca').value;
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Enviando...';
+
+    fetch(`/terceirizados/chamados/${CHAMADO_ID}/cobrar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mensagem_personalizada: msg })
+    })
+    .then(r => r.json())
+    .then(data => {
+        bootstrap.Modal.getInstance(document.getElementById('modalCobranca')).hide();
+        if (typeof ToastModule !== 'undefined') {
+            ToastModule.show(data.msg, data.success ? 'success' : 'danger');
+        } else {
+            alert(data.msg);
+        }
+        if (data.success) carregarMensagens(true);
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = original;
+    });
+}
+
+// Inicializar
+document.addEventListener('DOMContentLoaded', () => {
+    carregarMensagens(true);
+    // Polling a cada 5 segundos para novas mensagens
+    pollingInterval = setInterval(() => carregarMensagens(false), 5000);
+});
+
+// Limpar polling ao sair da página
+window.addEventListener('beforeunload', () => clearInterval(pollingInterval));
 </script>
 {% endblock %}
