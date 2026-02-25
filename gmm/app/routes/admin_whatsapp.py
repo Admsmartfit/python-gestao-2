@@ -475,6 +475,16 @@ def listar_conversas():
                 if usuario:
                     nome = usuario.nome
 
+        # Se não encontrou em nenhuma tabela, usar pushName salvo na última mensagem inbound
+        if not nome:
+            msg_com_nome = HistoricoNotificacao.query.filter(
+                HistoricoNotificacao.remetente == telefone,
+                HistoricoNotificacao.direcao == 'inbound',
+                HistoricoNotificacao.caption.isnot(None)
+            ).order_by(HistoricoNotificacao.criado_em.desc()).first()
+            if msg_com_nome:
+                nome = msg_com_nome.caption
+
         # Calcular tempo relativo (usando hora local Brasil UTC-3)
         ultima_msg_local = utc_to_local(conv.ultima_msg_em)
         tempo_diff = datetime.utcnow() - conv.ultima_msg_em

@@ -249,8 +249,10 @@ def extrair_dados_megaapi(payload):
 
     if jid_tipo == 'lid':
         # @lid: WhatsApp nao revela o numero real por privacidade.
-        # Tentar encontrar o numero em outros campos do payload (participant, verifiedBizNumber)
+        # MegaAPI fornece o numero real em senderPn (ex: "5527988010899@s.whatsapp.net")
         phone_alternativo = (
+            data.get('senderPn', '') or
+            payload.get('senderPn', '') or
             data.get('participant', '') or
             payload.get('verifiedBizNumber', '') or
             data.get('verifiedBizNumber', '') or
@@ -261,7 +263,7 @@ def extrair_dados_megaapi(payload):
 
         if phone_alternativo and len(phone_alternativo) >= 10:
             remetente = phone_alternativo
-            logger.info(f"@lid {remetente_bruto} resolvido para {remetente} via campo alternativo")
+            logger.info(f"@lid {remetente_bruto} resolvido para {remetente} via senderPn/campo alternativo")
         else:
             # Salva o @lid como remetente - aparece como ID opaco no chat
             remetente = remetente_bruto
@@ -271,6 +273,9 @@ def extrair_dados_megaapi(payload):
             )
     else:
         remetente = remetente_bruto
+
+    # Extrair nome do remetente (pushName do MegaAPI)
+    push_name = data.get('pushName') or payload.get('pushName') or None
 
     if not remetente:
         logger.warning(f"Remetente vazio apos extrair de JID: {remote_jid}")
@@ -290,6 +295,7 @@ def extrair_dados_megaapi(payload):
 
     resultado = {
         'remetente': remetente,
+        'push_name': push_name,
         'msg_id': msg_id,
         'timestamp': timestamp,
         'tipo': 'text',
@@ -431,6 +437,7 @@ def webhook_whatsapp():
                 megaapi_id=dados['msg_id'],
                 tipo_conteudo='text',
                 status_leitura='nao_lida',
+                caption=dados.get('push_name'),  # nome do remetente (pushName do MegaAPI)
             )
             db.session.add(notif)
             db.session.commit()
