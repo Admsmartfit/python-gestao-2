@@ -558,3 +558,47 @@ def teste_inbound():
         logger.error(f"Erro no teste inbound: {e}", exc_info=True)
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
+
+@bp.route('/webhook/debug-mensagens', methods=['GET'])
+def debug_mensagens():
+    """
+    Diagnóstico: lista últimas mensagens recebidas e status de envios pendentes.
+    GET /webhook/debug-mensagens?limit=20
+    """
+    try:
+        limit = min(int(request.args.get('limit', 20)), 100)
+
+        recebidas = HistoricoNotificacao.query.filter_by(
+            direcao='inbound'
+        ).order_by(HistoricoNotificacao.criado_em.desc()).limit(limit).all()
+
+        pendentes = HistoricoNotificacao.query.filter_by(
+            status_envio='pendente'
+        ).order_by(HistoricoNotificacao.criado_em.desc()).limit(limit).all()
+
+        def fmt(n):
+            return {
+                'id': n.id,
+                'tipo': n.tipo,
+                'direcao': n.direcao,
+                'remetente': n.remetente,
+                'destinatario': n.destinatario,
+                'mensagem': (n.mensagem or '')[:100],
+                'status': n.status_envio,
+                'chamado_id': n.chamado_id,
+                'criado_em': n.criado_em.strftime('%d/%m %H:%M') if n.criado_em else None,
+            }
+
+        return jsonify({
+            'recebidas_count': len(recebidas),
+            'pendentes_count': len(pendentes),
+            'recebidas': [fmt(n) for n in recebidas],
+            'pendentes': [fmt(n) for n in pendentes],
+            'dica_pendentes': (
+                'Mensagens ficam "pendente" quando o WhatsApp (MegaAPI) nao consegue entregar. '
+                'Verifique se a instancia esta conectada (QR code escaneado) no painel MegaAPI.'
+            )
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
