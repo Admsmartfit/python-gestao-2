@@ -727,47 +727,54 @@ def adicionar_tarefa_externa(id):
                 if ok:
                     notif.status_envio = 'enviado'
                     notif.enviado_em = datetime.now()
-
-                    # Enviar fotos da OS junto
-                    fotos_enviadas = 0
-                    if os_obj.anexos_list:
-                        for anexo in os_obj.anexos_list:
-                            foto_path = os_module.path.join(current_app.root_path, 'static', anexo.caminho_arquivo)
-                            if os_module.path.exists(foto_path):
-                                ok_foto, resp_foto = WhatsAppService.enviar_mensagem(
-                                    telefone=terceirizado.telefone,
-                                    texto=f"Foto OS {os_obj.numero_os} - {anexo.tipo.replace('_', ' ')}",
-                                    arquivo_path=foto_path,
-                                    tipo_midia='image'
-                                )
-                                if ok_foto:
-                                    fotos_enviadas += 1
-                                else:
-                                    logger.warning(f"Falha ao enviar foto {anexo.nome_arquivo}: {resp_foto}")
-                            else:
-                                logger.warning(f"Foto não encontrada no disco: {foto_path}")
-
-                    msg_flash = f'Tarefa criada e WhatsApp enviado ao prestador!'
-                    if fotos_enviadas > 0:
-                        msg_flash += f' ({fotos_enviadas} foto(s) enviada(s))'
-                    flash(msg_flash, 'success')
                 else:
                     notif.status_envio = 'falhou'
                     logger.warning(f"WhatsApp falhou para {terceirizado.nome}: {resp}")
-                    flash('Tarefa criada, mas falha ao enviar WhatsApp.', 'warning')
+
+                # Enviar fotos independente do sucesso do texto
+                fotos_enviadas = 0
+                if os_obj.anexos_list:
+                    logger.info(f"[Fotos OS] Enviando {len(os_obj.anexos_list)} foto(s) para {terceirizado.nome}")
+                    for anexo in os_obj.anexos_list:
+                        foto_path = os_module.path.join(current_app.root_path, 'static', anexo.caminho_arquivo)
+                        logger.info(f"[Fotos OS] Path: {foto_path} | Existe: {os_module.path.exists(foto_path)}")
+                        if os_module.path.exists(foto_path):
+                            ok_foto, resp_foto = WhatsAppService.enviar_mensagem(
+                                telefone=terceirizado.telefone,
+                                texto=f"Foto OS {os_obj.numero_os} - {anexo.tipo.replace('_', ' ')}",
+                                arquivo_path=foto_path,
+                                tipo_midia='image',
+                                prioridade=1
+                            )
+                            if ok_foto:
+                                fotos_enviadas += 1
+                            else:
+                                logger.warning(f"[Fotos OS] Falha: {anexo.nome_arquivo}: {resp_foto}")
+                        else:
+                            logger.warning(f"[Fotos OS] Arquivo não encontrado: {foto_path}")
+                else:
+                    logger.info(f"[Fotos OS] OS {os_obj.id} sem fotos anexadas.")
+
+                msg_flash = f'Tarefa criada e WhatsApp enviado ao prestador!'
+                if fotos_enviadas > 0:
+                    msg_flash += f' ({fotos_enviadas} foto(s) enviada(s))'
+                elif not ok:
+                    msg_flash = 'Tarefa criada, mas falha ao enviar WhatsApp.'
+                flash(msg_flash, 'success' if ok else 'warning')
                 db.session.commit()
 
-                # Se o terceirizado tem email, envia copia por email tambem
+                # Enviar email se prestador tiver email
                 if terceirizado.email:
-                    EmailService.enviar_solicitacao_terceirizado(
-                        novo_chamado,
-                        terceirizado,
-                        msg,
-                        cc=current_user.email
-                    )
+                    try:
+                        EmailService.enviar_solicitacao_terceirizado(
+                            novo_chamado, terceirizado, msg, cc=current_user.email
+                        )
+                    except Exception as email_err:
+                        logger.error(f"Erro ao enviar email para {terceirizado.email}: {email_err}")
+
             except Exception as e:
                 flash('Tarefa criada, mas erro ao enviar notificações.', 'warning')
-                logger.error(f"Erro ao enviar notificações: {e}")
+                logger.error(f"Erro ao enviar notificações: {e}", exc_info=True)
         else:
             flash('Tarefa externa criada com sucesso (sem notificação).', 'success')
         
@@ -1029,33 +1036,45 @@ Por favor, envie seu orçamento até a data limite."""
                     if ok:
                         notif.status_envio = 'enviado'
                         notif.enviado_em = datetime.now()
-
-                        # Enviar fotos da OS junto
-                        os_obj = OrdemServico.query.get(os_id)
-                        if os_obj and os_obj.anexos_list:
-                            for anexo in os_obj.anexos_list:
-                                foto_path = os_module.path.join(current_app.root_path, 'static', anexo.caminho_arquivo)
-                                if os_module.path.exists(foto_path):
-                                    ok_foto, resp_foto = WhatsAppService.enviar_mensagem(
-                                        telefone=prestador.telefone,
-                                        texto=f"Foto OS {os_obj.numero_os} - {anexo.tipo.replace('_', ' ')}",
-                                        arquivo_path=foto_path,
-                                        tipo_midia='image'
-                                    )
-                                    if not ok_foto:
-                                        logger.warning(f"Falha ao enviar foto {anexo.nome_arquivo}: {resp_foto}")
-                                else:
-                                    logger.warning(f"Foto não encontrada no disco: {foto_path}")
                     else:
                         notif.status_envio = 'falhou'
                         logger.warning(f"WhatsApp falhou para {prestador.nome}: {resp}")
+
+                    # Enviar fotos da OS independente do sucesso do texto
+                    os_obj = OrdemServico.query.get(os_id)
+                    if os_obj and os_obj.anexos_list:
+                        logger.info(f"[Fotos OS] Enviando {len(os_obj.anexos_list)} foto(s) para {prestador.nome}")
+                        for anexo in os_obj.anexos_list:
+                            foto_path = os_module.path.join(current_app.root_path, 'static', anexo.caminho_arquivo)
+                            logger.info(f"[Fotos OS] Path: {foto_path} | Existe: {os_module.path.exists(foto_path)}")
+                            if os_module.path.exists(foto_path):
+                                ok_foto, resp_foto = WhatsAppService.enviar_mensagem(
+                                    telefone=prestador.telefone,
+                                    texto=f"Foto OS {os_obj.numero_os} - {anexo.tipo.replace('_', ' ')}",
+                                    arquivo_path=foto_path,
+                                    tipo_midia='image',
+                                    prioridade=1
+                                )
+                                if not ok_foto:
+                                    logger.warning(f"[Fotos OS] Falha ao enviar {anexo.nome_arquivo}: {resp_foto}")
+                            else:
+                                logger.warning(f"[Fotos OS] Arquivo não encontrado: {foto_path}")
+                    else:
+                        logger.info(f"[Fotos OS] OS {os_id} sem fotos anexadas.")
+
                 except Exception as e:
                     notif.status_envio = 'falhou'
-                    logger.error(f"Erro ao enviar WhatsApp para {prestador.nome}: {e}")
+                    logger.error(f"Erro ao enviar WhatsApp para {prestador.nome}: {e}", exc_info=True)
 
-            # Enviar email se tiver e nao tiver WhatsApp
-            elif prestador.email:
-                EmailService.enviar_notificacao_chamado(chamado, prestador)
+            # Enviar email sempre que o prestador tiver email
+            if prestador.email:
+                try:
+                    EmailService.enviar_solicitacao_terceirizado(
+                        chamado, prestador, mensagem, cc=current_user.email
+                    )
+                    logger.info(f"Email enviado para {prestador.email}")
+                except Exception as e:
+                    logger.error(f"Erro ao enviar email para {prestador.email}: {e}")
 
             chamados_criados.append({
                 'numero': numero,
