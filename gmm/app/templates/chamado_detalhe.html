@@ -52,6 +52,13 @@
                 <button class="btn btn-outline-danger" onclick="abrirModalCobranca()">
                     <i class="bi bi-bell me-2"></i>Enviar Cobrança
                 </button>
+                <button class="btn btn-success" onclick="encerrarChamado()">
+                    <i class="bi bi-check-circle me-2"></i>Encerrar Chamado
+                </button>
+                {% else %}
+                <div class="alert alert-success mb-0 text-center py-2 small">
+                    <i class="bi bi-check-circle-fill me-1"></i> Chamado Encerrado
+                </div>
                 {% endif %}
             </div>
         </div>
@@ -205,6 +212,20 @@ function enviarMensagem(e) {
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-send"></i>';
     });
+}
+
+function encerrarChamado() {
+    if (!confirm('Confirmar encerramento do chamado? O prestador será notificado.')) return;
+    fetch(`/terceirizados/api/chamados/${CHAMADO_ID}/finalizar`, { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Erro: ' + (data.msg || data.erro || 'Falha ao encerrar'));
+            }
+        })
+        .catch(() => alert('Erro de conexão.'));
 }
 
 function abrirModalCobranca() {

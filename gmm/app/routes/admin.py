@@ -3,7 +3,7 @@ import io
 from flask import Blueprint, render_template, request, flash, redirect, url_for, abort, jsonify, Response
 from flask_login import login_required, current_user
 from werkzeug.security import generate_password_hash
-from app.models.models import Unidade, Usuario
+from app.models.models import Unidade, Usuario, RegistroPonto
 from app.models.estoque_models import Equipamento, Fornecedor, CatalogoFornecedor, Estoque, OrdemServico, PedidoCompra, EstoqueSaldo, MovimentacaoEstoque, SolicitacaoTransferencia
 from datetime import datetime
 from app.models.terceirizados_models import Terceirizado
@@ -30,16 +30,21 @@ def restrict_to_admin():
         if request.endpoint in ['admin.compras_painel', 'admin.aprovar_pedido', 'admin.rejeitar_pedido', 'admin.receber_pedido''admin.transferencias_painel','admin.aprovar_transferencia','admin.rejeitar_transferencia']:
             return
 
-    # 3. Gerentes podem acessar painel de transferências e relatórios
+    # 3. Gerentes podem acessar painel de transferências, relatórios e gestão de fornecedores/terceirizados
     if current_user.is_authenticated and current_user.tipo == 'gerente':
         allowed_endpoints = [
-            'admin.transferencias_painel', 
-            'admin.aprovar_transferencia', 
+            'admin.dashboard',
+            'admin.transferencias_painel',
+            'admin.aprovar_transferencia',
             'admin.rejeitar_transferencia',
             'admin.relatorio_movimentacoes',
-            'admin.exportar_movimentacoes_csv'
-
-
+            'admin.exportar_movimentacoes_csv',
+            'admin.novo_fornecedor',
+            'admin.editar_fornecedor',
+            'admin.excluir_fornecedor',
+            'admin.toggle_fornecedor_status',
+            'admin.vincular_peca_fornecedor',
+            'admin.buscar_pecas_fornecedor',
         ]
         if request.endpoint in allowed_endpoints:
             return

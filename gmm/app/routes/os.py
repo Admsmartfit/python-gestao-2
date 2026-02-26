@@ -1,6 +1,9 @@
-﻿from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify
+﻿import logging
+from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify
 from flask_login import login_required, current_user
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 from app.extensions import db
 from app.models.models import Unidade, Usuario
 from app.models.estoque_models import OrdemServico, Estoque, CategoriaEstoque, Equipamento, AnexosOS, PedidoCompra, EstoqueSaldo, MovimentacaoEstoque, Fornecedor

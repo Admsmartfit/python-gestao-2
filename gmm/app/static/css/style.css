@@ -538,11 +538,11 @@ p {
 }
 
 .search-modal {
-    background: var(--surface);
+    background: #ffffff;
     width: 100%;
     max-width: 600px;
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-lg);
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
     overflow: hidden;
     transform: scale(0.95);
     transition: transform 0.2s ease;
@@ -567,6 +567,7 @@ p {
     outline: none;
     height: auto;
     background: transparent;
+    color: #1e293b;
 }
 
 .search-results {
@@ -588,8 +589,8 @@ p {
 
 .search-item:hover,
 .search-item.selected {
-    background-color: var(--primary-light);
-    color: var(--primary);
+    background-color: #eff6ff;
+    color: #2563eb;
 }
 
 .search-category-title {

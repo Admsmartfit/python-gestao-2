@@ -696,17 +696,21 @@
                 </div>
 
                 <h6 class="fw-bold pt-3 border-top">Vincular Nova Peça</h6>
-                <form action="{{ url_for('admin.vincular_peca_fornecedor') }}" method="POST">
+                <form action="{{ url_for('admin.vincular_peca_fornecedor') }}" method="POST" id="formVincularPeca">
                     <input type="hidden" name="fornecedor_id" id="inputFornecedorId">
+                    <input type="hidden" name="estoque_id" id="inputEstoqueId">
                     <div class="row g-2 align-items-end">
                         <div class="col-md-5">
                             <label class="form-label small text-muted">Peça</label>
-                            <select name="estoque_id" class="form-select form-select-sm" required>
-                                <option value="" selected disabled>Escolha...</option>
-                                {% for item in estoque_itens %}
-                                <option value="{{ item.id }}">{{ item.nome }} ({{ item.codigo }})</option>
-                                {% endfor %}
-                            </select>
+                            <div class="position-relative">
+                                <input type="text" id="buscaPecaInput" class="form-control form-control-sm"
+                                    placeholder="Digite para buscar..." autocomplete="off"
+                                    oninput="filtrarPecas(this.value)">
+                                <div id="pecaDropdown" class="position-absolute w-100 bg-white border rounded shadow-sm d-none"
+                                    style="z-index:1000; max-height:200px; overflow-y:auto; top:100%;">
+                                </div>
+                            </div>
+                            <small id="pecaSelecionada" class="text-success d-none"><i class="bi bi-check-circle me-1"></i><span></span></small>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label small text-muted">Preço Atual</label>
@@ -718,10 +722,50 @@
                             <input type="number" name="prazo" class="form-control form-control-sm" placeholder="Dias">
                         </div>
                         <div class="col-md-2">
-                            <button type="submit" class="btn btn-primary btn-sm w-100">Vincular</button>
+                            <button type="submit" class="btn btn-primary btn-sm w-100" id="btnVincularPeca" disabled>Vincular</button>
                         </div>
                     </div>
                 </form>
+                <script>
+                const PECAS_CATALOGO = [
+                    {% for item in estoque_itens %}
+                    { id: {{ item.id }}, nome: "{{ item.nome|e }}", codigo: "{{ item.codigo|e }}" },
+                    {% endfor %}
+                ];
+                function filtrarPecas(q) {
+                    const dd = document.getElementById('pecaDropdown');
+                    document.getElementById('inputEstoqueId').value = '';
+                    document.getElementById('btnVincularPeca').disabled = true;
+                    document.getElementById('pecaSelecionada').classList.add('d-none');
+                    if (!q.trim()) { dd.classList.add('d-none'); return; }
+                    const res = PECAS_CATALOGO.filter(p =>
+                        p.nome.toLowerCase().includes(q.toLowerCase()) ||
+                        p.codigo.toLowerCase().includes(q.toLowerCase())
+                    ).slice(0, 15);
+                    if (!res.length) { dd.innerHTML = '<div class="p-2 text-muted small">Nenhum item encontrado</div>'; dd.classList.remove('d-none'); return; }
+                    dd.innerHTML = res.map(p =>
+                        `<div class="p-2 small border-bottom" style="cursor:pointer"
+                            onmousedown="selecionarPeca(${p.id}, '${p.nome.replace(/'/g,"\\'")} (${p.codigo.replace(/'/g,"\\'")})')">
+                            <strong>${p.nome}</strong> <span class="text-muted">${p.codigo}</span>
+                        </div>`
+                    ).join('');
+                    dd.classList.remove('d-none');
+                }
+                function selecionarPeca(id, label) {
+                    document.getElementById('inputEstoqueId').value = id;
+                    document.getElementById('buscaPecaInput').value = label;
+                    document.getElementById('pecaDropdown').classList.add('d-none');
+                    document.getElementById('btnVincularPeca').disabled = false;
+                    const el = document.getElementById('pecaSelecionada');
+                    el.querySelector('span').textContent = label;
+                    el.classList.remove('d-none');
+                }
+                document.addEventListener('click', e => {
+                    if (!e.target.closest('#buscaPecaInput') && !e.target.closest('#pecaDropdown')) {
+                        document.getElementById('pecaDropdown').classList.add('d-none');
+                    }
+                });
+                </script>
             </div>
         </div>
     </div>

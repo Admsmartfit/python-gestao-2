@@ -603,12 +603,13 @@
                             <div class="mb-3">
                                 <label class="form-label">Título do Serviço</label>
                                 <input type="text" class="form-control" id="tituloServico"
+                                    value="{{ (os.equipamento_rel.nome ~ ' - ' if os.equipamento_rel else '') ~ os.tipo_manutencao|capitalize }}"
                                     placeholder="Ex: Manutenção Elétrica" required>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Descrição Detalhada</label>
                                 <textarea class="form-control" id="descricaoServico" rows="3" required
-                                    placeholder="Descreva o serviço necessário..."></textarea>
+                                    placeholder="Descreva o serviço necessário...">{{ os.descricao_problema }}</textarea>
                             </div>
                             <div class="row g-2 mb-3">
                                 <div class="col-6">

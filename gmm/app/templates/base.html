@@ -96,11 +96,13 @@
                                 class="nav-link-saas nav-link-sub {{ 'active' if 'estoque' in request.endpoint }}">
                                 <i class="bi bi-box-seam"></i> Estoque Global
                             </a>
-                            {% if current_user.tipo in ['admin', 'comprador', 'gerente'] %}
+                            {% if current_user.tipo in ['admin', 'comprador'] %}
                             <a href="{{ url_for('admin.compras_painel') }}"
                                 class="nav-link-saas nav-link-sub {{ 'active' if 'compras' in request.endpoint }}">
                                 <i class="bi bi-cart3"></i> Compras
                             </a>
+                            {% endif %}
+                            {% if current_user.tipo in ['admin', 'comprador', 'gerente'] %}
                             <a href="{{ url_for('admin.transferencias_painel') }}"
                                 class="nav-link-saas nav-link-sub {{ 'active' if 'transferencias' in request.endpoint }}">
                                 <i class="bi bi-arrow-left-right"></i> Transferências
@@ -122,10 +124,12 @@
                     <div id="grpTerceiros" class="accordion-collapse collapse {{ 'show' if grp_terceiros }}"
                         data-bs-parent="#sidebarAccordion">
                         <div class="accordion-body py-1 ps-3">
+                            {% if current_user.tipo != 'tecnico' %}
                             <a href="{{ url_for('admin_whatsapp.listar_conversas') }}"
                                 class="nav-link-saas nav-link-sub {{ 'active' if 'admin_whatsapp' in request.endpoint and request.endpoint != 'admin_whatsapp.dashboard' }}">
                                 <i class="bi bi-chat-dots"></i> Central de Mensagens
                             </a>
+                            {% endif %}
                             <a href="{{ url_for('terceirizados.listar_chamados') }}"
                                 class="nav-link-saas nav-link-sub {{ 'active' if request.endpoint == 'terceirizados.listar_chamados' or request.endpoint == 'terceirizados.detalhes_chamado' }}">
                                 <i class="bi bi-list-task"></i> Lista de Chamados
@@ -163,6 +167,12 @@
                                 class="nav-link-saas nav-link-sub {{ 'active' if 'analytics' in request.endpoint }}">
                                 <i class="bi bi-pie-chart-fill"></i> Analytics
                             </a>
+                            {% if current_user.tipo in ['admin', 'gerente'] %}
+                            <a href="{{ url_for('admin.dashboard', tab='fornecedores') }}"
+                                class="nav-link-saas nav-link-sub {{ 'active' if request.endpoint == 'admin.dashboard' and request.args.get('tab') == 'fornecedores' }}">
+                                <i class="bi bi-building"></i> Fornecedores
+                            </a>
+                            {% endif %}
                             {% if current_user.tipo == 'admin' %}
                             <a href="{{ url_for('admin_whatsapp.dashboard') }}"
                                 class="nav-link-saas nav-link-sub {{ 'active' if request.endpoint == 'admin_whatsapp.dashboard' }}">
