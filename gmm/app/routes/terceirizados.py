@@ -12,28 +12,40 @@ bp = Blueprint('terceirizados', __name__, url_prefix='/terceirizados')
 @bp.route('/chamados', methods=['GET'])
 @login_required
 def listar_chamados():
-    # Filtros opcionais (ex: ?filtro=atrasados)
     filtro = request.args.get('filtro', 'todos')
-    
-    query = ChamadoExterno.query.outerjoin(OrdemServico).filter(
-        (ChamadoExterno.os_id == None) | (OrdemServico.status != 'concluida')
-    ).order_by(ChamadoExterno.prazo_combinado.asc())
-    
-    if filtro == 'atrasados':
-        query = query.filter(
-            ChamadoExterno.prazo_combinado < datetime.utcnow(),
-            ChamadoExterno.status != 'concluido'
-        )
-    
-    chamados = query.all()
-    
-    # Carrega a lista de prestadores para preencher o <select> do Modal
+    agora = datetime.utcnow()
+
+    # Base: todos os chamados, ordenados por prazo
+    base_query = ChamadoExterno.query.order_by(ChamadoExterno.prazo_combinado.asc())
+    todos = base_query.all()
+
+    # Contagens por status
+    total_todos = len(todos)
+    total_concluido = sum(1 for c in todos if c.status == 'concluido')
+    total_atrasado = sum(1 for c in todos if c.status != 'concluido' and c.prazo_combinado and c.prazo_combinado < agora)
+    total_andamento = sum(1 for c in todos if c.status != 'concluido' and (not c.prazo_combinado or c.prazo_combinado >= agora))
+
+    # Aplicar filtro
+    if filtro == 'concluido':
+        chamados = [c for c in todos if c.status == 'concluido']
+    elif filtro == 'atrasado':
+        chamados = [c for c in todos if c.status != 'concluido' and c.prazo_combinado and c.prazo_combinado < agora]
+    elif filtro == 'andamento':
+        chamados = [c for c in todos if c.status != 'concluido' and (not c.prazo_combinado or c.prazo_combinado >= agora)]
+    else:
+        chamados = todos
+
     lista_terceirizados = Terceirizado.query.filter_by(ativo=True).order_by(Terceirizado.nome).all()
-    
-    return render_template('chamados.html', 
-                         chamados=chamados, 
-                         terceirizados=lista_terceirizados,
-                         hoje=datetime.utcnow())
+
+    return render_template('chamados.html',
+                           chamados=chamados,
+                           terceirizados=lista_terceirizados,
+                           hoje=agora,
+                           filtro_ativo=filtro,
+                           total_todos=total_todos,
+                           total_concluido=total_concluido,
+                           total_atrasado=total_atrasado,
+                           total_andamento=total_andamento)
 
 @bp.route('/chamados/criar', methods=['POST'])
 @login_required

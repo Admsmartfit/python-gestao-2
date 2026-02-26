@@ -18,6 +18,66 @@
     </button>
 </div>
 
+<!-- Cards de resumo rápido -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <a href="{{ url_for('terceirizados.listar_chamados', filtro='todos') }}"
+           class="card border-0 shadow-sm text-decoration-none h-100 {{ 'border-primary border-2' if filtro_ativo == 'todos' }}">
+            <div class="card-body py-3 px-3">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <div class="rounded-circle bg-secondary bg-opacity-10 d-flex align-items-center justify-content-center" style="width:32px;height:32px">
+                        <i class="bi bi-list-ul text-secondary"></i>
+                    </div>
+                    <span class="small text-muted fw-medium">Todos</span>
+                </div>
+                <div class="fw-bold fs-4 text-dark">{{ total_todos }}</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-6 col-md-3">
+        <a href="{{ url_for('terceirizados.listar_chamados', filtro='andamento') }}"
+           class="card border-0 shadow-sm text-decoration-none h-100 {{ 'border-info border-2' if filtro_ativo == 'andamento' }}">
+            <div class="card-body py-3 px-3">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <div class="rounded-circle bg-info bg-opacity-10 d-flex align-items-center justify-content-center" style="width:32px;height:32px">
+                        <i class="bi bi-arrow-repeat text-info"></i>
+                    </div>
+                    <span class="small text-muted fw-medium">Em Andamento</span>
+                </div>
+                <div class="fw-bold fs-4 text-info">{{ total_andamento }}</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-6 col-md-3">
+        <a href="{{ url_for('terceirizados.listar_chamados', filtro='atrasado') }}"
+           class="card border-0 shadow-sm text-decoration-none h-100 {{ 'border-danger border-2' if filtro_ativo == 'atrasado' }}">
+            <div class="card-body py-3 px-3">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <div class="rounded-circle bg-danger bg-opacity-10 d-flex align-items-center justify-content-center" style="width:32px;height:32px">
+                        <i class="bi bi-exclamation-circle text-danger"></i>
+                    </div>
+                    <span class="small text-muted fw-medium">Atrasados</span>
+                </div>
+                <div class="fw-bold fs-4 text-danger">{{ total_atrasado }}</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-6 col-md-3">
+        <a href="{{ url_for('terceirizados.listar_chamados', filtro='concluido') }}"
+           class="card border-0 shadow-sm text-decoration-none h-100 {{ 'border-success border-2' if filtro_ativo == 'concluido' }}">
+            <div class="card-body py-3 px-3">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <div class="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center" style="width:32px;height:32px">
+                        <i class="bi bi-check-circle text-success"></i>
+                    </div>
+                    <span class="small text-muted fw-medium">Concluídos</span>
+                </div>
+                <div class="fw-bold fs-4 text-success">{{ total_concluido }}</div>
+            </div>
+        </a>
+    </div>
+</div>
+
 <div class="card border-0 shadow-sm">
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -97,7 +157,10 @@
                         <td colspan="5" class="text-center py-5">
                             <div class="text-muted opacity-50">
                                 <i class="bi bi-clipboard-check fs-1 d-block mb-2"></i>
-                                Nenhuma tarefa registrada.
+                                {% if filtro_ativo == 'concluido' %}Nenhum chamado concluído.
+                                {% elif filtro_ativo == 'atrasado' %}Nenhum chamado atrasado.
+                                {% elif filtro_ativo == 'andamento' %}Nenhum chamado em andamento.
+                                {% else %}Nenhuma tarefa registrada.{% endif %}
                             </div>
                         </td>
                     </tr>
