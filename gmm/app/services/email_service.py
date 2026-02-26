@@ -157,6 +157,60 @@ class EmailService:
         return match.group(0).lower() if match else None
 
     @staticmethod
+    def _strip_quoted_reply(text: str) -> str:
+        """Remove conteúdo citado de respostas de email (Gmail, Outlook, etc.)."""
+        import re
+        if not text:
+            return text
+
+        # Padrões de início de citação (linha que marca início do conteúdo original)
+        quote_patterns = [
+            # Gmail PT: "Em seg., 24 de fev. de 2025 às 10:30, Nome <email> escreveu:"
+            r'^Em\s+\w+\.?,\s+\d+\s+de\s+\w+\.?\s+de\s+\d{4}',
+            # Gmail EN: "On Mon, Feb 24, 2025 at 10:30 AM Name <email> wrote:"
+            r'^On\s+\w+,\s+\w+\s+\d+,\s+\d{4}',
+            # Generic "wrote:" pattern
+            r'.+escreveu\s*:\s*$',
+            r'.+wrote\s*:\s*$',
+            # Outlook / standard separators
+            r'^[-_]{4,}',
+            r'^_{4,}',
+            # "De:", "From:" headers (Outlook forward style)
+            r'^De:\s+.+',
+            r'^From:\s+.+',
+            # "Mensagem original" separators
+            r'^-+\s*Mensagem original\s*-+',
+            r'^-+\s*Original [Mm]essage\s*-+',
+            r'^-+\s*Forwarded message\s*-+',
+        ]
+
+        lines = text.splitlines()
+        result_lines = []
+
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+
+            # Linhas que começam com > são citação direta
+            if stripped.startswith('>'):
+                break
+
+            # Verificar padrões de início de bloco citado
+            is_quote_start = False
+            for pattern in quote_patterns:
+                if re.match(pattern, stripped, re.IGNORECASE):
+                    is_quote_start = True
+                    break
+
+            if is_quote_start:
+                break
+
+            result_lines.append(line)
+
+        result = '\n'.join(result_lines).strip()
+        # Se ficou vazio (padrão não reconhecido), retornar texto original
+        return result if result else text.strip()
+
+    @staticmethod
     def _extrair_corpo_email(msg):
         """Extrai o corpo do email, preferindo text/plain, fallback para text/html."""
         import html
@@ -189,7 +243,8 @@ class EmailService:
                 corpo = msg.get_payload(decode=True).decode(charset, errors='replace')
             except Exception:
                 corpo = msg.get_payload(decode=True).decode('utf-8', errors='replace')
-        return corpo
+
+        return EmailService._strip_quoted_reply(corpo)
 
     @staticmethod
     def fetch_and_process_replies():
