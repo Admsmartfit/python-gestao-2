@@ -734,7 +734,7 @@ def adicionar_tarefa_externa(id):
                         for anexo in os_obj.anexos_list:
                             foto_path = os_module.path.join(current_app.root_path, 'static', anexo.caminho_arquivo)
                             if os_module.path.exists(foto_path):
-                                ok_foto, _ = WhatsAppService.enviar_mensagem(
+                                ok_foto, resp_foto = WhatsAppService.enviar_mensagem(
                                     telefone=terceirizado.telefone,
                                     texto=f"Foto OS {os_obj.numero_os} - {anexo.tipo.replace('_', ' ')}",
                                     arquivo_path=foto_path,
@@ -742,6 +742,10 @@ def adicionar_tarefa_externa(id):
                                 )
                                 if ok_foto:
                                     fotos_enviadas += 1
+                                else:
+                                    logger.warning(f"Falha ao enviar foto {anexo.nome_arquivo}: {resp_foto}")
+                            else:
+                                logger.warning(f"Foto não encontrada no disco: {foto_path}")
 
                     msg_flash = f'Tarefa criada e WhatsApp enviado ao prestador!'
                     if fotos_enviadas > 0:
@@ -1032,12 +1036,16 @@ Por favor, envie seu orçamento até a data limite."""
                             for anexo in os_obj.anexos_list:
                                 foto_path = os_module.path.join(current_app.root_path, 'static', anexo.caminho_arquivo)
                                 if os_module.path.exists(foto_path):
-                                    WhatsAppService.enviar_mensagem(
+                                    ok_foto, resp_foto = WhatsAppService.enviar_mensagem(
                                         telefone=prestador.telefone,
                                         texto=f"Foto OS {os_obj.numero_os} - {anexo.tipo.replace('_', ' ')}",
                                         arquivo_path=foto_path,
                                         tipo_midia='image'
                                     )
+                                    if not ok_foto:
+                                        logger.warning(f"Falha ao enviar foto {anexo.nome_arquivo}: {resp_foto}")
+                                else:
+                                    logger.warning(f"Foto não encontrada no disco: {foto_path}")
                     else:
                         notif.status_envio = 'falhou'
                         logger.warning(f"WhatsApp falhou para {prestador.nome}: {resp}")

@@ -1,0 +1,1834 @@
+[~Line 22]
+"messageContextInfo": {
+"deviceListMetadata": {
+"senderKeyHash": "5NtBfGDpS10M5Q==",
+"senderTimestamp": "1688993376",
+"recipientKeyHash": "4vsArO2PIywtVA==",
+"recipientTimestamp": "1688995880"
+},
+---
+[~Line 23]
+"deviceListMetadata": {
+"senderKeyHash": "5NtBfGDpS10M5Q==",
+"senderTimestamp": "1688993376",
+"recipientKeyHash": "4vsArO2PIywtVA==",
+"recipientTimestamp": "1688995880"
+},
+"deviceListMetadataVersion": 2
+---
+[~Line 84]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+31/141
+
+--- PAGE 32 ---
+📄Mensagens recebidas tipo sticker (messageType: stickerMessage)
+---
+[~Line 88]
+
+--- PAGE 32 ---
+📄Mensagens recebidas tipo sticker (messageType: stickerMessage)
+{
+"instance_key": "megaapi-dgfyjuikhujsdrgfthjvum",
+"jid": "556181278471@s.whatsapp.net",
+"messageType": "contactMessage",
+---
+[~Line 177]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+32/141
+
+--- PAGE 33 ---
+📄Mensagens recebidas enquete, pedidos, catalogos ...(messageType: messageContextInfo)
+---
+[~Line 185]
+"instance_key": "megaapi-sdfsjkrtgopsdjfkjhdfdfg",
+"jid": "556181278471@s.whatsapp.net",
+"messageType": "stickerMessage",
+"key": {
+"remoteJid": "556195562618@s.whatsapp.net",
+"fromMe": false,
+"id": "53A80274EFAEA9AA2DB3C0B127004574"
+---
+[~Line 195]
+"broadcast": false,
+"message": {
+"stickerMessage": {
+"url": "https://mmg.whatsapp.net/v/t62.15575-24/26455351_28399287752834
+"fileSha256": "nkX+umCp5W00cOg2j9B0pUcSZEKPQmvhraKSX0pE72k=",
+"fileEncSha256": "Up8Z0NoHud0IDZH76UTlf50WsLpmc97DGvl92GDWIhU=",
+"mediaKey": "8uesIQkZYGLqSJxS+HUP7EpySM93Ghmk9yjOpUhAmrA=",
+---
+[~Line 196]
+"message": {
+"stickerMessage": {
+"url": "https://mmg.whatsapp.net/v/t62.15575-24/26455351_28399287752834
+"fileSha256": "nkX+umCp5W00cOg2j9B0pUcSZEKPQmvhraKSX0pE72k=",
+"fileEncSha256": "Up8Z0NoHud0IDZH76UTlf50WsLpmc97DGvl92GDWIhU=",
+"mediaKey": "8uesIQkZYGLqSJxS+HUP7EpySM93Ghmk9yjOpUhAmrA=",
+"mimetype": "image/webp",
+---
+[~Line 197]
+"stickerMessage": {
+"url": "https://mmg.whatsapp.net/v/t62.15575-24/26455351_28399287752834
+"fileSha256": "nkX+umCp5W00cOg2j9B0pUcSZEKPQmvhraKSX0pE72k=",
+"fileEncSha256": "Up8Z0NoHud0IDZH76UTlf50WsLpmc97DGvl92GDWIhU=",
+"mediaKey": "8uesIQkZYGLqSJxS+HUP7EpySM93Ghmk9yjOpUhAmrA=",
+"mimetype": "image/webp",
+"directPath": "/v/t62.15575-24/26455351_283992877528341_426724316881703
+---
+[~Line 198]
+"url": "https://mmg.whatsapp.net/v/t62.15575-24/26455351_28399287752834
+"fileSha256": "nkX+umCp5W00cOg2j9B0pUcSZEKPQmvhraKSX0pE72k=",
+"fileEncSha256": "Up8Z0NoHud0IDZH76UTlf50WsLpmc97DGvl92GDWIhU=",
+"mediaKey": "8uesIQkZYGLqSJxS+HUP7EpySM93Ghmk9yjOpUhAmrA=",
+"mimetype": "image/webp",
+"directPath": "/v/t62.15575-24/26455351_283992877528341_426724316881703
+"fileLength": "493618",
+---
+[~Line 199]
+"fileSha256": "nkX+umCp5W00cOg2j9B0pUcSZEKPQmvhraKSX0pE72k=",
+"fileEncSha256": "Up8Z0NoHud0IDZH76UTlf50WsLpmc97DGvl92GDWIhU=",
+"mediaKey": "8uesIQkZYGLqSJxS+HUP7EpySM93Ghmk9yjOpUhAmrA=",
+"mimetype": "image/webp",
+"directPath": "/v/t62.15575-24/26455351_283992877528341_426724316881703
+"fileLength": "493618",
+"mediaKeyTimestamp": "1657737199485",
+---
+[~Line 200]
+"fileEncSha256": "Up8Z0NoHud0IDZH76UTlf50WsLpmc97DGvl92GDWIhU=",
+"mediaKey": "8uesIQkZYGLqSJxS+HUP7EpySM93Ghmk9yjOpUhAmrA=",
+"mimetype": "image/webp",
+"directPath": "/v/t62.15575-24/26455351_283992877528341_426724316881703
+"fileLength": "493618",
+"mediaKeyTimestamp": "1657737199485",
+"firstFrameLength": 6114,
+---
+[~Line 202]
+"mimetype": "image/webp",
+"directPath": "/v/t62.15575-24/26455351_283992877528341_426724316881703
+"fileLength": "493618",
+"mediaKeyTimestamp": "1657737199485",
+"firstFrameLength": 6114,
+"firstFrameSidecar": "hihAfjPuyHtzYw==",
+"isAnimated": true,
+---
+[~Line 203]
+"directPath": "/v/t62.15575-24/26455351_283992877528341_426724316881703
+"fileLength": "493618",
+"mediaKeyTimestamp": "1657737199485",
+"firstFrameLength": 6114,
+"firstFrameSidecar": "hihAfjPuyHtzYw==",
+"isAnimated": true,
+"stickerSentTs": "1689000107648",
+---
+[~Line 207]
+"firstFrameSidecar": "hihAfjPuyHtzYw==",
+"isAnimated": true,
+"stickerSentTs": "1689000107648",
+"isAvatar": false
+},
+"messageContextInfo": {
+"deviceListMetadata": {
+---
+[~Line 295]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+33/141
+
+--- PAGE 34 ---
+{
+---
+[~Line 450]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+34/141
+
+--- PAGE 35 ---
+Buscar dados do webhook
+---
+[~Line 455]
+--- PAGE 35 ---
+Buscar dados do webhook
+Este método te permite verificar qual url esta salva no webhook
+/webhook/{{instance_key}}
+GET  https://{{host}}/rest/webhook/{{instance_key}}
+Header
+KEY
+---
+[~Line 473]
+string
+Mensagem do retorno da requisição
+webhookUrl
+string
+URL do Webhook salvo na API
+webhookEnabled
+boolean
+---
+[~Line 475]
+webhookUrl
+string
+URL do Webhook salvo na API
+webhookEnabled
+boolean
+true - Ativado para receber os eventos
+false - Desativado para receber os eventos
+---
+[~Line 483]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+35/141
+
+--- PAGE 36 ---
+Powered by APIembed (https://apiembed.com/)
+---
+[~Line 506]
+
+Configurar webhook
+Este método te permite verificar qual url esta salva no webhook
+/webhook/{{instance_key}}/configWebhook
+POST  https://{{host}}/rest/webhook/{{instance_key}}/configWebhook
+Header
+KEY
+---
+[~Line 518]
+Tipo
+Descrição
+webhookUrl
+string
+URL do seu webhook
+webhookEnabled
+boolean
+---
+[~Line 520]
+webhookUrl
+string
+URL do seu webhook
+webhookEnabled
+boolean
+true - Ativado para receber os eventos
+false - Desativado para receber os eventos
+---
+[~Line 528]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+36/141
+
+--- PAGE 37 ---
+Atributos
+---
+[~Line 541]
+string
+Mensagem do retorno da requisição
+webhookUrl
+string
+URL do Webhook salvo na API
+Request Body
+Exemplo de solicitação
+---
+[~Line 543]
+webhookUrl
+string
+URL do Webhook salvo na API
+Request Body
+Exemplo de solicitação
+Powered by APIembed (https://apiembed.com/)
+HTTP
+---
+[~Line 561]
+Host: host
+Content-Length: 81
+{"messageData": {"webhookUrl": "https://meuwebhook.com", "webhookEnabled": true}}
+Copy to Clipboard
+
+Configurar webhook utilizando painel
+Mega-api
+---
+[~Line 569]
+{
+"messageData": {
+"webhookUrl": "https://meuwebhook.com",
+"webhookEnabled": true
+}
+}
+    
+---
+[~Line 582]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+37/141
+
+--- PAGE 38 ---
+2️⃣ - Agora, clicando no botão DETALHES, você será redirecionado, para a tela com todos os detalhes
+---
+[~Line 588]
+2️⃣ - Agora, clicando no botão DETALHES, você será redirecionado, para a tela com todos os detalhes
+da instância contratada
+3️⃣ - Clique no EDITAR, abrirá uma janela modal. Adicione a url do weu webhook, salve e pronto. Sua
+instância a partir de agora, começará a receber todos os eventos disparados pelo whatsapp
+MESSAGE CONTROLLER
+Introdução
+Inicialmente, é essencial compreender que as mensagens podem ser direcionadas a um contato
+---
+[~Line 600]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+38/141
+
+--- PAGE 39 ---
+contato individual, um grupo, uma comunidade, um canal entre outros.
+---
+[~Line 605]
+--- PAGE 39 ---
+contato individual, um grupo, uma comunidade, um canal entre outros.
+Quando se trata de enviar mensagens, é necessário uma identificação do chat correspondente:
+1. ➡️ Para contatos individuais, usa-se o número de telefone do contato;
+2. ➡️ Nos grupos, o ID é formado pela combinação do número whatsapp do criador do grupo
+com um valor de data/hora em timestamp;
+3. ➡️ Para comunidade, o ID tambem é formado pelo whatsapp do criador do grupo com um valor
+---
+[~Line 618]
+Envio de Mensagens Textuais para
+Múltiplos Destinatários
+Este endpoint é projetado para enviar uma mensagem de texto para uma lista de contatos. Ele
+executa um loop, enviando a mensagem para cada contato presente no array de destinatários
+especificado na solicitação. Você tem a liberdade de enriquecer suas mensagens com formatações
+de texto e emojis.
+Para aprender a formatar textos conforme as diretrizes do WhatsApp, acesse este link.
+---
+[~Line 632]
+%0a
+\\n
+/sendMessage/{{instance_key}}/textToMany
+{
+"key": {
+"remoteJid": "556195562618@s.whatsapp.net",
+"fromMe": false,
+---
+[~Line 656]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+39/141
+
+--- PAGE 40 ---
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/textToMany
+---
+[~Line 660]
+
+--- PAGE 40 ---
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/textToMany
+Header
+KEY
+VALUE
+Authorization
+---
+[~Line 680]
+p
+Fique atento!
+Para enviar para contatos privados, o contato deve conter o @s.whatsapp.net.
+Para envios em vários grupos, você precisará coletar os ID's dos grupos utilizando
+o endpoint listGroup, os ID's devem conter @g.us
+{
+"messageData": {
+---
+[~Line 713]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+40/141
+
+--- PAGE 41 ---
+Atributos
+---
+[~Line 763]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+41/141
+
+--- PAGE 42 ---
+Powered by APIembed (https://apiembed.com/)
+---
+[~Line 779]
+
+
+POST /rest/sendMessage/instance_key/textToMany HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 116
+---
+[~Line 788]
+
+Envio de Mensagens de Texto
+Este endpoint é projetado para enviar uma mensagem de texto. Você tem a liberdade de enriquecer
+suas mensagens com formatações de texto e emojis.
+Para aprender a formatar textos conforme as diretrizes do WhatsApp, acesse este link.
+Adicionalmente, a inserção de emojis pode agregar mais expressividade às suas mensagens. Se
+precisar de uma referência de emojis, visite este Emojiterra.
+---
+[~Line 803]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+42/141
+
+--- PAGE 43 ---
+/sendMessage/{{instance_key}}/text
+---
+[~Line 807]
+
+--- PAGE 43 ---
+/sendMessage/{{instance_key}}/text
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/text
+Header
+KEY
+VALUE
+---
+[~Line 808]
+--- PAGE 43 ---
+/sendMessage/{{instance_key}}/text
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/text
+Header
+KEY
+VALUE
+Authorization
+---
+[~Line 817]
+p
+Fique atento!
+Para enviar para contatos privados, o contato deve conter o @s.whatsapp.net.
+Para envios em grupo, você precisará coletar os ID's dos grupos utilizando o
+endpoint listGroup, os ID's devem conter @g.us
+L
+07/01/2026, 15:45
+---
+[~Line 823]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+43/141
+
+--- PAGE 44 ---
+Atributos
+---
+[~Line 890]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+44/141
+
+--- PAGE 45 ---
+Número do whatsapp não existe
+---
+[~Line 910]
+She
+
+POST /rest/sendMessage/instance_key/text HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 83
+---
+[~Line 935]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+45/141
+
+--- PAGE 46 ---
+%0a
+---
+[~Line 941]
+%0a
+\\n
+/sendMessage/{{instance_key}}/textMentioned
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/textMentioned
+Header
+KEY
+VALUE
+---
+[~Line 942]
+\\n
+/sendMessage/{{instance_key}}/textMentioned
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/textMentioned
+Header
+KEY
+VALUE
+Authorization
+---
+[~Line 964]
+p
+Fique atento!
+Para enviar para contatos privados, o contato deve conter o @s.whatsapp.net.
+Para envios em grupo, você precisará coletar os ID's dos grupos utilizando o
+endpoint listGroup, os ID's devem conter @g.us
+{
+"messageData": {
+---
+[~Line 993]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+46/141
+
+--- PAGE 47 ---
+Response 200
+---
+[~Line 1040]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+47/141
+
+--- PAGE 48 ---
+Powered by APIembed (https://apiembed.com/)
+---
+[~Line 1056]
+
+
+POST /rest/sendMessage/instance_key/textMentioned HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 136
+---
+[~Line 1064]
+Copy to Clipboard
+
+Envio de arquivos (URL)
+Este método permite o envio de arquivos para seus chats de uma forma distinta:
+Através de um Link: Caso o arquivo já esteja disponível online, você pode simplesmente enviar
+seu URL.
+Quanto ao tamanho e aos formatos dos arquivos, as diretrizes do WhatsApp mudam com frequência.
+---
+[~Line 1065]
+
+Envio de arquivos (URL)
+Este método permite o envio de arquivos para seus chats de uma forma distinta:
+Através de um Link: Caso o arquivo já esteja disponível online, você pode simplesmente enviar
+seu URL.
+Quanto ao tamanho e aos formatos dos arquivos, as diretrizes do WhatsApp mudam com frequência.
+Por isso, é sempre uma boa prática consultar o site oficial do WhatsApp para as informações mais
+---
+[~Line 1066]
+Envio de arquivos (URL)
+Este método permite o envio de arquivos para seus chats de uma forma distinta:
+Através de um Link: Caso o arquivo já esteja disponível online, você pode simplesmente enviar
+seu URL.
+Quanto ao tamanho e aos formatos dos arquivos, as diretrizes do WhatsApp mudam com frequência.
+Por isso, é sempre uma boa prática consultar o site oficial do WhatsApp para as informações mais
+recentes. Encontre orientações detalhadas sobre tamanhos e formatos de arquivo aqui.
+---
+[~Line 1067]
+Este método permite o envio de arquivos para seus chats de uma forma distinta:
+Através de um Link: Caso o arquivo já esteja disponível online, você pode simplesmente enviar
+seu URL.
+Quanto ao tamanho e aos formatos dos arquivos, as diretrizes do WhatsApp mudam com frequência.
+Por isso, é sempre uma boa prática consultar o site oficial do WhatsApp para as informações mais
+recentes. Encontre orientações detalhadas sobre tamanhos e formatos de arquivo aqui.
+Exemplo
+---
+[~Line 1068]
+Através de um Link: Caso o arquivo já esteja disponível online, você pode simplesmente enviar
+seu URL.
+Quanto ao tamanho e aos formatos dos arquivos, as diretrizes do WhatsApp mudam com frequência.
+Por isso, é sempre uma boa prática consultar o site oficial do WhatsApp para as informações mais
+recentes. Encontre orientações detalhadas sobre tamanhos e formatos de arquivo aqui.
+Exemplo
+07/01/2026, 15:45
+---
+[~Line 1070]
+Quanto ao tamanho e aos formatos dos arquivos, as diretrizes do WhatsApp mudam com frequência.
+Por isso, é sempre uma boa prática consultar o site oficial do WhatsApp para as informações mais
+recentes. Encontre orientações detalhadas sobre tamanhos e formatos de arquivo aqui.
+Exemplo
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+---
+[~Line 1074]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+48/141
+
+--- PAGE 49 ---
+/sendMessage/{{instance_key}}/mediaUrl
+---
+[~Line 1078]
+
+--- PAGE 49 ---
+/sendMessage/{{instance_key}}/mediaUrl
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/mediaUrl
+Header
+KEY
+VALUE
+---
+[~Line 1079]
+--- PAGE 49 ---
+/sendMessage/{{instance_key}}/mediaUrl
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/mediaUrl
+Header
+KEY
+VALUE
+Authorization
+---
+[~Line 1094]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+49/141
+
+--- PAGE 50 ---
+Atributos
+---
+[~Line 1104]
+string
+Contato que vai receber a mensagem
+url
+string
+URL da mídia a ser enviada
+fileName
+string
+---
+[~Line 1106]
+url
+string
+URL da mídia a ser enviada
+fileName
+string
+Nome do arquivo
+type
+---
+[~Line 1107]
+string
+URL da mídia a ser enviada
+fileName
+string
+Nome do arquivo
+type
+string
+---
+[~Line 1109]
+fileName
+string
+Nome do arquivo
+type
+string
+É o tipo de mídia a ser enviada (image - video - audio - ptt(audio formato gra
+caption
+---
+[~Line 1112]
+type
+string
+É o tipo de mídia a ser enviada (image - video - audio - ptt(audio formato gra
+caption
+string
+É a legenda da mídia a ser enviada (Funciona somente em imagem e vídeo)
+mineType
+---
+[~Line 1113]
+string
+É o tipo de mídia a ser enviada (image - video - audio - ptt(audio formato gra
+caption
+string
+É a legenda da mídia a ser enviada (Funciona somente em imagem e vídeo)
+mineType
+string
+---
+[~Line 1115]
+caption
+string
+É a legenda da mídia a ser enviada (Funciona somente em imagem e vídeo)
+mineType
+string
+MineTypes:
+imagem = image/jpeg,
+---
+[~Line 1119]
+string
+MineTypes:
+imagem = image/jpeg,
+video = video/mp4,
+ptt = audio/ogg; codecs=opus,
+audio = audio/ogg; codecs=opus,
+pdf = application/pdf,
+---
+[~Line 1120]
+MineTypes:
+imagem = image/jpeg,
+video = video/mp4,
+ptt = audio/ogg; codecs=opus,
+audio = audio/ogg; codecs=opus,
+pdf = application/pdf,
+xlsx = application/vnd.openxmlformats-officedocument.spreadsheetml.she
+---
+[~Line 1121]
+imagem = image/jpeg,
+video = video/mp4,
+ptt = audio/ogg; codecs=opus,
+audio = audio/ogg; codecs=opus,
+pdf = application/pdf,
+xlsx = application/vnd.openxmlformats-officedocument.spreadsheetml.she
+word = application/vnd.openxmlformats-officedocument.wordprocessingm
+---
+[~Line 1122]
+video = video/mp4,
+ptt = audio/ogg; codecs=opus,
+audio = audio/ogg; codecs=opus,
+pdf = application/pdf,
+xlsx = application/vnd.openxmlformats-officedocument.spreadsheetml.she
+word = application/vnd.openxmlformats-officedocument.wordprocessingm
+php, bin, html = application/octet-stream,
+---
+[~Line 1124]
+audio = audio/ogg; codecs=opus,
+pdf = application/pdf,
+xlsx = application/vnd.openxmlformats-officedocument.spreadsheetml.she
+word = application/vnd.openxmlformats-officedocument.wordprocessingm
+php, bin, html = application/octet-stream,
+sql = application/x-sql
+Request Body
+---
+[~Line 1125]
+pdf = application/pdf,
+xlsx = application/vnd.openxmlformats-officedocument.spreadsheetml.she
+word = application/vnd.openxmlformats-officedocument.wordprocessingm
+php, bin, html = application/octet-stream,
+sql = application/x-sql
+Request Body
+Response 200
+---
+[~Line 1139]
+"messageData": {
+"to": "551199999999@s.whatsapp.net",
+"url": "{link do arquivo}",
+"fileName": "{nome_do_arquivo}.extensão",
+"type": "{tipo}",
+"caption": "{texto legenda}",
+"mimeType": "{mimetype}"
+---
+[~Line 1140]
+"to": "551199999999@s.whatsapp.net",
+"url": "{link do arquivo}",
+"fileName": "{nome_do_arquivo}.extensão",
+"type": "{tipo}",
+"caption": "{texto legenda}",
+"mimeType": "{mimetype}"
+}
+---
+[~Line 1142]
+"fileName": "{nome_do_arquivo}.extensão",
+"type": "{tipo}",
+"caption": "{texto legenda}",
+"mimeType": "{mimetype}"
+}
+}
+    
+---
+[~Line 1173]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+50/141
+
+--- PAGE 51 ---
+Atributos
+---
+[~Line 1193]
+string
+ID da mensagem
+url
+string
+Link do arquivo enviado
+mimetype
+string
+---
+[~Line 1195]
+url
+string
+Link do arquivo enviado
+mimetype
+string
+MineType do arquivo enviado
+mediaKey
+---
+[~Line 1198]
+mimetype
+string
+MineType do arquivo enviado
+mediaKey
+string
+Key do arquivo enviado
+fileName
+---
+[~Line 1199]
+string
+MineType do arquivo enviado
+mediaKey
+string
+Key do arquivo enviado
+fileName
+string
+---
+[~Line 1201]
+mediaKey
+string
+Key do arquivo enviado
+fileName
+string
+Nome do arquivo enviado
+directPath
+---
+[~Line 1202]
+string
+Key do arquivo enviado
+fileName
+string
+Nome do arquivo enviado
+directPath
+string
+---
+[~Line 1204]
+fileName
+string
+Nome do arquivo enviado
+directPath
+string
+Path do arquivo enviado
+mediaKeyTimestamp
+---
+[~Line 1207]
+directPath
+string
+Path do arquivo enviado
+mediaKeyTimestamp
+string
+Data e Hora do arquivo enviado
+messageTimestamp
+---
+[~Line 1208]
+string
+Path do arquivo enviado
+mediaKeyTimestamp
+string
+Data e Hora do arquivo enviado
+messageTimestamp
+string
+---
+[~Line 1210]
+mediaKeyTimestamp
+string
+Data e Hora do arquivo enviado
+messageTimestamp
+string
+Data e Hora do arquivo enviado
+Response 401
+---
+[~Line 1213]
+messageTimestamp
+string
+Data e Hora do arquivo enviado
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+---
+[~Line 1223]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+51/141
+
+--- PAGE 52 ---
+Powered by APIembed (https://apiembed.com/)
+---
+[~Line 1239]
+
+
+POST /rest/sendMessage/instance_key/mediaUrl HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 226
+---
+[~Line 1244]
+Host: host
+Content-Length: 226
+{"messageData": {"to": "551199999999@s.whatsapp.net", "url": "https://www.thecampusqdl.com/u
+Copy to Clipboard
+
+Envio de arquivos (URL) para Múltiplos
+Destinatários
+---
+[~Line 1247]
+Copy to Clipboard
+
+Envio de arquivos (URL) para Múltiplos
+Destinatários
+Este método permite o envio de arquivo para uma lista de contatos. Ele executa um loop, enviando a
+mensagem para cada contato presente no array de destinatários especificado na solicitação de uma
+forma distinta:
+---
+[~Line 1249]
+Envio de arquivos (URL) para Múltiplos
+Destinatários
+Este método permite o envio de arquivo para uma lista de contatos. Ele executa um loop, enviando a
+mensagem para cada contato presente no array de destinatários especificado na solicitação de uma
+forma distinta:
+Através de um Link: Caso o arquivo já esteja disponível online, você pode simplesmente enviar
+seu URL.
+---
+[~Line 1252]
+mensagem para cada contato presente no array de destinatários especificado na solicitação de uma
+forma distinta:
+Através de um Link: Caso o arquivo já esteja disponível online, você pode simplesmente enviar
+seu URL.
+Quanto ao tamanho e aos formatos dos arquivos, as diretrizes do WhatsApp mudam com frequência.
+Por isso, é sempre uma boa prática consultar o site oficial do WhatsApp para as informações mais
+recentes. Encontre orientações detalhadas sobre tamanhos e formatos de arquivo aqui.
+---
+[~Line 1253]
+forma distinta:
+Através de um Link: Caso o arquivo já esteja disponível online, você pode simplesmente enviar
+seu URL.
+Quanto ao tamanho e aos formatos dos arquivos, as diretrizes do WhatsApp mudam com frequência.
+Por isso, é sempre uma boa prática consultar o site oficial do WhatsApp para as informações mais
+recentes. Encontre orientações detalhadas sobre tamanhos e formatos de arquivo aqui.
+/sendMessage/{{instance_key}}/mediaUrlToMany
+---
+[~Line 1254]
+Através de um Link: Caso o arquivo já esteja disponível online, você pode simplesmente enviar
+seu URL.
+Quanto ao tamanho e aos formatos dos arquivos, as diretrizes do WhatsApp mudam com frequência.
+Por isso, é sempre uma boa prática consultar o site oficial do WhatsApp para as informações mais
+recentes. Encontre orientações detalhadas sobre tamanhos e formatos de arquivo aqui.
+/sendMessage/{{instance_key}}/mediaUrlToMany
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/mediaUrlToMany
+---
+[~Line 1256]
+Quanto ao tamanho e aos formatos dos arquivos, as diretrizes do WhatsApp mudam com frequência.
+Por isso, é sempre uma boa prática consultar o site oficial do WhatsApp para as informações mais
+recentes. Encontre orientações detalhadas sobre tamanhos e formatos de arquivo aqui.
+/sendMessage/{{instance_key}}/mediaUrlToMany
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/mediaUrlToMany
+Header
+p
+---
+[~Line 1257]
+Por isso, é sempre uma boa prática consultar o site oficial do WhatsApp para as informações mais
+recentes. Encontre orientações detalhadas sobre tamanhos e formatos de arquivo aqui.
+/sendMessage/{{instance_key}}/mediaUrlToMany
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/mediaUrlToMany
+Header
+p
+Fique atento!
+---
+[~Line 1258]
+recentes. Encontre orientações detalhadas sobre tamanhos e formatos de arquivo aqui.
+/sendMessage/{{instance_key}}/mediaUrlToMany
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/mediaUrlToMany
+Header
+p
+Fique atento!
+Para enviar para contatos privados, o contato deve conter o @s.whatsapp.net.
+---
+[~Line 1262]
+p
+Fique atento!
+Para enviar para contatos privados, o contato deve conter o @s.whatsapp.net.
+Para envios em grupo, você precisará coletar os ID's dos grupos utilizando o
+endpoint listGroup, os ID's devem conter @g.us
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+---
+[~Line 1267]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+52/141
+
+--- PAGE 53 ---
+KEY
+---
+[~Line 1282]
+array
+Contatos que vão receber a mensagem
+url
+string
+URL da mídia a ser enviada
+fileName
+string
+---
+[~Line 1287]
+fileName
+string
+Nome do arquivo
+type
+string
+É o tipo de mídia a ser enviada (image - video - audio - document)
+caption
+---
+[~Line 1290]
+type
+string
+É o tipo de mídia a ser enviada (image - video - audio - document)
+caption
+string
+É a legenda da mídia a ser enviada (Funciona somente em imagem e vídeo)
+mineType
+---
+[~Line 1291]
+string
+É o tipo de mídia a ser enviada (image - video - audio - document)
+caption
+string
+É a legenda da mídia a ser enviada (Funciona somente em imagem e vídeo)
+mineType
+string
+---
+[~Line 1297]
+string
+MineTypes:
+imagem = image/jpeg,
+video = video/mp4,
+audio = audio/ogg; codecs=opus,
+pdf = application/pdf,
+xlsx = application/vnd.openxmlformats-officedocument.spreadsheetml.she
+---
+[~Line 1298]
+MineTypes:
+imagem = image/jpeg,
+video = video/mp4,
+audio = audio/ogg; codecs=opus,
+pdf = application/pdf,
+xlsx = application/vnd.openxmlformats-officedocument.spreadsheetml.she
+word = application/vnd.openxmlformats-officedocument.wordprocessingm
+---
+[~Line 1299]
+imagem = image/jpeg,
+video = video/mp4,
+audio = audio/ogg; codecs=opus,
+pdf = application/pdf,
+xlsx = application/vnd.openxmlformats-officedocument.spreadsheetml.she
+word = application/vnd.openxmlformats-officedocument.wordprocessingm
+php, bin, html = application/octet-stream,
+---
+[~Line 1302]
+pdf = application/pdf,
+xlsx = application/vnd.openxmlformats-officedocument.spreadsheetml.she
+word = application/vnd.openxmlformats-officedocument.wordprocessingm
+php, bin, html = application/octet-stream,
+sql = application/x-sql
+Request Body
+{
+---
+[~Line 1311]
+"551199999999@s.whatsapp.net", "551199999999@s.whatsapp.net"
+],
+"url": "{link do arquivo}",
+"fileName": "{nome_do_arquivo}.extensão",
+"type": "{tipo do arquivo}",
+"caption": "{texto legenda}",
+"mimeType": "{mimetype}"
+---
+[~Line 1312]
+],
+"url": "{link do arquivo}",
+"fileName": "{nome_do_arquivo}.extensão",
+"type": "{tipo do arquivo}",
+"caption": "{texto legenda}",
+"mimeType": "{mimetype}"
+}
+---
+[~Line 1313]
+"url": "{link do arquivo}",
+"fileName": "{nome_do_arquivo}.extensão",
+"type": "{tipo do arquivo}",
+"caption": "{texto legenda}",
+"mimeType": "{mimetype}"
+}
+}
+---
+[~Line 1314]
+"fileName": "{nome_do_arquivo}.extensão",
+"type": "{tipo do arquivo}",
+"caption": "{texto legenda}",
+"mimeType": "{mimetype}"
+}
+}
+    
+---
+[~Line 1343]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+53/141
+
+--- PAGE 54 ---
+Response 200
+---
+[~Line 1401]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+54/141
+
+--- PAGE 55 ---
+Powered by APIembed (https://apiembed.com/)
+---
+[~Line 1417]
+
+
+POST /rest/sendMessage/instance_key/mediaUrlToMany HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 260
+---
+[~Line 1422]
+Host: host
+Content-Length: 260
+{"messageData": {"to": ["551199999999@s.whatsapp.net", "551199999999@s.whatsapp.net"], "url"
+Copy to Clipboard
+
+Envio de arquivos (BASE64)
+Este método permite o envio de arquivos para seus chats de uma forma distinta:
+---
+[~Line 1425]
+Copy to Clipboard
+
+Envio de arquivos (BASE64)
+Este método permite o envio de arquivos para seus chats de uma forma distinta:
+Utilizando Base64: Para esta opção, sua aplicação deve incluir uma funcionalidade para
+transformar a imagem em Base64. Uma boa maneira de verificar se a conversão foi bem-
+sucedida é copiar o código Base64 gerado e colá-lo na barra de endereços do navegador. Se a
+---
+[~Line 1426]
+
+Envio de arquivos (BASE64)
+Este método permite o envio de arquivos para seus chats de uma forma distinta:
+Utilizando Base64: Para esta opção, sua aplicação deve incluir uma funcionalidade para
+transformar a imagem em Base64. Uma boa maneira de verificar se a conversão foi bem-
+sucedida é copiar o código Base64 gerado e colá-lo na barra de endereços do navegador. Se a
+imagem for exibida corretamente, significa que a conversão foi efetiva. Se não, é sinal de que
+---
+[~Line 1427]
+Envio de arquivos (BASE64)
+Este método permite o envio de arquivos para seus chats de uma forma distinta:
+Utilizando Base64: Para esta opção, sua aplicação deve incluir uma funcionalidade para
+transformar a imagem em Base64. Uma boa maneira de verificar se a conversão foi bem-
+sucedida é copiar o código Base64 gerado e colá-lo na barra de endereços do navegador. Se a
+imagem for exibida corretamente, significa que a conversão foi efetiva. Se não, é sinal de que
+algo precisa ser ajustado. Lembre-se de adicionar 'data:{mimetype};base64,' antes do seu
+---
+[~Line 1428]
+Este método permite o envio de arquivos para seus chats de uma forma distinta:
+Utilizando Base64: Para esta opção, sua aplicação deve incluir uma funcionalidade para
+transformar a imagem em Base64. Uma boa maneira de verificar se a conversão foi bem-
+sucedida é copiar o código Base64 gerado e colá-lo na barra de endereços do navegador. Se a
+imagem for exibida corretamente, significa que a conversão foi efetiva. Se não, é sinal de que
+algo precisa ser ajustado. Lembre-se de adicionar 'data:{mimetype};base64,' antes do seu
+código Base64.
+---
+[~Line 1429]
+Utilizando Base64: Para esta opção, sua aplicação deve incluir uma funcionalidade para
+transformar a imagem em Base64. Uma boa maneira de verificar se a conversão foi bem-
+sucedida é copiar o código Base64 gerado e colá-lo na barra de endereços do navegador. Se a
+imagem for exibida corretamente, significa que a conversão foi efetiva. Se não, é sinal de que
+algo precisa ser ajustado. Lembre-se de adicionar 'data:{mimetype};base64,' antes do seu
+código Base64.
+Para testar este método, você pode usar ferramentas online de conversão de imagens para Base64.
+---
+[~Line 1430]
+transformar a imagem em Base64. Uma boa maneira de verificar se a conversão foi bem-
+sucedida é copiar o código Base64 gerado e colá-lo na barra de endereços do navegador. Se a
+imagem for exibida corretamente, significa que a conversão foi efetiva. Se não, é sinal de que
+algo precisa ser ajustado. Lembre-se de adicionar 'data:{mimetype};base64,' antes do seu
+código Base64.
+Para testar este método, você pode usar ferramentas online de conversão de imagens para Base64.
+Aqui estão alguns exemplos de conversores que você pode experimentar.
+---
+[~Line 1431]
+sucedida é copiar o código Base64 gerado e colá-lo na barra de endereços do navegador. Se a
+imagem for exibida corretamente, significa que a conversão foi efetiva. Se não, é sinal de que
+algo precisa ser ajustado. Lembre-se de adicionar 'data:{mimetype};base64,' antes do seu
+código Base64.
+Para testar este método, você pode usar ferramentas online de conversão de imagens para Base64.
+Aqui estão alguns exemplos de conversores que você pode experimentar.
+Base64 Guru
+---
+[~Line 1432]
+imagem for exibida corretamente, significa que a conversão foi efetiva. Se não, é sinal de que
+algo precisa ser ajustado. Lembre-se de adicionar 'data:{mimetype};base64,' antes do seu
+código Base64.
+Para testar este método, você pode usar ferramentas online de conversão de imagens para Base64.
+Aqui estão alguns exemplos de conversores que você pode experimentar.
+Base64 Guru
+Quanto ao tamanho e aos formatos dos arquivos, as diretrizes do WhatsApp mudam com frequência.
+---
+[~Line 1433]
+algo precisa ser ajustado. Lembre-se de adicionar 'data:{mimetype};base64,' antes do seu
+código Base64.
+Para testar este método, você pode usar ferramentas online de conversão de imagens para Base64.
+Aqui estão alguns exemplos de conversores que você pode experimentar.
+Base64 Guru
+Quanto ao tamanho e aos formatos dos arquivos, as diretrizes do WhatsApp mudam com frequência.
+Por isso, é sempre uma boa prática consultar o site oficial do WhatsApp para as informações mais
+---
+[~Line 1435]
+Para testar este método, você pode usar ferramentas online de conversão de imagens para Base64.
+Aqui estão alguns exemplos de conversores que você pode experimentar.
+Base64 Guru
+Quanto ao tamanho e aos formatos dos arquivos, as diretrizes do WhatsApp mudam com frequência.
+Por isso, é sempre uma boa prática consultar o site oficial do WhatsApp para as informações mais
+recentes. Encontre orientações detalhadas sobre tamanhos e formatos de arquivo aqui.
+Exemplo
+---
+[~Line 1436]
+Aqui estão alguns exemplos de conversores que você pode experimentar.
+Base64 Guru
+Quanto ao tamanho e aos formatos dos arquivos, as diretrizes do WhatsApp mudam com frequência.
+Por isso, é sempre uma boa prática consultar o site oficial do WhatsApp para as informações mais
+recentes. Encontre orientações detalhadas sobre tamanhos e formatos de arquivo aqui.
+Exemplo
+07/01/2026, 15:45
+---
+[~Line 1442]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+55/141
+
+--- PAGE 56 ---
+/sendMessage/{{instance_key}}/mediaBase64
+---
+[~Line 1446]
+
+--- PAGE 56 ---
+/sendMessage/{{instance_key}}/mediaBase64
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/mediaBase64
+Header
+KEY
+VALUE
+---
+[~Line 1447]
+--- PAGE 56 ---
+/sendMessage/{{instance_key}}/mediaBase64
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/mediaBase64
+Header
+KEY
+VALUE
+Authorization
+---
+[~Line 1462]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+56/141
+
+--- PAGE 57 ---
+Atributos
+---
+[~Line 1472]
+string
+Contato que vai receber a mensagem
+base64
+string
+Arquivo no formato base64 que vai ser enviado
+fileName
+string
+---
+[~Line 1474]
+base64
+string
+Arquivo no formato base64 que vai ser enviado
+fileName
+string
+Nome do arquivo
+type
+---
+[~Line 1475]
+string
+Arquivo no formato base64 que vai ser enviado
+fileName
+string
+Nome do arquivo
+type
+string
+---
+[~Line 1477]
+fileName
+string
+Nome do arquivo
+type
+string
+É o tipo de mídia a ser enviada (image - video - audio - ptt (audio formato gra
+caption
+---
+[~Line 1480]
+type
+string
+É o tipo de mídia a ser enviada (image - video - audio - ptt (audio formato gra
+caption
+string
+É a legenda da mídia a ser enviada (Funciona somente em imagem e vídeo)
+mineType
+---
+[~Line 1481]
+string
+É o tipo de mídia a ser enviada (image - video - audio - ptt (audio formato gra
+caption
+string
+É a legenda da mídia a ser enviada (Funciona somente em imagem e vídeo)
+mineType
+string
+---
+[~Line 1487]
+string
+MineTypes:
+imagem = image/jpeg,
+video = video/mp4,
+audio = audio/ogg; codecs=opus,
+ptt = audio/ogg; codecs=opus,
+pdf = application/pdf,
+---
+[~Line 1488]
+MineTypes:
+imagem = image/jpeg,
+video = video/mp4,
+audio = audio/ogg; codecs=opus,
+ptt = audio/ogg; codecs=opus,
+pdf = application/pdf,
+xlsx = application/vnd.openxmlformats-officedocument.spreadsheetml.she
+---
+[~Line 1489]
+imagem = image/jpeg,
+video = video/mp4,
+audio = audio/ogg; codecs=opus,
+ptt = audio/ogg; codecs=opus,
+pdf = application/pdf,
+xlsx = application/vnd.openxmlformats-officedocument.spreadsheetml.she
+word = application/vnd.openxmlformats-officedocument.wordprocessingm
+---
+[~Line 1490]
+video = video/mp4,
+audio = audio/ogg; codecs=opus,
+ptt = audio/ogg; codecs=opus,
+pdf = application/pdf,
+xlsx = application/vnd.openxmlformats-officedocument.spreadsheetml.she
+word = application/vnd.openxmlformats-officedocument.wordprocessingm
+php, bin, html = application/octet-stream,
+---
+[~Line 1492]
+ptt = audio/ogg; codecs=opus,
+pdf = application/pdf,
+xlsx = application/vnd.openxmlformats-officedocument.spreadsheetml.she
+word = application/vnd.openxmlformats-officedocument.wordprocessingm
+php, bin, html = application/octet-stream,
+sql = application/x-sql
+Request Body
+---
+[~Line 1501]
+"messageData": {
+"to": "551199999999@s.whatsapp.net",
+"base64": "data:application/pdf;base64,JVBERi0xLjcKJbXtrvsKNCAwIG9iago8
+"fileName": "Boleto.pdf",
+"type": "document",
+"caption": "Segue o boleto",
+"mimeType": "application/pdf"
+---
+[~Line 1502]
+"to": "551199999999@s.whatsapp.net",
+"base64": "data:application/pdf;base64,JVBERi0xLjcKJbXtrvsKNCAwIG9iago8
+"fileName": "Boleto.pdf",
+"type": "document",
+"caption": "Segue o boleto",
+"mimeType": "application/pdf"
+}
+---
+[~Line 1503]
+"base64": "data:application/pdf;base64,JVBERi0xLjcKJbXtrvsKNCAwIG9iago8
+"fileName": "Boleto.pdf",
+"type": "document",
+"caption": "Segue o boleto",
+"mimeType": "application/pdf"
+}
+}
+---
+[~Line 1504]
+"fileName": "Boleto.pdf",
+"type": "document",
+"caption": "Segue o boleto",
+"mimeType": "application/pdf"
+}
+}
+p
+---
+[~Line 1517]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+57/141
+
+--- PAGE 58 ---
+Atributos
+---
+[~Line 1570]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+58/141
+
+--- PAGE 59 ---
+Powered by APIembed (https://apiembed.com/)
+---
+[~Line 1587]
+
+
+POST /rest/sendMessage/instance_key/mediaBase64 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 235
+---
+[~Line 1592]
+Host: host
+Content-Length: 235
+{"messageData": {"to": "551199999999@s.whatsapp.net", "base64": "data:image/png;base64,iVBOR
+Copy to Clipboard
+
+Envio de localização
+Método responsavel por enviar uma localização de endereço ao seus contatos
+---
+[~Line 1596]
+
+Envio de localização
+Método responsavel por enviar uma localização de endereço ao seus contatos
+Exemplo
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+---
+[~Line 1600]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+59/141
+
+--- PAGE 60 ---
+/sendMessage/{{instance_key}}/location
+---
+[~Line 1604]
+
+--- PAGE 60 ---
+/sendMessage/{{instance_key}}/location
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/location
+Header
+KEY
+VALUE
+---
+[~Line 1605]
+--- PAGE 60 ---
+/sendMessage/{{instance_key}}/location
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/location
+Header
+KEY
+VALUE
+Authorization
+---
+[~Line 1620]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+60/141
+
+--- PAGE 61 ---
+Atributos
+---
+[~Line 1633]
+string
+Endereço (Opcional)
+caption
+string
+Legenda (Opcional)
+latitude
+string
+---
+[~Line 1662]
+                                                    "to": "551199999999@s.whats
+                                                    "address": "QD 04 Lote 25",
+                                                    "caption": "Escola classe",
+                                                    "latitude": 157470795,
+                                                    "longitude": 482982315
+                                                }
+                                            }
+---
+[~Line 1677]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+61/141
+
+--- PAGE 62 ---
+Atributos
+---
+[~Line 1690]
+id
+string
+ID do arquivo
+degreesLatitude
+number
+Latitude enviada
+degreesLongitude
+---
+[~Line 1727]
+
+
+POST /rest/sendMessage/instance_key/location HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 157
+---
+[~Line 1732]
+Host: host
+Content-Length: 157
+{"messageData": {"to": "551199999999@s.whatsapp.net", "address": "QD 04 Lote 25", "caption":
+Copy to Clipboard
+
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+---
+[~Line 1737]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+62/141
+
+--- PAGE 63 ---
+Envio link com pré vizualização
+---
+[~Line 1742]
+--- PAGE 63 ---
+Envio link com pré vizualização
+Este endpoint é projetado para enviar uma mensagem com link, para que os usuários sejam
+direcionados ao site
+Exemplo
+/sendMessage/{{instance_key}}/sendLinkPreview
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/sendLinkPreview
+---
+[~Line 1745]
+direcionados ao site
+Exemplo
+/sendMessage/{{instance_key}}/sendLinkPreview
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/sendLinkPreview
+p
+Fique atento!
+O link só fica clicavel caso o destinatário ja tenha seu telefone nos contatos, ou se
+---
+[~Line 1746]
+Exemplo
+/sendMessage/{{instance_key}}/sendLinkPreview
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/sendLinkPreview
+p
+Fique atento!
+O link só fica clicavel caso o destinatário ja tenha seu telefone nos contatos, ou se
+o mesmo iniciar uma conversa com vocë.
+---
+[~Line 1754]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+63/141
+
+--- PAGE 64 ---
+Header
+---
+[~Line 1772]
+textWithLink
+string
+URL que será enviada
+Request Body
+Response 200
+Atributos
+Tipo
+---
+[~Line 1805]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+64/141
+
+--- PAGE 65 ---
+Atributos
+---
+[~Line 1844]
+
+
+POST /rest/sendMessage/instance_key/sendLinkPreview HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 94
+---
+[~Line 1849]
+Host: host
+Content-Length: 94
+{"messageData": {"to": "556199999999@s.whatsapp.net", "textWithLink": "URL que será enviada"
+Copy to Clipboard
+
+Envio de lista de opções
+07/01/2026, 15:45
+---
+[~Line 1855]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+65/141
+
+--- PAGE 66 ---
+Método responsavel por enviar uma mensagem de texto com uma lista de opções, onde o usuário
+---
+[~Line 1859]
+
+--- PAGE 66 ---
+Método responsavel por enviar uma mensagem de texto com uma lista de opções, onde o usuário
+seleciona umas das opções enviadas
+Exemplo
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+---
+[~Line 1864]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+66/141
+
+--- PAGE 67 ---
+L
+---
+[~Line 1871]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+67/141
+
+--- PAGE 68 ---
+/sendMessage/{{instance_key}}/listMessage
+---
+[~Line 1875]
+
+--- PAGE 68 ---
+/sendMessage/{{instance_key}}/listMessage
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/listMessage
+Header
+KEY
+VALUE
+---
+[~Line 1876]
+--- PAGE 68 ---
+/sendMessage/{{instance_key}}/listMessage
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/listMessage
+Header
+KEY
+VALUE
+Authorization
+---
+[~Line 1891]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+68/141
+
+--- PAGE 69 ---
+Atributos
+---
+[~Line 1925]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+69/141
+
+--- PAGE 70 ---
+Response 200
+---
+[~Line 1980]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+70/141
+
+--- PAGE 71 ---
+Atributos
+---
+[~Line 2029]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+71/141
+
+--- PAGE 72 ---
+Powered by APIembed (https://apiembed.com/)
+---
+[~Line 2045]
+
+
+POST /rest/sendMessage/instance_key/listMessage HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 294
+---
+[~Line 2055]
+Envio de lista de opções para Múltiplos
+Destinatários
+Método responsável por enviar uma lista de opções para múltiplos destinatários, onde cada
+destinatário pode selecionar uma das opções enviadas.
+Exemplo
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+---
+[~Line 2060]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+72/141
+
+--- PAGE 73 ---
+L
+---
+[~Line 2067]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+73/141
+
+--- PAGE 74 ---
+/sendMessage/{{instance_key}}/listMessageToMany
+---
+[~Line 2071]
+
+--- PAGE 74 ---
+/sendMessage/{{instance_key}}/listMessageToMany
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/listMessageToMany
+Header
+KEY
+VALUE
+---
+[~Line 2072]
+--- PAGE 74 ---
+/sendMessage/{{instance_key}}/listMessageToMany
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/listMessageToMany
+Header
+KEY
+VALUE
+Authorization
+---
+[~Line 2087]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+74/141
+
+--- PAGE 75 ---
+Atributos
+---
+[~Line 2121]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+75/141
+
+--- PAGE 76 ---
+Response 200
+---
+[~Line 2176]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+76/141
+
+--- PAGE 77 ---
+Atributos
+---
+[~Line 2237]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+77/141
+
+--- PAGE 78 ---
+Powered by APIembed (https://apiembed.com/)
+---
+[~Line 2253]
+
+
+POST /rest/sendMessage/instance_key/listMessageToMany HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 594
+---
+[~Line 2261]
+Copy to Clipboard
+
+Enviar contato
+Este procedimento direto possibilita o envio de informações de um contato através do
+preenchimento dos campos necessários no método. Não é requerido que o contato esteja
+previamente salvo na sua lista, apenas insira os detalhes necessários e proceda com o envio.
+Exemplo
+---
+[~Line 2268]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+78/141
+
+--- PAGE 79 ---
+/sendMessage/{{instance_key}}/contactMessage
+---
+[~Line 2272]
+
+--- PAGE 79 ---
+/sendMessage/{{instance_key}}/contactMessage
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/contactMessage
+Header
+KEY
+VALUE
+---
+[~Line 2273]
+--- PAGE 79 ---
+/sendMessage/{{instance_key}}/contactMessage
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/contactMessage
+Header
+KEY
+VALUE
+Authorization
+---
+[~Line 2288]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+79/141
+
+--- PAGE 80 ---
+Atributos
+---
+[~Line 2347]
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+80/141
+
+---

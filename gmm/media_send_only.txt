@@ -1,0 +1,6943 @@
+Found 141 relevant pages
+
+=== PAGE 1 ===
+
+Documentação
+Seja bem vindo a Mega-api ! Documentação completa da melhor api, para integração com o
+whatsapp no Brasil!:
+Introdução à Mega-api
+Bem-vindo à Mega-api! Conheça nossa solução de integração com o WhatsApp e explore seus
+recursos:
+O que é a Mega-api?
+A Mega-api é uma solução avançada para integração com o WhatsApp, permitindo que empresas e
+desenvolvedores ampliem suas capacidades de comunicação, conectando-se de maneira eficiente e
+segura com seus clientes através deste popular aplicativo de mensagens.
+Para quem a Mega-api foi desenvolvida?
+A Mega-api foi desenvolvida para empresas, desenvolvedores e profissionais que desejam otimizar
+sua comunicação via WhatsApp, seja para atendimento ao cliente, marketing ou outros objetivos
+empresariais. Independentemente do tamanho ou do setor, a Mega-api tem as ferramentas para
+impulsionar suas operações.
+Quem pode utilizar a Mega-api?
+Qualquer pessoa ou empresa que deseja melhorar e ampliar sua comunicação no WhatsApp. Desde
+pequenas empresas até grandes corporações, a Mega-api é flexível e escalável para atender às
+necessidades de todos.
+Limites de envio de mensagens:
+NÃO TEMOS LIMITE para o número de mensagens enviadas! No entanto, é importante entender que
+você está utilizando uma sessão do WhatsApp Web, então o padrão de utilização precisa ser
+compatível. Além disso, sempre recomendamos que você leia atentamente as políticas
+estabelecidas pelo próprio WhatsApp em sua página oficial.
+p
+Importante você saber
+A Mega-api não é destinada para práticas de Spam no WhatsApp. Utilize com
+sabedoria e responsabilidade.
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+1/141
+
+
+=== PAGE 2 ===
+
+URLs para chamadas dos endpoints
+Os hosts listados abaixo podem variar de acordo com a instância criada. A seleção específica do
+host dependerá da disponibilidade do servidor no momento da criação da instância. Isso é feito para
+garantir que nossos servidores não sejam sobrecarregados e para manter a performance ideal para
+todos os usuários
+HOST
+URL
+api2
+api2.megaapi.com.br
+api4
+api4.megaapi.com.br
+api5
+api5.megaapi.com.br
+apistart01
+apistart01.megaapi.com.br
+apistart02
+apistart02.megaapi.com.br
+apibusiness01
+apibusiness01.megaapi.com.br
+Para sua comodidade, lembre-se de que essas informações, bem como outras configurações e
+detalhes relevantes, estão sempre disponíveis no painel de usuário da Mega-api. Recomendamos
+verificar regularmente para obter as informações mais atualizadas e garantir a otimização do uso da
+nossa API.
+p
+Armazenamento de mensagens
+A Mega-api não armazena nenhuma das mensagens que são trafegadas, durante a
+conexão do seu whatsapp com uma instância da Mega-api, fica por conta do
+usuário, criar seu banco de dados, para armazenamento de todas as mensagens.
+L
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+2/141
+
+
+=== PAGE 3 ===
+
+Instance Key e Token
+Entenda os conceitos da Mega-api e saiba como a Instance Key e o Token são fundamentais para a
+integração com sua aplicação.
+Para que serve?
+Para assegurar uma comunicação segura entre a Mega-api e sua aplicação, estabelecemos um
+protocolo de autenticação robusto. Cada interação com nossa API deve ser autenticada usando uma
+Instance Key e um Token. Esses identificadores garantem a integridade e segurança das suas
+requisições.
+Na Mega-api, a Instance Key é usada na URL, enquanto o Token é incluído no header das requisições
+no formato Bearer, garantindo assim uma maior segurança na transmissão de dados.
+Como localizar minha Instance Key e Token?
+Assim que você cria sua conta na Mega-api, será necessário criar uma instância, que terá sua própria
+Instance Key e Token. Estes dois identificadores trabalham juntos para garantir a comunicação
+segura entre sua aplicação e a Mega-api. Para visualizar sua Instance Key e Token, acesse a
+instância no painel do usuário e clique em 'Detalhes'. Lá, você encontrará todos os detalhes
+relacionados à instância. E lembre-se, se você tiver múltiplas instâncias, cada uma terá sua própria
+Instance Key e Token.
+p
+Atenção
+É fundamental proteger sua Instance Key e Token. Se caírem em mãos erradas,
+elas podem ser usadas para se comunicar com a Mega-api em seu nome. Lembre-
+se de manter essas informações longe do frontend e, ao interagir com nossa API,
+sempre inclua o Token no header das requisições no padrão Bearer. Isso garante a
+segurança e a correta autenticação das suas ações.
+L
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+3/141
+
+
+=== PAGE 4 ===
+
+Autenticação Bearer Token
+Para garantir uma comunicação segura e autenticada entre sua aplicação e a Mega-api, utilizamos o
+método de autenticação Bearer Token. Esta é uma prática padrão que oferece segurança robusta
+para APIs.
+Na autenticação Bearer Token, o Token é enviado no header da requisição HTTP. Isso permite à
+Mega-api validar e autenticar a requisição antes de processá-la. Assegura-se de que apenas
+entidades autorizadas possam interagir com a API.
+Aqui está um exemplo de como incluir o Bearer Token no header de uma requisição:
+Authorization: Bearer SEU_TOKEN_AQUI
+Substitua "SEU_TOKEN_AQUI" pelo token específico da sua instância. Mantenha o prefixo "Bearer"
+exatamente como mostrado, seguido de um espaço e depois o seu token.
+É essencial que todas as suas requisições para a Mega-api sigam este formato de autenticação. Isso
+não apenas garante a segurança das suas operações, mas também a integridade dos dados
+transmitidos.
+INSTANCE CONTROLLER
+Introdução
+Uma instância pode ser visualizada como uma ponte dedicada entre um número específico de
+telefone com uma conta no WhatsApp e a plataforma Mega-API. Esta ponte permite a transmissão e
+recepção de mensagens, possibilitando uma comunicação fluida e consistente. Com a capacidade
+de criar múltiplas instâncias, os usuários têm a liberdade de conectar diversos números de
+WhatsApp à sua conta na plataforma.
+Por trás da Instância
+No contexto técnico, quando falamos de uma instância, estamos nos referindo a um container ou
+máquina virtual dentro da nossa sofisticada infraestrutura. Essa estrutura é especialmente projetada
+para oferecer um ambiente seguro e otimizado para a conexão do seu número de WhatsApp. Embora
+cada instância esteja vinculada a um único número, há uma flexibilidade inerente; é completamente
+viável desconectar um número existente e estabelecer uma nova conexão com um número diferente
+usando a mesma instância.
+Nossa Abordagem Técnica
+A base do nosso serviço é inspirada na versatilidade do WhatsApp Web. No entanto, evoluímos essa
+ideia ao construir uma camada adicional que permite a manipulação por meio de uma API RestFul,
+oferecendo uma experiência ampliada e mais controlada. Ao avançar, vamos detalhar mais sobre o
+funcionamento das instâncias, garantindo que você esteja bem equipado para começar.
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+4/141
+
+
+=== PAGE 5 ===
+
+Status
+Este método te permite verificar se sua instância está conectada a sua conta Whatsapp.
+/instance/{{instance_key}}
+GET  https://{{host}}/rest/instance/{{instance_key}}
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Response
+Atributos
+Tipo
+Descrição
+message
+string
+Mensagem de retorno
+instance
+object
+Contém os dados da instancia
+key
+string
+Nome da instancia
+id
+string
+Whatsapp que está conectado
+verifiedName / name
+string
+Nome do contato
+Exemplo de solicitação
+p
+Atenção
+Quando não estiver conectado, o retorno são parecidos, so que não haverá chave
+{user} no objeto de resposta da requisição, assim você saberá que não existe
+nenhum whatsapp conectado nessa instância
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+5/141
+
+
+=== PAGE 6 ===
+
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+C#
+Go
+GET /rest/instance/instance_key HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Buscar todos os chats
+Este método te permite buscar todos os chats.
+/instance/chats/{{instance_key}}
+GET  https://{{host}}/rest/instance/chats/{{instance_key}}
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Response
+Atributos
+Tipo
+Descrição
+error
+string
+Status do Retorno
+message
+string
+Mensagem do retorno
+chats
+array
+Lista contendo todos os chats
+participants
+array
+Lista os participantes do grupo
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+6/141
+
+
+=== PAGE 7 ===
+
+Atributos
+Tipo
+Descrição
+id
+string
+Whatsapp da conversa
+unreadCount
+number
+Qtd. Mensagens não lidas
+conversationTimestamp / low
+timestamp
+Data e hora
+conversationTimestamp / unsigned
+boolean
+Whatsapp oficial (Selo verde)
+Exemplo de solicitação
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+C#
+Go
+GET /rest/instance/chats/instance_key HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Buscar todos os contatos
+Este método te permite buscar todos os contatos.
+/instance/contacts/{{instance_key}}
+GET  https://{{host}}/rest/instance/contacts/{{instance_key}}
+p
+Atenção
+Esse endpoint tem um prazo para expirar a lista dos chats. Expirando, haverá a
+necessidade de desconectar o whatsapp, conectar novamente para gerar uma
+nova lista de chats, com prazo renovado para expirar
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+7/141
+
+
+=== PAGE 8 ===
+
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Response
+Atributos
+Tipo
+Descrição
+error
+string
+Status do Retorno
+message
+string
+Mensagem do retorno
+chats
+array
+Lista contendo todos os contatos
+id
+string
+Contato
+name
+string
+Nome do contato
+Exemplo de solicitação
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+C#
+Go
+GET /rest/instance/contacts/instance_key HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+p
+Atenção
+Esse endpoint tem um prazo para expirar a lista dos contatos. Expirando, haverá a
+necessidade de desconectar o whatsapp, conectar novamente para gerar uma
+nova lista de contatos, com prazo renovado para expirar
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+8/141
+
+
+=== PAGE 9 ===
+
+Buscar mensagens
+Este método permite que busque as mensagens de um chat específico
+/instance/messages/{{instance_key}}?chat_id=551199999999
+GET  https://{{host}}/rest/instance/messages/{{instance_key}}?chat_id=551199999999
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Request Params
+Atributos
+Tipo
+Descrição
+chat_id
+string
+Contato Whatsapp (EX: 5511999999999@s.whatsapp.net ) ou Grupo Whatsa
+Response
+Atributos
+Tipo
+Descrição
+remoteJid
+string
+Contato Whatsapp
+id
+string
+ID da mensagem
+fromMe
+boolean
+true - Mensagem enviada
+false - Mensagem recebida
+status
+number
+Status da mensagem enviada
+2 - Enviada
+3 - Entregue
+4 - Visualizada
+Exemplo de solicitação
+p
+Atenção
+Esse endpoint tem um prazo para expirar a lista com as mensagens. Expirando,
+haverá a necessidade de desconectar o whatsapp, conectar novamente para gerar
+uma nova lista de mensagens, com prazo renovado para expirar
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+9/141
+
+
+=== PAGE 10 ===
+
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+C#
+Go
+GET /rest/instance/messages/instance_key?chat_id=551199999999 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Download dos arquivos de mídias
+Este endpoint é destinado ao download de arquivos de mídia recebidos através do webhook do
+WhatsApp. Os arquivos são criptografados e necessitam de várias chaves, como mediaKey,
+directPath, url, e mimetype, para serem descriptografados e acessados. A requisição deve ser do tipo
+POST e contém um corpo de dados específico.
+/instance/downloadMediaMessage/{{instance_key}}
+POST  https://{{host}}/rest/instance/downloadMediaMessage/{{instance_key}}
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Atributos
+Atributos
+Tipo
+Descrição
+mediaKey
+string
+Key retornado pelo Whatsapp
+directPath
+string
+Path retornado pelo Whatsapp
+url
+string
+URL retornado pelo Whatsapp
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+10/141
+
+
+=== PAGE 11 ===
+
+Atributos
+Tipo
+Descrição
+mimetype
+string
+MineType retornado pelo Whatsapp
+messageType
+string
+image, document, audio, video
+Request Body
+🤔 Aonde encontro essas informações no meu webhook?
+Abaixo, temos um exemplo de um payload de uma mensagem recebida do tipo audio. Marcamos na
+imagem as quatro informações necessárias para serem enviadas, no body da requisição
+{
+"messageKeys": {
+"mediaKey": "309GwkbNs+hvIl+oGYHVIEa+eWGFvYbhwhPrrTQ+P40=",
+"directPath": "/v/t62.7118-24/33508108_425320909632029_8553165596901075
+"url": "https://mmg.whatsapp.net/v/t62.7117-24/29574318_603684174307666
+"mimetype": "image/jpeg",
+"messageType": "image"
+}
+}
+    
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+    
+p
+Fique atento!
+L
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+11/141
+
+
+=== PAGE 12 ===
+
+Response
+Atributos
+Tipo
+Descrição
+error
+string
+Status do Retorno
+data
+string
+Arquivo no formato base64
+Exemplo de solicitação
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+Ruby
+She
+
+
+
+POST /rest/instance/downloadMediaMessage/instance_key HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 468
+{"messageKeys": {"mediaKey": "309GwkbNs+hvIl+oGYHVIEa+eWGFvYbhwhPrrTQ+P40=", "directPath": "
+Copy to Clipboard
+
+Buscar imagem perfil
+Este método permite que busque imagem de um perfil do whatsapp
+/instance/getProfilePicture/{{instance_key}}?to=551199999999&type=image
+GET  https://{{host}}/rest/instance/getProfilePicture/{{instance_key}}?
+chat_id=551199999999&type=image
+Independentemente do tipo de mensagem (áudio, vídeo, documento, sticker, entre
+outros), o payload de retorno do webhook sempre conterá as quatro seguintes
+informações: mediaKey, directPath, url e mimetype. Certifique-se apenas de
+identificar em qual posição elas se encontram dentro do payload.
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+12/141
+
+
+=== PAGE 13 ===
+
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Request Params
+Atributos
+Tipo
+Descrição
+chat_id
+string
+Contato Whatsapp (EX: 5511999999999@s.whatsapp.net ) ou Grupo Whatsa
+type
+string
+icon = pega a imagem pequena
+image = pega a imagem tamanho normal
+Response
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status
+data
+string
+URL da imagem do perfil
+Exemplo de solicitação
+p
+Atenção
+Se um perfil tiver a configuração de bloqueio de imagem ativada, o acesso à
+imagem de perfil do usuário será restrito. Embora a requisição possa retornar com
+a URL da imagem, ao tentar executá-la, você perceberá que o arquivo baixado será
+um 'file.enc' em vez da imagem real.
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+13/141
+
+
+=== PAGE 14 ===
+
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+
+GET /rest/instance/getProfilePicture/instance_key?to=551199999999&type=image HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Copy to Clipboard
+
+Atualizar imagem do perfil Whatsapp
+Este método é reponsavel em alterar a imagem de perfil do Whatsapp conectado
+/instance/setProfilePictureUrl/{{instance_key}}
+POST  https://{{host}}/rest/instance/setProfilePictureUrl/{{instance_key}}
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Atributos
+Atributos
+Tipo
+Descrição
+to
+string
+Whatsapp que esta conectado na api para troca da imagem do perfil
+url
+string
+URL da imagem
+Request Body
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+14/141
+
+
+=== PAGE 15 ===
+
+Response
+Atributos
+Tipo
+Descrição
+error
+string
+true caso tenha dado certo e false em caso de falha
+message
+string
+Mensagem de retorno da requisição
+Exemplo de solicitação
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+
+POST /rest/instance/setProfilePictureUrl/instance_key HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 59
+{"messageData": {"to": "Mega-api", "url": "URL da imagem"}}
+Copy to Clipboard
+
+Atualizar descrição do perfil
+Whatsapp
+Este método é reponsavel em alterar a descrição de perfil no Whatsapp conectado
+{
+"messageData": {
+"to": "5511999999999@s.whatsapp.net",
+"url": "URL da imagem"
+}
+}
+    
+ 
+        
+ 
+        
+ 
+ 
+ 
+    
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+15/141
+
+
+=== PAGE 16 ===
+
+/instance/setProfileStatus/{{instance_key}}
+POST  https://{{host}}/rest/instance/setProfileStatus/{{instance_key}}
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Atributos
+Atributos
+Tipo
+Descrição
+status
+string
+Mensagem que deseja adicionar na descrição do perfil
+Request Body
+Response
+Atributos
+Tipo
+Descrição
+error
+string
+true caso tenha dado certo e false em caso de falha
+message
+string
+Mensagem de retorno da requisição
+Exemplo de solicitação
+{
+"messageData": {
+"status": "Mega-api, a melhor api para whatsapp no Brasil!"
+}
+}
+    
+ 
+        
+ 
+  
+ 
+ 
+ 
+ 
+ 
+    
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+16/141
+
+
+=== PAGE 17 ===
+
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+C#
+Go
+POST /rest/instance/setProfileStatus/instance_key HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 76
+{"messageData": {"status": "Mega-api, a melhor api pra whatsapp no Brasil"}}
+Copy to Clipboard
+
+Atualizar nome do perfil Whatsapp
+Este método é reponsavel em alterar o nome de perfil do Whatsapp conectado
+/instance/setProfileName/{{instance_key}}
+POST  https://{{host}}/rest/instance/setProfileName/{{instance_key}}
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Atributos
+Atributos
+Tipo
+Descrição
+name
+string
+Nome que deseja adicionar no perfil do Whatsapp
+Request Body
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+17/141
+
+
+=== PAGE 18 ===
+
+Response
+Atributos
+Tipo
+Descrição
+error
+string
+true caso tenha dado certo e false em caso de falha
+message
+string
+Mensagem de retorno da requisição
+Exemplo de solicitação
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+C#
+Go
+POST /rest/instance/setProfileName/instance_key HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 37
+{"messageData": {"name": "Mega-api"}}
+Copy to Clipboard
+
+Validação do número com whatsapp
+Este método vrifica se o número tem ou não Whatsapp.
+/instance/isOnWhatsApp/{{instance_key}}?jid=551199999999
+{
+"messageData": {
+"name": "Mega-api"
+}
+}
+    
+ 
+        
+ 
+    
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+18/141
+
+
+=== PAGE 19 ===
+
+GET  https://{{host}}/rest/instance/isOnWhatsApp/{{instance_key}}?jid=551199999999
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Request Params
+Atributos
+Tipo
+Descrição
+jid
+string
+Contato Whatsapp (EX: 5511999999999@s.whatsapp.net ) que será verifica
+Response
+Atributos
+Tipo
+Descrição
+exists
+boolean
+true - Whatsapp Existe
+false - Whatsapp não existe
+jid
+string
+Contato whatsapp
+Exemplo de solicitação
+p
+Atenção
+Não recomendamos a aplicação desta API como um passo anterior ao envio de
+mensagens, visto que a Mega-API já incorpora esse tipo de validação em suas
+operações padrão de envio. A utilização redundante deste recurso pode resultar
+em inconsistências. Lembre-se de que a Mega-API não é uma ferramenta
+destinada à disseminação de conteúdo não solicitado; por favor, use-a de forma
+ética e consciente.
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+19/141
+
+
+=== PAGE 20 ===
+
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+Ruby
+She
+
+GET /rest/instance/isOnWhatsApp/instance_key?jid=551199999999 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Copy to Clipboard
+
+Conectar whatsapp
+Para acessar os recursos da Mega-API, você terá que efetuar a leitura de um QRCode ou inserir um
+número de telefone, de forma semelhante ao que ocorre com o WhatsApp Web.
+Há duas abordagens possíveis para estabelecer essa conexão:
+Utilizar o nosso painel de gestão para efetuar a conexão, ou
+Integrar esse processo diretamente na sua própria aplicação, utilizando as diretrizes fornecidas
+nesta documentação.
+Escolha o método mais adequado para ler o QRCode do WhatsApp, conforme os métodos abaixo:
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Métodos
+/instance/qrcode/{{instance_key}}
+GET  https://{{host}}/rest/instance/qrcode/{{instance_key}}
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+20/141
+
+
+=== PAGE 21 ===
+
+Esse método retorna o qrcode, sendo renderizado no HTML. Facilitando a renderização da imagem
+do qrcode.
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+
+GET /rest/instance/qrcode/instance_key HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Copy to Clipboard
+
+/instance/qrcode_base64/{{instance_key}}
+GET  https://{{host}}/rest/instance/qrcode_base64/{{instance_key}}
+Esse método retorna o a imagem do qrcode, do tipo base64. Podendo ser renderizado por exemplo,
+utilizando a tag HTML img, ou algum outro componente compatível com a sua linguagem de
+programação.
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+C#
+Go
+GET /rest/instance/qrcode_base64/instance_key HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Copy to Clipboard
+
+/instance/pairingCode/{{instance_key}}?phoneNumber=5511999999999
+GET  https://{{host}}/rest/instance/pairingCode/{{instance_key}}?phoneNumber=5511999999999
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+21/141
+
+
+=== PAGE 22 ===
+
+Este procedimento gera um código único que permite associar o seu número de telefone à API,
+eliminando a necessidade de escanear um QR Code. Basta inserir o código fornecido para
+estabelecer a conexão.
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+Ruby
+She
+
+GET /rest/instance/pairingCode/instance_key?phoneNumber=5511999999999 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Copy to Clipboard
+
+Desconectar do whatsapp
+Este método desconecta seu Whatsapp da Mega-api.
+/instance/{{instance_key}}/logout
+DELETE  https://{{host}}/rest/instance/{{instance_key}}/logout
+Header
+p
+Atenção
+Se você escolheu integrar a funcionalidade de escaneamento de QR Code na sua
+aplicação, é importante estar ciente de que o WhatsApp atualiza o QR Code a cada
+20 segundos, tornando-o inválido.
+⚠️ Se você tentar invocar o método estando já conectado, a operação de
+reconexão não será permitida.
+Após estabelecer a conexão, você estará apto a usar todas as funcionalidades da
+MEGA-API para gerenciar seu WhatsApp.
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+22/141
+
+
+=== PAGE 23 ===
+
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Response
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status
+message
+string
+Mensagem do retorno
+Exemplo de solicitação
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+
+DELETE /rest/instance/instance_key/logout HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Copy to Clipboard
+
+WEBHOOK CONTROLLER
+p
+Lembre-se
+Uma vez desconectado, todos os métodos ficarão inacessíveis e os webhooks
+cessarão de ser enviados. Você receberá apenas o payload indicando a
+desconexão. Posteriormente, só serão enviados os payloads relacionados aos QR
+Codes gerados, caso você utilize o método para criar um novo QR Code.
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+23/141
+
+
+=== PAGE 24 ===
+
+Introdução
+Um Webhook é um método eficiente de permitir que aplicações na internet se comuniquem entre si,
+transmitindo dados em tempo real sempre que um evento é ativado. Quando você integra com a
+Megaapi para receber informações via WhatsApp, é essencial estabelecer endpoints em seu
+aplicativo. Esses pontos de interação permitem que a Megaapi o notifique automaticamente sobre
+qualquer atividade ocorrendo em seu WhatsApp, sem necessidade de intervenção manual. Portanto,
+cada vez que o número conectado receber uma interação, a Mega-api fará uma requisição usando o
+método POST para a URL que você previamente configurou. Cada uma dessas requisições será
+acompanhada por um corpo JSON específico. Em resumo, Webhooks e a Megaapi juntos tornam
+possível um fluxo de informação automatizado e em tempo real para o seu WhatsApp.
+Exemplos dos retorno do webhook Megaa-api
+📄Mensagens recebidas tipo texto (messageType: conversation)
+📄Mensagens recebidas tipo texto (messageType: extendedTextMessage)
+{
+"instance_key": "megaapi-sdfsdgkiiuyHH",
+"jid": "556182796341@s.whatsapp.net",
+"isBusiness": false,
+"messageType": "conversation",
+"key": {
+"remoteJid": "556195562618@s.whatsapp.net",
+"fromMe": false,
+"id": "ED8D5F177503C2F317DDAAA63635B06C"
+},
+"messageTimestamp": 1704815264,
+"pushName": "Megaapi",
+"broadcast": false,
+"message": {
+"conversation": "Megaapi - A melhor api whatsapp",
+"messageContextInfo": {
+"deviceListMetadata": {
+"senderKeyHash": "mkzk2kJzmE7+/Q==",
+"senderTimestamp": "1704719930",
+"recipientKeyHash": "5225lp0hE2wpPQ==",
+"recipientTimestamp": "1704813552"
+},
+"deviceListMetadataVersion": 2
+}
+},
+"verifiedBizName": "Megaapi"
+}
+  
+ 
+  
+ 
+  
+ 
+  
+ 
+  
+ 
+⇥
+ 
+⇥
+ 
+⇥
+ 
+  
+  
+ 
+  
+ 
+  
+ 
+  
+ 
+⇥
+ 
+   
+ 
+ 
+⇥
+ 
+⇥
+  
+ 
+⇥
+⇥
+ 
+⇥
+⇥
+ 
+⇥
+⇥
+ 
+⇥
+⇥
+ 
+⇥
+  
+⇥
+  
+ 
+⇥
+  
+  
+ 
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+24/141
+
+
+=== PAGE 25 ===
+
+📄Mensagens recebidas tipo texto (messageType: ephemeralMessage)
+{
+"instance_key": "megaapi-HFGHuydfg",
+"jid": "556182796341@s.whatsapp.net",
+"isBusiness": false,
+"messageType": "extendedTextMessage",
+"key": {
+"remoteJid": "556195562618@s.whatsapp.net",
+"fromMe": false,
+"id": "3EB0B0B4BB0F1CC219988A"
+},
+"messageTimestamp": 1704814208,
+"pushName": "Megaapi",
+"broadcast": false,
+"message": {
+"extendedTextMessage": {
+"text": "Oi bom dia",
+"contextInfo": {
+"ephemeralSettingTimestamp": "1702904604",
+"disappearingMode": {
+"initiator": "CHANGED_IN_CHAT",
+"trigger": "CHAT_SETTING"
+}
+},
+"inviteLinkGroupTypeV2": "DEFAULT"
+},
+"messageContextInfo": {
+"deviceListMetadata": {
+"senderKeyHash": "mkzk2kJzmE7+/Q==",
+"senderTimestamp": "1704719930",
+"recipientKeyHash": "5225lp0hE2wpPQ==",
+"recipientTimestamp": "1704562228"
+},
+"deviceListMetadataVersion": 2
+}
+},
+"verifiedBizName": "Megaapi"
+}
+  
+ 
+  
+ 
+  
+ 
+  
+ 
+  
+ 
+⇥
+ 
+⇥
+ 
+⇥
+ 
+  
+  
+ 
+  
+ 
+  
+ 
+  
+ 
+⇥
+ 
+⇥
+  
+ 
+ 
+ 
+⇥
+  
+ 
+⇥
+⇥
+ 
+⇥
+⇥
+ 
+⇥
+⇥
+  
+ 
+⇥
+⇥
+  
+ 
+⇥
+⇥
+⇥
+  
+⇥
+  
+ 
+⇥
+⇥
+ 
+⇥
+  
+ 
+⇥
+⇥
+ 
+⇥
+⇥
+ 
+⇥
+⇥
+ 
+⇥
+⇥
+ 
+⇥
+  
+⇥
+  
+ 
+⇥
+  
+  
+ 
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+25/141
+
+
+=== PAGE 26 ===
+
+📄Mensagens recebidas tipo audio (messageType: audioMessage)
+{
+"instance_key": "megaapi-kdfkjghdifj",
+"jid": "5511999999999@s.whatsapp.net",
+"isBusiness": true,
+"messageType": "ephemeralMessage",
+"key": {
+"remoteJid": "556195562618@s.whatsapp.net",
+"fromMe": false,
+"id": "D2042AF1FC6CD1CE28"
+},
+"messageTimestamp": 1705607198,
+"pushName": "Megaapi",
+"broadcast": false,
+"message": {
+"messageContextInfo": {
+"deviceListMetadata": {
+"senderKeyHash": "zdsXt16gneppKQ==",
+"senderTimestamp": "1705578467",
+"recipientKeyHash": "4/XmyrdO+9At+A==",
+"recipientTimestamp": "1705526548"
+},
+"deviceListMetadataVersion": 2
+},
+"ephemeralMessage": {
+"message": {
+"extendedTextMessage": {
+"text": "ola",
+"contextInfo": {
+"expiration": 86400,
+"ephemeralSettingTimestamp": "1705526476",
+"disappearingMode": {
+"initiator": "INITIATED_BY_OTHER"
+}
+}
+}
+}
+}
+}
+}
+⇥
+ 
+⇥
+ 
+⇥
+ 
+⇥
+ 
+⇥
+ 
+⇥
+⇥
+ 
+⇥
+⇥
+ 
+⇥
+⇥
+ 
+⇥
+⇥
+ 
+⇥
+ 
+⇥
+ 
+⇥
+ 
+⇥
+⇥
+ 
+⇥
+⇥
+⇥
+ 
+⇥
+⇥
+⇥
+⇥
+ 
+⇥
+⇥
+⇥
+⇥
+ 
+⇥
+⇥
+⇥
+⇥
+ 
+⇥
+⇥
+⇥
+⇥
+ 
+⇥
+⇥
+⇥
+⇥
+⇥
+⇥
+ 
+⇥
+⇥
+⇥
+⇥
+ 
+⇥
+⇥
+⇥
+ 
+⇥
+⇥
+⇥
+⇥
+ 
+⇥
+⇥
+⇥
+⇥
+⇥
+ 
+⇥
+⇥
+⇥
+⇥
+⇥
+ 
+⇥
+⇥
+⇥
+⇥
+⇥
+⇥
+ 
+⇥
+⇥
+⇥
+⇥
+⇥
+⇥
+ 
+⇥
+⇥
+⇥
+⇥
+⇥
+⇥
+ 
+⇥
+⇥
+⇥
+⇥
+⇥
+⇥
+⇥
+ 
+⇥
+⇥
+⇥
+⇥
+⇥
+⇥
+⇥
+⇥
+⇥
+⇥
+⇥
+⇥
+⇥
+⇥
+⇥
+⇥
+⇥
+⇥
+⇥
+⇥
+⇥
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+26/141
+
+
+=== PAGE 27 ===
+
+📄Mensagens recebidas tipo video (messageType: videoMessage)
+{
+"instance_key": "megaapi-sdfdfhykilkjol",
+"jid": "556181278471@s.whatsapp.net",
+"messageType": "audioMessage",
+"key": {
+"remoteJid": "556195562618@s.whatsapp.net",
+"fromMe": false,
+"id": "5FD1F41408F697B674CA3ADD605687A1"
+},
+"messageTimestamp": 1688998845,
+"pushName": "Megaapi",
+"broadcast": false,
+"message": {
+"audioMessage": {
+"url": "https://mmg.whatsapp.net/v/t62.7117-24/26101326_136946403396781
+"mimetype": "audio/ogg; codecs=opus",
+"fileSha256": "SwdQv1V6r5t6mipVz/Pahu20eqM+TgZ32eNc+6PMzs0=",
+"fileLength": "5999",
+"seconds": 4,
+"ptt": true,
+"mediaKey": "qz7L7KdrKq0iJdvI/YJe/ZjWg7hS5VoJ/FDrHDQ6o1k=",
+"fileEncSha256": "npQDLLWGHIXXsGPjyjWRUXMg1CVbf1DYJ5xjI2JY86Y=",
+"directPath": "/v/t62.7117-24/26101326_1369464033967818_547436554289736
+"mediaKeyTimestamp": "1688998842",
+"waveform": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+},
+"messageContextInfo": {
+"deviceListMetadata": {
+"senderKeyHash": "5NtBfGDpS10M5Q==",
+"senderTimestamp": "1688993376",
+"recipientKeyHash": "4vsArO2PIywtVA==",
+"recipientTimestamp": "1688995880"
+},
+"deviceListMetadataVersion": 2
+}
+},
+"verifiedBizName": "Megaapi"
+}
+    
+ 
+    
+ 
+    
+ 
+    
+ 
+      
+ 
+      
+ 
+      
+ 
+    
+    
+ 
+    
+ 
+    
+ 
+    
+ 
+      
+ 
+        
+ 
+        
+ 
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+      
+      
+ 
+        
+ 
+          
+ 
+          
+ 
+          
+ 
+          
+ 
+        
+        
+ 
+      
+    
+    
+ 
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+27/141
+
+
+=== PAGE 28 ===
+
+📄Mensagens recebidas tipo imagem (messageType: imageMessage)
+{
+"instance_key": "megaapi-fgfhuhkyjytodwairefjrdfg",
+"jid": "556181278471@s.whatsapp.net",
+"messageType": "videoMessage",
+"key": {
+"remoteJid": "556195562618@s.whatsapp.net",
+"fromMe": false,
+"id": "DB14180A5E463B5C8E07F1FEFA705EF9"
+},
+"messageTimestamp": 1688998950,
+"pushName": "Megaapi",
+"broadcast": false,
+"message": {
+"videoMessage": {
+"url": "https://mmg.whatsapp.net/v/t62.7161-24/32575829_762500995613895
+"mimetype": "video/mp4",
+"fileSha256": "b6z2N6v3uBPue2q29GTMk6TiBjUgHibivf07PsY6Cyg=",
+"fileLength": "487315",
+"seconds": 2,
+"mediaKey": "ssFWeyqJ/bkZS9rstMp2OBNIJnnZXuFlXXmOekQDU0w=",
+"height": 672,
+"width": 368,
+"fileEncSha256": "IZDtgaZX0Pes2JpHuDPn5ZqBwToDcEnxZzPPeu0+K30=",
+"directPath": "/v/t62.7161-24/32575829_762500995613895_3138389360331200
+"mediaKeyTimestamp": "1688998949",
+"jpegThumbnail": "/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEABsbGxscGx4hIR4qLSgtK
+"streamingSidecar": "k+W/Hld8v15dSWBl+avkELz4oZs/ozeeUUDfMEsUuHrXZNkOdX
+},
+"messageContextInfo": {
+"deviceListMetadata": {
+"senderKeyHash": "5NtBfGDpS10M5Q==",
+"senderTimestamp": "1688993376",
+"recipientKeyHash": "4vsArO2PIywtVA==",
+"recipientTimestamp": "1688995880"
+},
+"deviceListMetadataVersion": 2
+}
+},
+"verifiedBizName": "Megaapi"
+}
+    
+ 
+    
+ 
+    
+ 
+    
+ 
+      
+ 
+      
+ 
+      
+ 
+    
+    
+ 
+    
+ 
+    
+ 
+    
+ 
+      
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+      
+      
+ 
+        
+ 
+          
+ 
+          
+ 
+          
+ 
+          
+ 
+        
+        
+ 
+      
+    
+    
+ 
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+28/141
+
+
+=== PAGE 29 ===
+
+📄Mensagens recebidas tipo documento (messageType: documentMessage)
+{
+"instance_key": "megaapi-dfgdfgfddflkyoreif4",
+"jid": "556181278471@s.whatsapp.net",
+"messageType": "imageMessage",
+"key": {
+"remoteJid": "556195562618@s.whatsapp.net",
+"fromMe": false,
+"id": "5496701AC02ECA38DF6D086E3C4EEF00"
+},
+"messageTimestamp": 1688999019,
+"pushName": "Megaapi",
+"broadcast": false,
+"message": {
+"imageMessage": {
+"url": "https://mmg.whatsapp.net/v/t62.7118-24/56249636_310188302011757
+"mimetype": "image/jpeg",
+"fileSha256": "CrHzEMZm+d6kfqmivqcKYmdcpoQcIgk6BpaYKPsR7Xw=",
+"fileLength": "68223",
+"height": 1599,
+"width": 899,
+"mediaKey": "hYhJzBNqomEcqJChup1tThacMeAZGnC1mrES+7hgnMg=",
+"fileEncSha256": "tuT5APp667FAD0EnwziX0ysNZCTmv2CnkSvOZfx1yXQ=",
+"directPath": "/v/t62.7118-24/56249636_3101883020117577_826890882776517
+"mediaKeyTimestamp": "1688999013",
+"jpegThumbnail": "/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEABsbGxscGx4hIR4qLSgtK
+"scansSidecar": "Zl9yVcohaUMRC7KxeoaF1ZVdko+93MWto4mWiSyO/cXO3U3aj0Ea2A
+"scanLengths": [
+9880,
+20519,
+11264,
+26560
+],
+"midQualityFileSha256": "nw+qKVvr6rr8qFSOhF+MzXriEVUE+mi+1vUXlTjxYT8="
+},
+"messageContextInfo": {
+"deviceListMetadata": {
+"senderKeyHash": "5NtBfGDpS10M5Q==",
+"senderTimestamp": "1688993376",
+"recipientKeyHash": "4vsArO2PIywtVA==",
+"recipientTimestamp": "1688995880"
+},
+"deviceListMetadataVersion": 2
+}
+},
+"verifiedBizName": "Megaapi"
+}
+    
+ 
+    
+ 
+    
+ 
+    
+ 
+      
+ 
+      
+ 
+      
+ 
+    
+    
+ 
+    
+ 
+    
+ 
+    
+ 
+      
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+          
+          
+          
+          
+        
+        
+ 
+      
+      
+ 
+        
+ 
+          
+ 
+          
+ 
+          
+ 
+          
+ 
+        
+        
+ 
+      
+    
+    
+ 
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+29/141
+
+
+=== PAGE 30 ===
+
+📄Mensagens recebidas tipo localização (messageType: locationMessage)
+{
+"instance_key": "megaapi-sdfjrkerurgtrtgrtfg",
+"jid": "556181278471@s.whatsapp.net",
+"messageType": "documentMessage",
+"key": {
+"remoteJid": "556195562618@s.whatsapp.net",
+"fromMe": false,
+"id": "8C214F71959E3EA008D129EE1B743334"
+},
+"messageTimestamp": 1688999107,
+"pushName": "Megaapi",
+"broadcast": false,
+"message": {
+"documentMessage": {
+"url": "https://mmg.whatsapp.net/v/t62.7119-24/21583374_129441002480088
+"mimetype": "application/pdf",
+"fileSha256": "NOw6/zCb33IZFUusxXGnejT2iNscny06BgMuirkSHNY=",
+"fileLength": "1985112",
+"pageCount": 9,
+"mediaKey": "ikja1LLePWQzb+hMjP9Zk4Bmf9wWceeImWZ1i8YpC30=",
+"fileName": "[ REAL ] WHATSAPP INBANÍVEL EM 3 HORAS.pdf",
+"fileEncSha256": "054tpGzSpTb8Sfz3WbkbtJEd8WpggEN5P5GRiWCNJww=",
+"directPath": "/v/t62.7119-24/21583374_1294410024800880_123467565422478
+"mediaKeyTimestamp": "1688999106",
+"thumbnailDirectPath": "/v/t62.36145-24/24267706_1315162849404562_90023
+"thumbnailSha256": "4rwcgRe+kzY4kqEZN8jS5hbZJ2gIwz1Oiq6GnUOljoc=",
+"thumbnailEncSha256": "Vkz+fW71U0S1/yNSvpAFJ10ulmo02fw8Sui2GYVz+WY=",
+"jpegThumbnail": "/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEABERERESERMVFRMaHBkcG
+"thumbnailHeight": 480,
+"thumbnailWidth": 339
+},
+"messageContextInfo": {
+"deviceListMetadata": {
+"senderKeyHash": "5NtBfGDpS10M5Q==",
+"senderTimestamp": "1688993376",
+"recipientKeyHash": "4vsArO2PIywtVA==",
+"recipientTimestamp": "1688995880"
+},
+"deviceListMetadataVersion": 2
+}
+},
+"verifiedBizName": "Megaapi"
+}
+    
+ 
+    
+ 
+    
+ 
+    
+ 
+      
+ 
+      
+ 
+      
+ 
+    
+    
+ 
+    
+ 
+    
+ 
+    
+ 
+      
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+ 
+  
+ 
+ 
+  
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+      
+      
+ 
+        
+ 
+          
+ 
+          
+ 
+          
+ 
+          
+ 
+        
+        
+ 
+      
+    
+    
+ 
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+30/141
+
+
+=== PAGE 31 ===
+
+📄Mensagens recebidas tipo contato (messageType: contactMessage)
+{
+"instance_key": "megaapi-rdtdgffbcmbfjgnbjfkbgfg",
+"jid": "556181278471@s.whatsapp.net",
+"messageType": "locationMessage",
+"key": {
+"remoteJid": "556195562618@s.whatsapp.net",
+"fromMe": false,
+"id": "F898EA4B2090B20B31A7355A57FA252A"
+},
+"messageTimestamp": 1688999857,
+"pushName": "Megaapi",
+"broadcast": false,
+"message": {
+"locationMessage": {
+"degreesLatitude": -15.7666614,
+"degreesLongitude": -48.2620458
+},
+"messageContextInfo": {
+"deviceListMetadata": {
+"senderKeyHash": "5NtBfGDpS10M5Q==",
+"senderTimestamp": "1688993376",
+"recipientKeyHash": "4vsArO2PIywtVA==",
+"recipientTimestamp": "1688995880"
+},
+"deviceListMetadataVersion": 2
+}
+},
+"verifiedBizName": "Megaapi"
+}
+    
+ 
+    
+ 
+    
+ 
+    
+ 
+      
+ 
+      
+ 
+      
+ 
+    
+    
+ 
+    
+ 
+    
+ 
+    
+ 
+      
+ 
+        
+ 
+        
+ 
+      
+      
+ 
+        
+ 
+          
+ 
+          
+ 
+          
+ 
+          
+ 
+        
+        
+ 
+      
+    
+    
+ 
+  
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+31/141
+
+
+=== PAGE 32 ===
+
+📄Mensagens recebidas tipo sticker (messageType: stickerMessage)
+{
+"instance_key": "megaapi-dgfyjuikhujsdrgfthjvum",
+"jid": "556181278471@s.whatsapp.net",
+"messageType": "contactMessage",
+"key": {
+"remoteJid": "556195562618@s.whatsapp.net",
+"fromMe": false,
+"id": "65DC5A8B44D117A791EF84855ED866B8"
+},
+"messageTimestamp": 1688999946,
+"pushName": "Megaapi",
+"broadcast": false,
+"message": {
+"contactMessage": {
+"displayName": "Mega Api - api integração com wpp",
+"vcard": "BEGIN:VCARD\nVERSION:3.0\nN:wpp;Mega Api - api integração;com
+},
+"messageContextInfo": {
+"deviceListMetadata": {
+"senderKeyHash": "5NtBfGDpS10M5Q==",
+"senderTimestamp": "1688993376",
+"recipientKeyHash": "4vsArO2PIywtVA==",
+"recipientTimestamp": "1688995880"
+},
+"deviceListMetadataVersion": 2
+}
+},
+"verifiedBizName": "Megaapi"
+}
+    
+ 
+    
+ 
+    
+ 
+    
+ 
+      
+ 
+      
+ 
+      
+ 
+    
+    
+ 
+    
+ 
+    
+ 
+    
+ 
+      
+ 
+        
+ 
+ 
+  
+ 
+ 
+ 
+        
+ 
+ 
+  
+ 
+      
+      
+ 
+        
+ 
+          
+ 
+          
+ 
+          
+ 
+          
+ 
+        
+        
+ 
+      
+    
+    
+ 
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+32/141
+
+
+=== PAGE 33 ===
+
+📄Mensagens recebidas enquete, pedidos, catalogos ...(messageType: messageContextInfo)
+{
+"instance_key": "megaapi-sdfsjkrtgopsdjfkjhdfdfg",
+"jid": "556181278471@s.whatsapp.net",
+"messageType": "stickerMessage",
+"key": {
+"remoteJid": "556195562618@s.whatsapp.net",
+"fromMe": false,
+"id": "53A80274EFAEA9AA2DB3C0B127004574"
+},
+"messageTimestamp": 1689000108,
+"pushName": "Megaapi",
+"broadcast": false,
+"message": {
+"stickerMessage": {
+"url": "https://mmg.whatsapp.net/v/t62.15575-24/26455351_28399287752834
+"fileSha256": "nkX+umCp5W00cOg2j9B0pUcSZEKPQmvhraKSX0pE72k=",
+"fileEncSha256": "Up8Z0NoHud0IDZH76UTlf50WsLpmc97DGvl92GDWIhU=",
+"mediaKey": "8uesIQkZYGLqSJxS+HUP7EpySM93Ghmk9yjOpUhAmrA=",
+"mimetype": "image/webp",
+"directPath": "/v/t62.15575-24/26455351_283992877528341_426724316881703
+"fileLength": "493618",
+"mediaKeyTimestamp": "1657737199485",
+"firstFrameLength": 6114,
+"firstFrameSidecar": "hihAfjPuyHtzYw==",
+"isAnimated": true,
+"stickerSentTs": "1689000107648",
+"isAvatar": false
+},
+"messageContextInfo": {
+"deviceListMetadata": {
+"senderKeyHash": "5NtBfGDpS10M5Q==",
+"senderTimestamp": "1688993376",
+"recipientKeyHash": "4vsArO2PIywtVA==",
+"recipientTimestamp": "1688995880"
+},
+"deviceListMetadataVersion": 2
+}
+},
+"verifiedBizName": "Megaapi"
+}
+    
+ 
+    
+ 
+    
+ 
+    
+ 
+      
+ 
+      
+ 
+      
+ 
+    
+    
+ 
+    
+ 
+    
+ 
+    
+ 
+      
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+        
+ 
+      
+      
+ 
+        
+ 
+          
+ 
+          
+ 
+          
+ 
+          
+ 
+        
+        
+ 
+      
+    
+    
+ 
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+33/141
+
+
+=== PAGE 34 ===
+
+{
+"instance_key": "megaapi-ksdhfjsdfsdfsdf",
+"jid": "556181278471@s.whatsapp.net",
+"messageType": "messageContextInfo",
+"key": {
+"remoteJid": "556195562618@s.whatsapp.net",
+"fromMe": false,
+"id": "93B9DA99E50EE89C9CC2E8FAB30551AD"
+},
+"messageTimestamp": 1689000322,
+"pushName": "Megaapi",
+"broadcast": false,
+"message": {
+"messageContextInfo": {
+"deviceListMetadata": {
+"senderKeyHash": "5NtBfGDpS10M5Q==",
+"senderTimestamp": "1688993376",
+"recipientKeyHash": "4vsArO2PIywtVA==",
+"recipientTimestamp": "1688995880"
+},
+"deviceListMetadataVersion": 2
+},
+"interactiveMessage": {
+"nativeFlowMessage": {
+"buttons": [
+{
+"name": "review_order",
+"buttonParamsJson": "{\"reference_id\":\"4MB04BD81Q0\",\"order\":
+}
+],
+"messageParamsJson": "{}"
+},
+"contextInfo": {
+"stanzaId": "0B90675CF538A5889039E8EAAF04C9E2",
+"participant": "556195562618@s.whatsapp.net",
+"quotedMessage": {
+"interactiveMessage": {
+"header": {
+"title": "Tedte",
+"subtitle": "Quantidade: 2"
+},
+"nativeFlowMessage": {
+"buttons": [
+{
+"name": "review_and_pay",
+"buttonParamsJson": "{\"currency\":\"BRL\",\"total_amount\"
+}
+]
+}
+}
+}
+}
+}
+},
+"verifiedBizName": "Megaapi"
+}
+    
+ 
+    
+ 
+    
+ 
+    
+ 
+      
+ 
+      
+ 
+      
+ 
+    
+    
+ 
+    
+ 
+    
+ 
+    
+ 
+      
+ 
+        
+ 
+          
+ 
+          
+ 
+          
+ 
+          
+ 
+        
+        
+ 
+      
+      
+ 
+        
+ 
+          
+ 
+            
+              
+ 
+              
+ 
+            
+          
+          
+ 
+        
+        
+ 
+          
+ 
+          
+ 
+          
+ 
+            
+ 
+              
+ 
+                
+ 
+                
+ 
+ 
+              
+              
+ 
+                
+ 
+                  
+                    
+ 
+                    
+ 
+                  
+                
+              
+            
+          
+        
+      
+    
+    
+ 
+  
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+34/141
+
+
+=== PAGE 35 ===
+
+Buscar dados do webhook
+Este método te permite verificar qual url esta salva no webhook
+/webhook/{{instance_key}}
+GET  https://{{host}}/rest/webhook/{{instance_key}}
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Response
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+message
+string
+Mensagem do retorno da requisição
+webhookUrl
+string
+URL do Webhook salvo na API
+webhookEnabled
+boolean
+true - Ativado para receber os eventos
+false - Desativado para receber os eventos
+Exemplo de solicitação
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+35/141
+
+
+=== PAGE 36 ===
+
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+Ruby
+She
+
+GET /rest/webhook/instance_key HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Copy to Clipboard
+
+Configurar webhook
+Este método te permite verificar qual url esta salva no webhook
+/webhook/{{instance_key}}/configWebhook
+POST  https://{{host}}/rest/webhook/{{instance_key}}/configWebhook
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Atributos
+Atributos
+Tipo
+Descrição
+webhookUrl
+string
+URL do seu webhook
+webhookEnabled
+boolean
+true - Ativado para receber os eventos
+false - Desativado para receber os eventos
+Response
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+36/141
+
+
+=== PAGE 37 ===
+
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+message
+string
+Mensagem do retorno da requisição
+webhookUrl
+string
+URL do Webhook salvo na API
+Request Body
+Exemplo de solicitação
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+
+POST /rest/webhook/instance_key/configWebhook HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 81
+{"messageData": {"webhookUrl": "https://meuwebhook.com", "webhookEnabled": true}}
+Copy to Clipboard
+
+Configurar webhook utilizando painel
+Mega-api
+1️⃣ - Acesse nosso painel, clique na opção MINHAS INSTANCIAS
+{
+"messageData": {
+"webhookUrl": "https://meuwebhook.com",
+"webhookEnabled": true
+}
+}
+    
+ 
+        
+ 
+        
+ 
+    
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+37/141
+
+
+=== PAGE 38 ===
+
+2️⃣ - Agora, clicando no botão DETALHES, você será redirecionado, para a tela com todos os detalhes
+da instância contratada
+3️⃣ - Clique no EDITAR, abrirá uma janela modal. Adicione a url do weu webhook, salve e pronto. Sua
+instância a partir de agora, começará a receber todos os eventos disparados pelo whatsapp
+MESSAGE CONTROLLER
+Introdução
+Inicialmente, é essencial compreender que as mensagens podem ser direcionadas a um contato
+individual, um grupo ou até mesmo a uma comunidade. Embora eu vá abordar mais detalhes sobre
+isso mais a frente, é crucial entender que, para o WhatsApp, tudo é considerado um chat - seja ele um
+L
+L
+L
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+38/141
+
+
+=== PAGE 39 ===
+
+contato individual, um grupo, uma comunidade, um canal entre outros.
+Quando se trata de enviar mensagens, é necessário uma identificação do chat correspondente:
+1. ➡️ Para contatos individuais, usa-se o número de telefone do contato;
+2. ➡️ Nos grupos, o ID é formado pela combinação do número whatsapp do criador do grupo
+com um valor de data/hora em timestamp;
+3. ➡️ Para comunidade, o ID tambem é formado pelo whatsapp do criador do grupo com um valor
+de data/hora em timestamp.
+Esses IDs do grupo podem ser obtidos por meio do método get/list groups. Importante mencionar
+sobre o ID de mensagem: é altamente recomendável que você armazene o (key.id) retornado pela
+resposta do whatsapp, como ilustrado no exemplo abaixo. Isso porque, se necessitar responder,
+marcar ou excluir uma mensagem específica, você precisará do (key.id) para realizar estas ações no
+método correspondente.
+Envio de Mensagens Textuais para
+Múltiplos Destinatários
+Este endpoint é projetado para enviar uma mensagem de texto para uma lista de contatos. Ele
+executa um loop, enviando a mensagem para cada contato presente no array de destinatários
+especificado na solicitação. Você tem a liberdade de enriquecer suas mensagens com formatações
+de texto e emojis.
+Para aprender a formatar textos conforme as diretrizes do WhatsApp, acesse este link.
+Adicionalmente, a inserção de emojis pode agregar mais expressividade às suas mensagens. Se
+precisar de uma referência de emojis, visite este Emojiterra.
+Quanto à inclusão de quebras de linha nas mensagens, o método pode variar conforme a plataforma
+e a linguagem de programação utilizada. Alguns dos formatos comuns incluem:
+\n
+\r
+\r\n
+%0a
+\\n
+/sendMessage/{{instance_key}}/textToMany
+{
+"key": {
+"remoteJid": "556195562618@s.whatsapp.net",
+"fromMe": false,
+"id": "23DECC1FEB57D4A269C9C24D8C69E744" //O id para ser salvo
+},
+}
+    
+ 
+        
+ 
+        
+ 
+        
+ 
+ 
+ 
+ 
+ 
+ 
+    
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+39/141
+
+
+=== PAGE 40 ===
+
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/textToMany
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Atributos
+Atributos
+Tipo
+Descrição
+to
+array
+Lista de contatos que vão receber a mensagem
+text
+string
+Mensagem que será enviada
+Request Body
+Response 200
+p
+Fique atento!
+Para enviar para contatos privados, o contato deve conter o @s.whatsapp.net.
+Para envios em vários grupos, você precisará coletar os ID's dos grupos utilizando
+o endpoint listGroup, os ID's devem conter @g.us
+{
+"messageData": {
+"to": [
+"556199999999@s.whatsapp.net",
+"556199999998@s.whatsapp.net"
+],
+"text": "Mensagem de Texto"
+}
+}
+    
+ 
+        
+ 
+            
+            
+        
+        
+ 
+ 
+ 
+    
+p
+⚠️ Atenção
+Tenha em mente que o envio de mensagens para um grande número de contatos
+simultaneamente pode ser interpretado pelo WhatsApp como comportamento de
+spam. Esta prática aumenta significativamente o risco de ter sua conta banida ou
+restrita. Recomendamos fortemente moderar a frequência e o volume dos envios
+para evitar tais consequências.
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+40/141
+
+
+=== PAGE 41 ===
+
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+message
+string
+Mensagem do retorno da requisição
+sent
+number
+Quantidade que foram enviadas
+failed
+number
+Quantidade que deram falhas
+jidFailed
+array
+Contatos que deram falhas
+data
+array
+Lista dos contatos que receberam a mensagem enviada
+remoteJid
+string
+Contato que recebeu a mensagem
+formMe
+boolean
+true - Mensagem Enviada
+false - Mensagem Recebida
+id
+string
+ID da mensagem
+text
+string
+Mensagem que foi enviada
+messageTimestamp
+string
+Data e horário que foi feito o disparo (TIMESTAMP)
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+Exemplo de solicitação
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+41/141
+
+
+=== PAGE 42 ===
+
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+
+
+
+POST /rest/sendMessage/instance_key/textToMany HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 116
+{"messageData": {"to": ["556199999999@s.whatsapp.net", "556199999999@s.whatsapp.net"], "text
+Copy to Clipboard
+
+Envio de Mensagens de Texto
+Este endpoint é projetado para enviar uma mensagem de texto. Você tem a liberdade de enriquecer
+suas mensagens com formatações de texto e emojis.
+Para aprender a formatar textos conforme as diretrizes do WhatsApp, acesse este link.
+Adicionalmente, a inserção de emojis pode agregar mais expressividade às suas mensagens. Se
+precisar de uma referência de emojis, visite este Emojiterra.
+Quanto à inclusão de quebras de linha nas mensagens, o método pode variar conforme a plataforma
+e a linguagem de programação utilizada. Alguns dos formatos comuns incluem:
+\n
+\r
+\r\n
+%0a
+\\n
+Exemplo
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+42/141
+
+
+=== PAGE 43 ===
+
+/sendMessage/{{instance_key}}/text
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/text
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Atributos
+p
+Fique atento!
+Para enviar para contatos privados, o contato deve conter o @s.whatsapp.net.
+Para envios em grupo, você precisará coletar os ID's dos grupos utilizando o
+endpoint listGroup, os ID's devem conter @g.us
+L
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+43/141
+
+
+=== PAGE 44 ===
+
+Atributos
+Tipo
+Descrição
+to
+string
+Contato que vai receber a mensagem
+text
+string
+Mensagem que será enviada
+Request Body
+Response 200
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+message
+string
+Mensagem do retorno da requisição
+remoteJid
+string
+Contato que recebeu a mensagem
+formMe
+boolean
+true - Mensagem Enviada
+false - Mensagem Recebida
+id
+string
+ID da mensagem
+text
+string
+Mensagem que foi enviada
+messageTimestamp
+string
+Data e horário do disparo (TIMESTAMP)
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+{
+"messageData": {
+"to": "556199999999@s.whatsapp.net",
+"text": "Mensagem de Texto"
+}
+}
+    
+ 
+        
+ 
+        
+ 
+ 
+ 
+    
+p
+⚠️ Atenção
+Tenha em mente que o envio de mensagens para um grande número de contatos
+simultaneamente pode ser interpretado pelo WhatsApp como comportamento de
+spam. Esta prática aumenta significativamente o risco de ter sua conta banida ou
+restrita. Recomendamos fortemente moderar a frequência e o volume dos envios
+para evitar tais consequências.
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+44/141
+
+
+=== PAGE 45 ===
+
+Número do whatsapp não existe
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+Exemplo de solicitação
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+Ruby
+She
+
+POST /rest/sendMessage/instance_key/text HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 83
+{"messageData": {"to": "556199999999@s.whatsapp.net", "text": "Mensagem de Texto"}}
+Copy to Clipboard
+
+Mencionar contatos no envio de
+mensagem
+Este endpoint foi especialmente desenvolvido para permitir o envio de mensagens de texto, com a
+funcionalidade adicional de mencionar contatos diretamente na mensagem. Esse recurso oferece
+uma forma distinta e eficaz de chamar a atenção do destinatário. Além disso, você possui total
+liberdade para realçar suas mensagens com formatações de texto variadas e o uso expressivo de
+emojis.
+Para aprender a formatar textos conforme as diretrizes do WhatsApp, acesse este link.
+Adicionalmente, a inserção de emojis pode agregar mais expressividade às suas mensagens. Se
+precisar de uma referência de emojis, visite este Emojiterra.
+Quanto à inclusão de quebras de linha nas mensagens, o método pode variar conforme a plataforma
+e a linguagem de programação utilizada. Alguns dos formatos comuns incluem:
+\n
+\r
+\r\n
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+45/141
+
+
+=== PAGE 46 ===
+
+%0a
+\\n
+/sendMessage/{{instance_key}}/textMentioned
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/textMentioned
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Atributos
+Atributos
+Tipo
+Descrição
+to
+string
+Contato que vai receber a mensagem
+text
+string
+Mensagem que será enviada
+mentions
+array
+Contato que será mencionado na mensagem (EX: 551199999999@s.whatsa
+Request Body
+p
+Fique atento!
+Para enviar para contatos privados, o contato deve conter o @s.whatsapp.net.
+Para envios em grupo, você precisará coletar os ID's dos grupos utilizando o
+endpoint listGroup, os ID's devem conter @g.us
+{
+"messageData": {
+"to": "551199999999@s.whatsapp.net",
+"text": "@551199999910 Testando...",
+"mentions": [
+"551199999910@s.whatsapp.net"
+]
+}
+}
+    
+ 
+      
+ 
+      
+ 
+ 
+      
+ 
+        
+      
+    
+  
+p
+⚠️ Atenção
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+46/141
+
+
+=== PAGE 47 ===
+
+Response 200
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+message
+string
+Mensagem do retorno da requisição
+remoteJid
+string
+Contato que recebeu a mensagem
+formMe
+boolean
+true - Mensagem Enviada
+false - Mensagem Recebida
+id
+string
+ID da mensagem
+text
+string
+Mensagem que foi enviada
+mentionedJid
+array
+Contatos que foram mencionados na mensagem
+messageTimestamp
+string
+Data e horário do disparo (TIMESTAMP)
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+Exemplo de solicitação
+Tenha em mente que o envio de mensagens para um grande número de contatos
+simultaneamente pode ser interpretado pelo WhatsApp como comportamento de
+spam. Esta prática aumenta significativamente o risco de ter sua conta banida ou
+restrita. Recomendamos fortemente moderar a frequência e o volume dos envios
+para evitar tais consequências.
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+47/141
+
+
+=== PAGE 48 ===
+
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+
+
+
+POST /rest/sendMessage/instance_key/textMentioned HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 136
+{"messageData": {"to": "551199999999@s.whatsapp.net", "text": "@551199999910 Testando...", "
+Copy to Clipboard
+
+Envio de arquivos (URL)
+Este método permite o envio de arquivos para seus chats de uma forma distinta:
+Através de um Link: Caso o arquivo já esteja disponível online, você pode simplesmente enviar
+seu URL.
+Quanto ao tamanho e aos formatos dos arquivos, as diretrizes do WhatsApp mudam com frequência.
+Por isso, é sempre uma boa prática consultar o site oficial do WhatsApp para as informações mais
+recentes. Encontre orientações detalhadas sobre tamanhos e formatos de arquivo aqui.
+Exemplo
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+48/141
+
+
+=== PAGE 49 ===
+
+/sendMessage/{{instance_key}}/mediaUrl
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/mediaUrl
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Atributos
+p
+Fique atento!
+Para enviar para contatos privados, o contato deve conter o @s.whatsapp.net.
+Para envios em grupo, você precisará coletar os ID's dos grupos utilizando o
+endpoint listGroup, os ID's devem conter @g.us
+L
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+49/141
+
+
+=== PAGE 50 ===
+
+Atributos
+Tipo
+Descrição
+to
+string
+Contato que vai receber a mensagem
+url
+string
+URL da mídia a ser enviada
+fileName
+string
+Nome do arquivo
+type
+string
+É o tipo de mídia a ser enviada (image - video - audio - ptt(audio formato gra
+caption
+string
+É a legenda da mídia a ser enviada (Funciona somente em imagem e vídeo)
+mineType
+string
+MineTypes:
+imagem = image/jpeg,
+video = video/mp4,
+ptt = audio/ogg; codecs=opus,
+audio = audio/ogg; codecs=opus,
+pdf = application/pdf,
+xlsx = application/vnd.openxmlformats-officedocument.spreadsheetml.she
+word = application/vnd.openxmlformats-officedocument.wordprocessingm
+php, bin, html = application/octet-stream,
+sql = application/x-sql
+Request Body
+Response 200
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+{
+"messageData": {
+"to": "551199999999@s.whatsapp.net",
+"url": "{link do arquivo}",
+"fileName": "{nome_do_arquivo}.extensão",
+"type": "{tipo}",
+"caption": "{texto legenda}",
+"mimeType": "{mimetype}"
+}
+}
+    
+ 
+        
+ 
+        
+ 
+ 
+ 
+        
+ 
+        
+ 
+        
+ 
+ 
+        
+ 
+    
+p
+⚠️ Atenção
+Tenha em mente que o envio de mensagens para um grande número de contatos
+simultaneamente pode ser interpretado pelo WhatsApp como comportamento de
+spam. Esta prática aumenta significativamente o risco de ter sua conta banida ou
+restrita. Recomendamos fortemente moderar a frequência e o volume dos envios
+para evitar tais consequências.
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+50/141
+
+
+=== PAGE 51 ===
+
+Atributos
+Tipo
+Descrição
+message
+string
+Mensagem do retorno da requisição
+remoteJid
+string
+Contato que recebeu a mensagem
+formMe
+boolean
+true - Mensagem Enviada
+false - Mensagem Recebida
+id
+string
+ID da mensagem
+url
+string
+Link do arquivo enviado
+mimetype
+string
+MineType do arquivo enviado
+mediaKey
+string
+Key do arquivo enviado
+fileName
+string
+Nome do arquivo enviado
+directPath
+string
+Path do arquivo enviado
+mediaKeyTimestamp
+string
+Data e Hora do arquivo enviado
+messageTimestamp
+string
+Data e Hora do arquivo enviado
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+Exemplo de solicitação
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+51/141
+
+
+=== PAGE 52 ===
+
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+
+
+
+POST /rest/sendMessage/instance_key/mediaUrl HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 226
+{"messageData": {"to": "551199999999@s.whatsapp.net", "url": "https://www.thecampusqdl.com/u
+Copy to Clipboard
+
+Envio de arquivos (URL) para Múltiplos
+Destinatários
+Este método permite o envio de arquivo para uma lista de contatos. Ele executa um loop, enviando a
+mensagem para cada contato presente no array de destinatários especificado na solicitação de uma
+forma distinta:
+Através de um Link: Caso o arquivo já esteja disponível online, você pode simplesmente enviar
+seu URL.
+Quanto ao tamanho e aos formatos dos arquivos, as diretrizes do WhatsApp mudam com frequência.
+Por isso, é sempre uma boa prática consultar o site oficial do WhatsApp para as informações mais
+recentes. Encontre orientações detalhadas sobre tamanhos e formatos de arquivo aqui.
+/sendMessage/{{instance_key}}/mediaUrlToMany
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/mediaUrlToMany
+Header
+p
+Fique atento!
+Para enviar para contatos privados, o contato deve conter o @s.whatsapp.net.
+Para envios em grupo, você precisará coletar os ID's dos grupos utilizando o
+endpoint listGroup, os ID's devem conter @g.us
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+52/141
+
+
+=== PAGE 53 ===
+
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Atributos
+Atributos
+Tipo
+Descrição
+to
+array
+Contatos que vão receber a mensagem
+url
+string
+URL da mídia a ser enviada
+fileName
+string
+Nome do arquivo
+type
+string
+É o tipo de mídia a ser enviada (image - video - audio - document)
+caption
+string
+É a legenda da mídia a ser enviada (Funciona somente em imagem e vídeo)
+mineType
+string
+MineTypes:
+imagem = image/jpeg,
+video = video/mp4,
+audio = audio/ogg; codecs=opus,
+pdf = application/pdf,
+xlsx = application/vnd.openxmlformats-officedocument.spreadsheetml.she
+word = application/vnd.openxmlformats-officedocument.wordprocessingm
+php, bin, html = application/octet-stream,
+sql = application/x-sql
+Request Body
+{
+"messageData": {
+"to": [
+"551199999999@s.whatsapp.net", "551199999999@s.whatsapp.net"
+],
+"url": "{link do arquivo}",
+"fileName": "{nome_do_arquivo}.extensão",
+"type": "{tipo do arquivo}",
+"caption": "{texto legenda}",
+"mimeType": "{mimetype}"
+}
+}
+    
+ 
+        
+ 
+            
+ 
+        
+        
+ 
+ 
+ 
+        
+ 
+        
+ 
+ 
+ 
+        
+ 
+ 
+        
+ 
+    
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+53/141
+
+
+=== PAGE 54 ===
+
+Response 200
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+message
+string
+Mensagem do retorno da requisição
+sent
+number
+Quantidade que foram enviadas
+failed
+number
+Quantidade que deram falhas
+jidFailed
+array
+Contatos que deram falhas
+data
+array
+Lista dos contatos que receberam a mensagem enviada
+remoteJid
+string
+Contato que recebeu a mensagem
+formMe
+boolean
+true - Mensagem Enviada
+false - Mensagem Recebida
+id
+string
+ID da mensagem
+text
+string
+Mensagem que foi enviada
+messageTimestamp
+string
+Data e horário que foi feito o disparo (TIMESTAMP)
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+Exemplo de solicitação
+p
+⚠️ Atenção
+Tenha em mente que o envio de mensagens para um grande número de contatos
+simultaneamente pode ser interpretado pelo WhatsApp como comportamento de
+spam. Esta prática aumenta significativamente o risco de ter sua conta banida ou
+restrita. Recomendamos fortemente moderar a frequência e o volume dos envios
+para evitar tais consequências.
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+54/141
+
+
+=== PAGE 55 ===
+
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+
+
+
+POST /rest/sendMessage/instance_key/mediaUrlToMany HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 260
+{"messageData": {"to": ["551199999999@s.whatsapp.net", "551199999999@s.whatsapp.net"], "url"
+Copy to Clipboard
+
+Envio de arquivos (BASE64)
+Este método permite o envio de arquivos para seus chats de uma forma distinta:
+Utilizando Base64: Para esta opção, sua aplicação deve incluir uma funcionalidade para
+transformar a imagem em Base64. Uma boa maneira de verificar se a conversão foi bem-
+sucedida é copiar o código Base64 gerado e colá-lo na barra de endereços do navegador. Se a
+imagem for exibida corretamente, significa que a conversão foi efetiva. Se não, é sinal de que
+algo precisa ser ajustado. Lembre-se de adicionar 'data:{mimetype};base64,' antes do seu
+código Base64.
+Para testar este método, você pode usar ferramentas online de conversão de imagens para Base64.
+Aqui estão alguns exemplos de conversores que você pode experimentar.
+Base64 Guru
+Quanto ao tamanho e aos formatos dos arquivos, as diretrizes do WhatsApp mudam com frequência.
+Por isso, é sempre uma boa prática consultar o site oficial do WhatsApp para as informações mais
+recentes. Encontre orientações detalhadas sobre tamanhos e formatos de arquivo aqui.
+Exemplo
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+55/141
+
+
+=== PAGE 56 ===
+
+/sendMessage/{{instance_key}}/mediaBase64
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/mediaBase64
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Atributos
+p
+Fique atento!
+Para enviar para contatos privados, o contato deve conter o @s.whatsapp.net.
+Para envios em grupo, você precisará coletar os ID's dos grupos utilizando o
+endpoint listGroup, os ID's devem conter @g.us
+L
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+56/141
+
+
+=== PAGE 57 ===
+
+Atributos
+Tipo
+Descrição
+to
+string
+Contato que vai receber a mensagem
+base64
+string
+Arquivo no formato base64 que vai ser enviado
+fileName
+string
+Nome do arquivo
+type
+string
+É o tipo de mídia a ser enviada (image - video - audio - ptt (audio formato gra
+caption
+string
+É a legenda da mídia a ser enviada (Funciona somente em imagem e vídeo)
+mineType
+string
+MineTypes:
+imagem = image/jpeg,
+video = video/mp4,
+audio = audio/ogg; codecs=opus,
+ptt = audio/ogg; codecs=opus,
+pdf = application/pdf,
+xlsx = application/vnd.openxmlformats-officedocument.spreadsheetml.she
+word = application/vnd.openxmlformats-officedocument.wordprocessingm
+php, bin, html = application/octet-stream,
+sql = application/x-sql
+Request Body
+Response 200
+{
+"messageData": {
+"to": "551199999999@s.whatsapp.net",
+"base64": "data:application/pdf;base64,JVBERi0xLjcKJbXtrvsKNCAwIG9iago8
+"fileName": "Boleto.pdf",
+"type": "document",
+"caption": "Segue o boleto",
+"mimeType": "application/pdf"
+}
+}
+p
+⚠️ Atenção
+Tenha em mente que o envio de mensagens para um grande número de contatos
+simultaneamente pode ser interpretado pelo WhatsApp como comportamento de
+spam. Esta prática aumenta significativamente o risco de ter sua conta banida ou
+restrita. Recomendamos fortemente moderar a frequência e o volume dos envios
+para evitar tais consequências.
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+57/141
+
+
+=== PAGE 58 ===
+
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+message
+string
+Mensagem do retorno da requisição
+remoteJid
+string
+Contato que recebeu a mensagem
+formMe
+boolean
+true - Mensagem Enviada
+false - Mensagem Recebida
+id
+string
+ID da mensagem
+url
+string
+Link do arquivo enviado
+mimetype
+string
+MineType do arquivo enviado
+mediaKey
+string
+Key do arquivo enviado
+fileName
+string
+Nome do arquivo enviado
+directPath
+string
+Path do arquivo enviado
+mediaKeyTimestamp
+string
+Data e Hora do arquivo enviado
+messageTimestamp
+string
+Data e Hora do arquivo enviado
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+Exemplo de solicitação
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+58/141
+
+
+=== PAGE 59 ===
+
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+C#
+Go
+
+
+POST /rest/sendMessage/instance_key/mediaBase64 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 235
+{"messageData": {"to": "551199999999@s.whatsapp.net", "base64": "data:image/png;base64,iVBOR
+Copy to Clipboard
+
+Envio de localização
+Método responsavel por enviar uma localização de endereço ao seus contatos
+Exemplo
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+59/141
+
+
+=== PAGE 60 ===
+
+/sendMessage/{{instance_key}}/location
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/location
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Atributos
+p
+Fique atento!
+Para enviar para contatos privados, o contato deve conter o @s.whatsapp.net.
+Para envios em grupo, você precisará coletar os ID's dos grupos utilizando o
+endpoint listGroup, os ID's devem conter @g.us
+L
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+60/141
+
+
+=== PAGE 61 ===
+
+Atributos
+Tipo
+Descrição
+to
+string
+Contato que vai receber a mensagem
+address
+string
+Endereço (Opcional)
+caption
+string
+Legenda (Opcional)
+latitude
+string
+Latitude
+longitude
+string
+Longitude
+Request Body
+Response 200
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+message
+string
+Mensagem do retorno da requisição
+remoteJid
+string
+Contato que recebeu a mensagem
+                                        
+                                    
+                                            {
+                                                "messageData": {
+                                                    "to": "551199999999@s.whats
+                                                    "address": "QD 04 Lote 25",
+                                                    "caption": "Escola classe",
+                                                    "latitude": 157470795,
+                                                    "longitude": 482982315
+                                                }
+                                            }
+                                        
+p
+⚠️ Atenção
+Tenha em mente que o envio de mensagens para um grande número de contatos
+simultaneamente pode ser interpretado pelo WhatsApp como comportamento de
+spam. Esta prática aumenta significativamente o risco de ter sua conta banida ou
+restrita. Recomendamos fortemente moderar a frequência e o volume dos envios
+para evitar tais consequências.
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+61/141
+
+
+=== PAGE 62 ===
+
+Atributos
+Tipo
+Descrição
+formMe
+boolean
+true - Mensagem Enviada
+false - Mensagem Recebida
+id
+string
+ID do arquivo
+degreesLatitude
+number
+Latitude enviada
+degreesLongitude
+number
+Longitude enviada
+name
+string
+Legenda que foi enviada
+address
+string
+Endereço que foi enviado
+messageTimestamp
+string
+Data e Hora do arquivo enviado
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+Exemplo de solicitação
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+Ruby
+She
+
+
+
+POST /rest/sendMessage/instance_key/location HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 157
+{"messageData": {"to": "551199999999@s.whatsapp.net", "address": "QD 04 Lote 25", "caption":
+Copy to Clipboard
+
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+62/141
+
+
+=== PAGE 63 ===
+
+Envio link com pré vizualização
+Este endpoint é projetado para enviar uma mensagem com link, para que os usuários sejam
+direcionados ao site
+Exemplo
+/sendMessage/{{instance_key}}/sendLinkPreview
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/sendLinkPreview
+p
+Fique atento!
+O link só fica clicavel caso o destinatário ja tenha seu telefone nos contatos, ou se
+o mesmo iniciar uma conversa com vocë.
+L
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+63/141
+
+
+=== PAGE 64 ===
+
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Atributos
+Atributos
+Tipo
+Descrição
+to
+string
+Contato que vai receber a mensagem
+textWithLink
+string
+URL que será enviada
+Request Body
+Response 200
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+message
+string
+Mensagem do retorno da requisição
+remoteJid
+string
+Contato que recebeu a mensagem
+                                        
+                                    
+                                            {
+                                                "messageData": {
+                                                    "to": "556199999999@s.whats
+                                                    "textWithLink": "https://ww
+                                                }
+                                            }
+                                        
+p
+⚠️ Atenção
+Tenha em mente que o envio de mensagens para um grande número de contatos
+simultaneamente pode ser interpretado pelo WhatsApp como comportamento de
+spam. Esta prática aumenta significativamente o risco de ter sua conta banida ou
+restrita. Recomendamos fortemente moderar a frequência e o volume dos envios
+para evitar tais consequências.
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+64/141
+
+
+=== PAGE 65 ===
+
+Atributos
+Tipo
+Descrição
+formMe
+boolean
+true - Mensagem Enviada
+false - Mensagem Recebida
+id
+string
+ID da mensagem
+text
+string
+Mensagem que foi enviada
+messageTimestamp
+string
+Data e horário do disparo (TIMESTAMP)
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+Exemplo de solicitação
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+
+
+
+POST /rest/sendMessage/instance_key/sendLinkPreview HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 94
+{"messageData": {"to": "556199999999@s.whatsapp.net", "textWithLink": "URL que será enviada"
+Copy to Clipboard
+
+Envio de lista de opções
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+65/141
+
+
+=== PAGE 66 ===
+
+Método responsavel por enviar uma mensagem de texto com uma lista de opções, onde o usuário
+seleciona umas das opções enviadas
+Exemplo
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+66/141
+
+
+=== PAGE 67 ===
+
+L
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+67/141
+
+
+=== PAGE 68 ===
+
+/sendMessage/{{instance_key}}/listMessage
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/listMessage
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Atributos
+p
+Fique atento!
+Para enviar para contatos privados, o contato deve conter o @s.whatsapp.net.
+Para envios em grupo, você precisará coletar os ID's dos grupos utilizando o
+endpoint listGroup, os ID's devem conter @g.us
+L
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+68/141
+
+
+=== PAGE 69 ===
+
+Atributos
+Tipo
+Descrição
+to
+string
+Contato whatsapp que vai receber a mensagem
+buttonText
+string
+Título do botão
+text
+string
+Mensagem
+title
+string
+Título da mensagem
+description
+string
+Descrição
+sections
+array
+Lista de seções
+rows
+array
+Lista de itens
+rowId
+string
+ID do item
+Request Body
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+69/141
+
+
+=== PAGE 70 ===
+
+Response 200
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+                                        
+                                    
+                                            {
+                                                "messageData": {
+                                                    "to": "551199999999@s.whats
+                                                    "buttonText": "Escolha",
+                                                    "text": "Testanto",
+                                                    "title": "TEste",
+                                                    "description": "Selecione u
+                                                    "sections": [
+                                                        {
+                                                            "title": "PIX",
+                                                            "rows": [
+                                                                {
+                                                                    "title": "P
+                                                                    "descriptio
+                                                                    "rowId": "0
+                                                                }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "title": "CARTÃO",
+                                                            "rows": [
+                                                                {
+                                                                    "title": "C
+                                                                    "descriptio
+                                                                    "rowId": "0
+                                                                }
+                                                            ]
+                                                        }
+                                                    ],
+                                                    "listType": 0
+                                                }
+                                            }
+                                        
+p
+⚠️ Atenção
+Tenha em mente que o envio de mensagens para um grande número de contatos
+simultaneamente pode ser interpretado pelo WhatsApp como comportamento de
+spam. Esta prática aumenta significativamente o risco de ter sua conta banida ou
+restrita. Recomendamos fortemente moderar a frequência e o volume dos envios
+para evitar tais consequências.
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+70/141
+
+
+=== PAGE 71 ===
+
+Atributos
+Tipo
+Descrição
+message
+string
+Mensagem do retorno da requisição
+remoteJid
+string
+Contato que recebeu a mensagem
+fromMe
+boolean
+Indica se a mensagem foi enviada (true) ou recebida (false)
+id
+string
+ID da mensagem
+title
+string
+Título
+description
+string
+Descrição
+buttonText
+string
+Titulo do botão
+listType
+string
+Tipo da lista enviada
+sections
+array
+Lista todos os itens que foram criados dentro da sessão
+footerText
+string
+Texto do rodapé
+messageTimestamp
+string
+Data e Hora do arquivo enviado
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+Exemplo de solicitação
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+71/141
+
+
+=== PAGE 72 ===
+
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+
+
+
+POST /rest/sendMessage/instance_key/listMessage HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 294
+{"messageData": {"to": "551199999999@s.whatsapp.net", "buttonText": "Escolha", "text": "Test
+Copy to Clipboard
+
+Envio de lista de opções para Múltiplos
+Destinatários
+Método responsável por enviar uma lista de opções para múltiplos destinatários, onde cada
+destinatário pode selecionar uma das opções enviadas.
+Exemplo
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+72/141
+
+
+=== PAGE 73 ===
+
+L
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+73/141
+
+
+=== PAGE 74 ===
+
+/sendMessage/{{instance_key}}/listMessageToMany
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/listMessageToMany
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Atributos
+p
+Fique atento!
+Para enviar para contatos privados, o contato deve conter o @s.whatsapp.net.
+Para envios em grupo, você precisará coletar os ID's dos grupos utilizando o
+endpoint listGroup, os ID's devem conter @g.us
+L
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+74/141
+
+
+=== PAGE 75 ===
+
+Atributos
+Tipo
+Descrição
+to
+array
+Contatos whatsapp que vão receber a mensagem
+buttonText
+string
+Título do botão
+text
+string
+Mensagem
+title
+string
+Título da mensagem
+description
+string
+Descrição
+sections
+array
+Lista de seções
+rows
+array
+Lista de itens
+rowId
+string
+ID do item
+Request Body
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+75/141
+
+
+=== PAGE 76 ===
+
+Response 200
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+                                        
+                                    
+                                            {
+                                                "messageData": {
+                                                    "to": ["551199999999@s.what
+                                                    "buttonText": "Escolha",
+                                                    "text": "Testanto",
+                                                    "title": "TEste",
+                                                    "description": "Selecione u
+                                                    "sections": [
+                                                        {
+                                                            "title": "PIX",
+                                                            "rows": [
+                                                                {
+                                                                    "title": "P
+                                                                    "descriptio
+                                                                    "rowId": "0
+                                                                }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "title": "CARTÃO",
+                                                            "rows": [
+                                                                {
+                                                                    "title": "C
+                                                                    "descriptio
+                                                                    "rowId": "0
+                                                                }
+                                                            ]
+                                                        }
+                                                    ],
+                                                    "listType": 0
+                                                }
+                                            }
+                                        
+p
+⚠️ Atenção
+Tenha em mente que o envio de mensagens para um grande número de contatos
+simultaneamente pode ser interpretado pelo WhatsApp como comportamento de
+spam. Esta prática aumenta significativamente o risco de ter sua conta banida ou
+restrita. Recomendamos fortemente moderar a frequência e o volume dos envios
+para evitar tais consequências.
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+76/141
+
+
+=== PAGE 77 ===
+
+Atributos
+Tipo
+Descrição
+message
+string
+Mensagem do retorno da requisição
+sent
+numer
+Quantidade que foram enviadas
+failed
+number
+Quantidade que deram falhas
+jidFailed
+array
+Contatos que deram falhas
+data
+array
+Lista dos contatos que receberam a mensagem enviada
+remoteJid
+array
+Contato que recebeu a mensagem
+fromMe
+boolean
+Indica se a mensagem foi enviada (true) ou recebida (false)
+id
+string
+ID da mensagem
+title
+string
+Título
+description
+string
+Descrição
+buttonText
+string
+Titulo do botão
+listType
+string
+Tipo da lista enviada
+sections
+array
+Lista todos os itens que foram criados dentro da sessão
+footerText
+string
+Texto do rodapé
+messageTimestamp
+string
+Data e Hora do arquivo enviado
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+Exemplo de solicitação
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+77/141
+
+
+=== PAGE 78 ===
+
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+
+
+
+POST /rest/sendMessage/instance_key/listMessageToMany HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 594
+{"messageData": {"to": ["551199999999@s.whatsapp.net", "551199999999@s.whatsapp.net"], "butt
+Copy to Clipboard
+
+Enviar contato
+Este procedimento direto possibilita o envio de informações de um contato através do
+preenchimento dos campos necessários no método. Não é requerido que o contato esteja
+previamente salvo na sua lista, apenas insira os detalhes necessários e proceda com o envio.
+Exemplo
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+78/141
+
+
+=== PAGE 79 ===
+
+/sendMessage/{{instance_key}}/contactMessage
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/contactMessage
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Atributos
+p
+Fique atento!
+Para enviar para contatos privados, o contato deve conter o @s.whatsapp.net.
+Para envios em grupo, você precisará coletar os ID's dos grupos utilizando o
+endpoint listGroup, os ID's devem conter @g.us
+L
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+79/141
+
+
+=== PAGE 80 ===
+
+Atributos
+Tipo
+Descrição
+to
+string
+Contato que vai receber a mensagem
+fullName
+string
+Nome do contato
+displayName
+string
+Nome do contato que irá aparecer no card
+organization
+string
+Nome da empresa ou nome do contato
+phoneNumber
+string
+Telefone do contato que você quer compartilhar(DDI DDD Número Ex: 5
+Request Body
+Response 200
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+message
+string
+Mensagem do retorno da requisição
+remoteJid
+string
+Contato que recebeu a mensagem
+                                        
+                                    
+                                            {
+                                                "messageData": {
+                                                  "to": "551199999999@s.whatsap
+                                                  "vcard": {
+                                                    "fullName": "Megaapi Whats"
+                                                    "displayName": "Megaapi Wha
+                                                    "organization": "Megaapi",
+                                                    "phoneNumber": "55119999999
+                                                  }
+                                                }
+                                              }
+                                        
+p
+⚠️ Atenção
+Tenha em mente que o envio de mensagens para um grande número de contatos
+simultaneamente pode ser interpretado pelo WhatsApp como comportamento de
+spam. Esta prática aumenta significativamente o risco de ter sua conta banida ou
+restrita. Recomendamos fortemente moderar a frequência e o volume dos envios
+para evitar tais consequências.
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+80/141
+
+
+=== PAGE 81 ===
+
+Atributos
+Tipo
+Descrição
+formMe
+boolean
+true - Mensagem Enviada
+false - Mensagem Recebida
+id
+string
+ID da mensagem
+displayName
+string
+Nome do contato
+vcard
+string
+Card
+messageTimestamp
+string
+Data e horário do disparo (TIMESTAMP)
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+Exemplo de solicitação
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+
+
+
+POST /rest/sendMessage/instance_key/contactMessage HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 184
+{"messageData": {"to": "551199999999@s.whatsapp.net", "vcard": {"fullName": "Megaapi Whats",
+Copy to Clipboard
+
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+81/141
+
+
+=== PAGE 82 ===
+
+Reencaminhar mensagem
+Este método permite que as mensagens sejam retransmitidas via API. Você só precisa das
+informações que estão na chave key do payload de retorno do webhook , e das informações que
+estão dentro da chave message do payload do webhook.
+Onde encontro essas informações Key e Message?
+É importante destacar que as informações necessárias para utilizar este endpoint, especificamente
+os valores da chave 'key' e 'message', são obtidos através do payload de retorno fornecido pelo
+webhook para as mensagens recebidas. Para realizar o reencaminhamento de mensagens pelo
+WhatsApp, você deverá recuperar esses dados diretamente do webhook, pois eles contêm os
+elementos essenciais que permitem à plataforma identificar e processar o pedido de retransmissão
+de forma adequada.
+Exemplo de onde localizar os dados da chave key
+Exemplo de onde localizar os dados da chave message
+L
+L
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+82/141
+
+
+=== PAGE 83 ===
+
+Exemplo
+/sendMessage/{{instance_key}}/forwardMessage
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/forwardMessage
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+p
+Fique atento!
+Para enviar para contatos privados, o contato deve conter o @s.whatsapp.net.
+Para envios em grupo, você precisará coletar os ID's dos grupos utilizando o
+endpoint listGroup, os ID's devem conter @g.us
+L
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+83/141
+
+
+=== PAGE 84 ===
+
+Atributos
+Atributos
+Tipo
+Descrição
+to
+string
+Contato que vai receber a mensagem
+key
+object
+Objeto que contem as informações necessárias para reencaminhar a mensa
+message
+object
+Objeto que contem as informações necessárias para reencaminhar a mensa
+Request Body
+Response 200
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+message
+string
+Mensagem do retorno da requisição
+remoteJid
+string
+Contato que recebeu a mensagem
+formMe
+boolean
+true - Mensagem Enviada
+false - Mensagem Recebida
+                                        
+                                    
+                                            {
+                                                "messageData": {
+                                                  "to": "551199999999@s.whatsap
+                                                  "key": {object},
+                                                  "message": {object}
+                                                }
+                                              }
+                                        
+p
+⚠️ Atenção
+Tenha em mente que o envio de mensagens para um grande número de contatos
+simultaneamente pode ser interpretado pelo WhatsApp como comportamento de
+spam. Esta prática aumenta significativamente o risco de ter sua conta banida ou
+restrita. Recomendamos fortemente moderar a frequência e o volume dos envios
+para evitar tais consequências.
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+84/141
+
+
+=== PAGE 85 ===
+
+Atributos
+Tipo
+Descrição
+id
+string
+ID da mensagem
+text
+string
+Mensagem que foi enviada
+messageTimestamp
+string
+Data e horário do disparo (TIMESTAMP)
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+Exemplo de solicitação
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+Ruby
+She
+
+POST /rest/sendMessage/instance_key/forwardMessage HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 80
+{"messageData": {"to": "551199999999@s.whatsapp.net", "key": {}, "message": {}}}
+Copy to Clipboard
+
+Responder mensagem
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+85/141
+
+
+=== PAGE 86 ===
+
+O recurso de "Responder Mensagem" da API oferece uma forma interativa de comunicação no seu
+chat do WhatsApp. Ao utilizar este método, é possível enviar uma resposta direta a uma mensagem
+específica. Tudo o que você precisa é da identificação única da mensagem original, que pode ser
+encontrada no campo 'message' do payload do webhook, e do identificador do chat, presente no
+campo 'key'. Com esses dados, a API organiza a sua resposta como uma citação da mensagem
+original, proporcionando um contexto claro para a continuidade da conversa.
+Onde encontro essas informações Key e Message?
+É importante destacar que as informações necessárias para utilizar este endpoint, especificamente
+os valores da chave 'key' e 'message', são obtidos através do payload de retorno fornecido pelo
+webhook para as mensagens recebidas. Para realizar o reencaminhamento de mensagens pelo
+WhatsApp, você deverá recuperar esses dados diretamente do webhook, pois eles contêm os
+elementos essenciais que permitem à plataforma identificar e processar o pedido de retransmissão
+de forma adequada.
+Exemplo de onde localizar os dados da chave key
+Exemplo de onde localizar os dados da chave message
+L
+L
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+86/141
+
+
+=== PAGE 87 ===
+
+Exemplo
+/sendMessage/{{instance_key}}/quoteMessage
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/quoteMessage
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+p
+Fique atento!
+Para enviar para contatos privados, o contato deve conter o @s.whatsapp.net.
+Para envios em grupo, você precisará coletar os ID's dos grupos utilizando o
+endpoint listGroup, os ID's devem conter @g.us
+L
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+87/141
+
+
+=== PAGE 88 ===
+
+Atributos
+Atributos
+Tipo
+Descrição
+to
+string
+Contato que vai receber a mensagem
+text
+string
+Mensagem
+key
+object
+Objeto que contem as informações necessárias para responder a mensagem
+message
+object
+Objeto que contem as informações necessárias para responder a mensagem
+Request Body
+Response 200
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+message
+string
+Mensagem do retorno da requisição
+remoteJid
+string
+Contato que recebeu a mensagem
+                                        
+                                    
+                                            {
+                                                "messageData": {
+                                                  "to": "551199999999@s.whatsap
+                                                  "text": "Mensagem",
+                                                  "key": {},
+                                                  "message": {}
+                                                }
+                                            }
+                                        
+p
+⚠️ Atenção
+Tenha em mente que o envio de mensagens para um grande número de contatos
+simultaneamente pode ser interpretado pelo WhatsApp como comportamento de
+spam. Esta prática aumenta significativamente o risco de ter sua conta banida ou
+restrita. Recomendamos fortemente moderar a frequência e o volume dos envios
+para evitar tais consequências.
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+88/141
+
+
+=== PAGE 89 ===
+
+Atributos
+Tipo
+Descrição
+formMe
+boolean
+true - Mensagem Enviada
+false - Mensagem Recebida
+id
+string
+ID da mensagem
+text
+string
+Mensagem que foi enviada
+messageTimestamp
+string
+Data e horário do disparo (TIMESTAMP)
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+Exemplo de solicitação
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+
+
+
+POST /rest/sendMessage/instance_key/quoteMessage HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 100
+{"messageData": {"to": "551199999999@s.whatsapp.net", "text": "Mensagem", "key": {}, "messag
+Copy to Clipboard
+
+CHAT CONTROLLER
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+89/141
+
+
+=== PAGE 90 ===
+
+Introdução
+Nesta seção, exploraremos os diversos métodos disponíveis para coletar informações sobre os seus
+chats, permitindo uma gestão mais eficiente e detalhada dessas conversas.
+Digitando - Gravando Áudio - Online
+Esse método é responsavel em simular os eventos do whatsapp, como Digitando... | Gravando Áudio
+| Online | Visto por último as ...
+/chat/{{instance_key}}/presenceUpdateChat
+POST  https://{{host}}/rest/chat/{{instance_key}}/presenceUpdateChat
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Atributos
+p
+Atenção
+Observe que os eventos no aplicativo WhatsApp permanecem ativos por
+aproximadamente 20 segundos ou até que uma ação específica seja realizada no
+aplicativo para interromper o evento. Mantenha isso em mente para assegurar
+uma experiência de usuário fluida e sem interrupções.
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+90/141
+
+
+=== PAGE 91 ===
+
+Atributos
+Tipo
+Descrição
+to
+string
+Contato Whatsapp
+options
+string
+Eventos:
+composing - Digitando...
+recording - Gravando áudio...
+available - Online
+unavailable - Visto por último hoje às ...
+Request Body
+Response 200
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+message
+string
+Mensagem do retorno da requisição
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+Exemplo de solicitação
+                                        
+                                    
+                                            {
+                                                "to": "551199999999@s.whatsapp.
+                                                "option": "composing"
+                                            }
+                                        
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+91/141
+
+
+=== PAGE 92 ===
+
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+
+POST /rest/chat/instance_key/presenceUpdateChat HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 60
+{"to": "551199999999@s.whatsapp.net", "option": "composing"}
+Copy to Clipboard
+
+Arquivar chat
+Esse método é responsavel em arquivar ou desarquivar um chat whatsapp
+/chat/{{instance_key}}/archiveChat
+POST  https://{{host}}/rest/chat/{{instance_key}}/archiveChat
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Atributos
+Atributos
+Tipo
+Descrição
+to
+string
+Contato Whatsapp
+options
+boolean
+Opções:
+true - Para arquivar o chat
+false - Para desarquivar um chat
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+92/141
+
+
+=== PAGE 93 ===
+
+Request Body
+Response 200
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+message
+string
+Mensagem do retorno da requisição
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+Exemplo de solicitação
+                                        
+                                    
+                                            {
+                                                "to": "551199999999@s.whatsapp.
+                                                "option": true
+                                            }
+                                        
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+93/141
+
+
+=== PAGE 94 ===
+
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+Ruby
+She
+
+POST /rest/chat/instance_key/archiveChat HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 53
+{"to": "551199999999@s.whatsapp.net", "option": true}
+Copy to Clipboard
+
+Fixar conversa
+Esse método é responsavel em fixar ou desafixar um chat whatsapp
+/chat/{{instance_key}}/pinChat
+POST  https://{{host}}/rest/chat/{{instance_key}}/pinChat
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Atributos
+p
+⚠️ Importante
+Atualmente, o WhatsApp limita o número de chats que podem ser fixados a um
+máximo de três por conta. Estamos atentos às atualizações e informaremos
+nossos clientes imediatamente caso haja mudanças nessa política.
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+94/141
+
+
+=== PAGE 95 ===
+
+Atributos
+Tipo
+Descrição
+to
+string
+Contato Whatsapp
+options
+boolean
+Opções:
+true - Para fixar o chat
+false - Para desafixar um chat
+Request Body
+Response 200
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+message
+string
+Mensagem do retorno da requisição
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+Exemplo de solicitação
+                                        
+                                    
+                                            {
+                                                "to": "551199999999@s.whatsapp.
+                                                "options": true
+                                            }
+                                        
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+95/141
+
+
+=== PAGE 96 ===
+
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+
+POST /rest/chat/instance_key/pinChat HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 54
+{"to": "551199999999@s.whatsapp.net", "options": true}
+Copy to Clipboard
+
+Bloquear contato
+Esse método é responsavel em bloquear e desbloquear um contato whatsapp
+/chat/{{instance_key}}/blockChat
+POST  https://{{host}}/rest/chat/{{instance_key}}/blockChat
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Atributos
+Atributos
+Tipo
+Descrição
+to
+string
+Contato Whatsapp
+options
+boolean
+Opções:
+true - Bloqueia o contato
+false - Desbloqueia ocontato
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+96/141
+
+
+=== PAGE 97 ===
+
+Request Body
+Response 200
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+message
+string
+Mensagem do retorno da requisição
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+Exemplo de solicitação
+                                        
+                                    
+                                            {
+                                                "to": "551199999999@s.whatsapp.
+                                                "option": true
+                                            }
+                                        
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+97/141
+
+
+=== PAGE 98 ===
+
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+Ruby
+She
+
+POST /rest/chat/instance_key/blockChat HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 53
+{"to": "551199999999@s.whatsapp.net", "option": true}
+Copy to Clipboard
+
+Confirmar leitura da mensagen
+Este método permite confirmar a leitura de uma mensagem de um chat. Você só precisa das
+informações que estão na chave key do payload de retorno do webhook .
+Onde encontro essas informações Key?
+É importante destacar que as informações necessárias para utilizar este endpoint, especificamente
+os valores da chave 'key', são obtidos através do payload de retorno fornecido pelo webhook para as
+mensagens recebidas. Para realizar a confirmação de leitura das mensagens do WhatsApp, você
+deverá recuperar esses dados diretamente do webhook, pois eles contêm os elementos essenciais
+que permitem à plataforma identificar e processar o pedido de confirmação de forma adequada.
+Exemplo de onde localizar os dados da chave key
+L
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+98/141
+
+
+=== PAGE 99 ===
+
+Exemplo
+/sendMessage/{{instance_key}}/readMessage
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/readMessage
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Atributos
+p
+Fique atento!
+Para confirmar em contatos privados, o contato deve conter o @s.whatsapp.net.
+Para confirmação em grupo, você precisará coletar os ID's dos grupos utilizando o
+endpoint listGroup, os ID's devem conter @g.us
+L
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+99/141
+
+
+=== PAGE 100 ===
+
+Atributos
+Tipo
+Descrição
+key
+object
+Objeto que contem as informações necessárias para confirmar a leitura das
+Request Body
+Response 200
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+message
+string
+Mensagem do retorno da requisição
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+Exemplo de solicitação
+                                        
+                                    
+                                            {
+                                                "messageData": {
+                                                  "key": {object}
+                                                }
+                                            }
+                                        
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+100/141
+
+
+=== PAGE 101 ===
+
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+
+POST /rest/chat/instance_key/readMessage HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 28
+{"messageData": {"key": {}}}
+Copy to Clipboard
+
+Confirmar leitura de todas as
+mensagens do chat
+Este método permite confirmar a leitura de todas as mensagens de um chat. Você só precisa das
+informações que estão na chave key do payload de retorno do webhook .. Você só precisa das
+informações que estão na chave key do payload de retorno do webhook , e da informação que estão
+dentro da chave messageTimestamp do payload do webhook.
+Onde encontro essas informações key e messageTimestamp?
+É importante destacar que as informações necessárias para utilizar este endpoint, especificamente
+os valores da chave 'key' e 'messageTimestamp', são obtidos através do payload de retorno fornecido
+pelo webhook para as mensagens recebidas. Para realizar a confirmação das mensagens pelo
+WhatsApp, você deverá recuperar esses dados diretamente do webhook, pois eles contêm os
+elementos essenciais que permitem à plataforma identificar e processar o pedido de confirmação de
+forma adequada.
+Exemplo de onde localizar os dados da chave key
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+101/141
+
+
+=== PAGE 102 ===
+
+Exemplo de onde localizar os dados da chave messageTimestamp
+Exemplo
+L
+L
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+102/141
+
+
+=== PAGE 103 ===
+
+/sendMessage/{{instance_key}}/readChat
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/readChat
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Atributos
+p
+Fique atento!
+Para confirmar em contatos privados, o contato deve conter o @s.whatsapp.net.
+Para confirmação em grupo, você precisará coletar os ID's dos grupos utilizando o
+endpoint listGroup, os ID's devem conter @g.us
+L
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+103/141
+
+
+=== PAGE 104 ===
+
+Atributos
+Tipo
+Descrição
+to
+string
+Contato do chat que deseja confirmar a visualização das mens
+option
+boolean
+true - confirmar; false - não confirmar
+key
+string
+Objeto key. Coletado do retorno do webhook para confirmar a l
+messageTimestamp
+number
+Data/Hora da última mensagem. Valor coletado do retorno do 
+Request Body
+Response 200
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+message
+string
+Mensagem do retorno da requisição
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+                                        
+                                    
+                                            {
+                                                "to": "551199999999@s.whatsapp.
+                                                "option": true,
+                                                "messageData": {
+                                                    "key": {object},
+                                                    "messageTimestamp": 0
+                                                }
+                                            }
+                                        
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+104/141
+
+
+=== PAGE 105 ===
+
+Exemplo de solicitação
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+Ruby
+She
+
+
+
+POST /rest/chat/instance_key/readChat HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 96
+{"to":"551199999999@s.whatsapp.net","option":true,"messageData":{"key":{},"messageTimestamp"
+Copy to Clipboard
+
+Deletar mensagem
+Este método permite deletar uma mensagem de um chat. Você só precisa das informações que
+estão na chave key do payload de retorno do webhook .
+Onde encontro essas informações Key?
+É importante destacar que as informações necessárias para utilizar este endpoint, especificamente
+os valores da chave 'key', são obtidos através do payload de retorno fornecido pelo webhook para as
+mensagens recebidas. Para deletar as mensagens do WhatsApp, você deverá recuperar esses dados
+diretamente do webhook, pois eles contêm os elementos essenciais que permitem à plataforma
+identificar e processar o pedido de deletar de forma adequada.
+Exemplo de onde localizar os dados da chave key
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+105/141
+
+
+=== PAGE 106 ===
+
+Exemplo
+/chat/{{instance_key}}/deleteMessage
+POST  https://{{host}}/rest/chat/{{instance_key}}/deleteMessage
+p
+Fique atento!
+L
+L
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+106/141
+
+
+=== PAGE 107 ===
+
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Atributos
+Atributos
+Tipo
+Descrição
+to
+string
+Contato do chat que deseja deletar uma mensagem
+key
+object
+Objeto que contem as informações necessárias para deletar a mensagen w
+Request Body
+Response 200
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+message
+string
+Mensagem do retorno da requisição
+remoteJid
+string
+Contato que recebeu a mensagem
+formMe
+boolean
+true - Mensagem Enviada
+false - Mensagem Recebida
+Para deletar em contatos privados, o contato deve conter o @s.whatsapp.net. Para
+deletar em grupo, você precisará coletar os ID's dos grupos utilizando o endpoint
+listGroup, os ID's devem conter @g.us
+                                        
+                                    
+                                            {
+                                                "messageData": {
+                                                  "to": "551199999999@s.whatsap
+                                                  "key": {}
+                                                }
+                                            }
+                                        
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+107/141
+
+
+=== PAGE 108 ===
+
+Atributos
+Tipo
+Descrição
+id
+string
+ID da mensagem
+text
+string
+Mensagem que foi enviada
+messageTimestamp
+string
+Data e horário do disparo (TIMESTAMP)
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+Exemplo de solicitação
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+
+POST /rest/chat/instance_key/deleteMessage HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 61
+{"messageData":{"to":"551199999999@s.whatsapp.net","key":{}}}
+Copy to Clipboard
+
+GROUP CONTROLLER
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+108/141
+
+
+=== PAGE 109 ===
+
+Introdução
+Esta seção é dedicada a explorar a variedade de métodos disponíveis para a gestão de grupos no
+WhatsApp.
+Assim como em chats individuais, as mensagens enviadas e recebidas em grupos seguem o mesmo
+princípio. Cada grupo é identificado por um ID único, geralmente uma combinação do número do
+criador do grupo e uma data no formato em timestamp, algo como '5511999999999-162327528'.
+Esse ID específico é o que você usará como referência para enviar mensagens aos grupos. Para
+obter esse ID, você pode usar o método 'list groups'.
+Além disso, nesta seção, você também encontrará informações e procedimentos para criar e
+gerenciar grupos, oferecendo um controle mais amplo sobre suas interações de grupo no WhatsApp.
+Listar todos os grupos
+Este método te permite listar todos os grupos.
+/group/list/{{instance_key}}
+GET  https://{{host}}/rest/group/list/{{instance_key}}
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Response
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+109/141
+
+
+=== PAGE 110 ===
+
+Atributos
+Tipo
+Descrição
+status
+boolean
+Status da requisição
+message
+string
+Mensagem de retorno
+groups
+array
+Todos os grupos cadastrados
+communitys
+array
+Todas as comunidades criadas
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+Exemplo de solicitação
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+
+GET /rest/group/list/instance_key HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Copy to Clipboard
+
+Administrador dos grupos
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+110/141
+
+
+=== PAGE 111 ===
+
+Este método te permite listar todos os grupos em que seu whatsapp está como administrador
+/group/{{instance_key}}/adminGroups
+GET  https://{{host}}/rest/group/{{instance_key}}/adminGroups
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Response
+Atributos
+Tipo
+Descrição
+status
+boolean
+Status da requisição
+message
+string
+Mensagem de retorno
+groups
+array
+Todos os grupos cadastrados
+communitys
+array
+Todas as comunidades criadas
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+Exemplo de solicitação
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+111/141
+
+
+=== PAGE 112 ===
+
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+
+GET /rest/group/instance_key/adminGroups HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Copy to Clipboard
+
+Detalhe do grupo
+Este método retorna todas as informações do grupo e de seus participantes
+/group/{{instance_key}}/group/?jid={{id_group}}
+GET  https://{{host}}/rest/group/{{instance_key}}/group/?jid={{id_group}}
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Resquest Params
+Atributos
+Tipo
+Descrição
+jid
+string
+ID do grupo
+Response
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+112/141
+
+
+=== PAGE 113 ===
+
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+message
+string
+Mensagem do retorno
+id
+string
+ID do grupo
+subject
+string
+Nome do Grupo
+creation
+number
+Data e Hora que o grupo foi criado (TIMESTAMP)
+owner
+string
+Contato que criou o grupo
+restrict
+boolean
+true - Somente Admin podem fazer alterações; false - Todos os particip
+announce
+boolean
+true - Somente Admin podem enviar mensagens; false - Todos os partic
+participants
+array
+Lista com todos os contatos dos usuários que estão participando do g
+id
+string
+Contato whatsapp
+admin
+string
+null - Não é administrador; admin - Contato é um administrador do grup
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+Exemplo de solicitação
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+113/141
+
+
+=== PAGE 114 ===
+
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+Ruby
+She
+
+GET /rest/group/instance_key/group/?jid=id_group HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Copy to Clipboard
+
+Código do grupo
+Este método retorna o codigo do grupo, utilizado para montar o link de compartilhamento do grupo
+/group/{{instance_key}}/groupInviteCode?group_id={{id_group}}
+GET  https://{{host}}/rest/group/{{instance_key}}/groupInviteCode?group_id={{id_group}}
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Resquest Params
+p
+Dica Útil
+Para compartilhar facilmente o seu grupo do WhatsApp, você pode criar um link de
+convite. Basta pegar o código retornado pelo endpoint /groupInviteCode e
+concatená-lo com https://chat.whatsapp.com/. Isso formará um link completo,
+como https://chat.whatsapp.com/SEUCODIGO, que você pode compartilhar para
+convidar pessoas a se juntarem ao seu grupo.
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+114/141
+
+
+=== PAGE 115 ===
+
+Atributos
+Tipo
+Descrição
+group_id
+string
+ID do grupo
+Response
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+message
+string
+Mensagem do retorno
+inviteCode
+string
+Código de convite do grupo
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+Exemplo de solicitação
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+Ruby
+She
+
+GET /rest/group/instance_key/groupInviteCode?group_id=id_group HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Copy to Clipboard
+
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+115/141
+
+
+=== PAGE 116 ===
+
+Envio de Mensagens de Texto
+Este endpoint é projetado para enviar uma mensagem de texto. Você tem a liberdade de enriquecer
+suas mensagens com formatações de texto e emojis.
+Para aprender a formatar textos conforme as diretrizes do WhatsApp, acesse este link.
+Adicionalmente, a inserção de emojis pode agregar mais expressividade às suas mensagens. Se
+precisar de uma referência de emojis, visite este Emojiterra.
+Quanto à inclusão de quebras de linha nas mensagens, o método pode variar conforme a plataforma
+e a linguagem de programação utilizada. Alguns dos formatos comuns incluem:
+\n
+\r
+\r\n
+%0a
+\\n
+Exemplo
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+116/141
+
+
+=== PAGE 117 ===
+
+/sendMessage/{{instance_key}}/text
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/text
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Atributos
+p
+Fique atento!
+Para enviar para contatos privados, o contato deve conter o @s.whatsapp.net.
+Para envios em grupo, você precisará coletar os ID's dos grupos utilizando o
+endpoint listGroup, os ID's devem conter @g.us
+L
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+117/141
+
+
+=== PAGE 118 ===
+
+Atributos
+Tipo
+Descrição
+to
+string
+Grupo que vai receber a mensagem
+text
+string
+Mensagem que será enviada
+Request Body
+Response 200
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+message
+string
+Mensagem do retorno da requisição
+remoteJid
+string
+Contato que recebeu a mensagem
+formMe
+boolean
+true - Mensagem Enviada
+false - Mensagem Recebida
+id
+string
+ID da mensagem
+text
+string
+Mensagem que foi enviada
+messageTimestamp
+string
+Data e horário do disparo (TIMESTAMP)
+                                        
+                                    
+                                            {
+                                                "messageData": {
+                                                    "to": "120363042979163716@g
+                                                    "text": "Mensagem de Texto"
+                                                }
+                                            }
+                                        
+p
+⚠️ Atenção
+Tenha em mente que o envio de mensagens para um grande número de contatos
+simultaneamente pode ser interpretado pelo WhatsApp como comportamento de
+spam. Esta prática aumenta significativamente o risco de ter sua conta banida ou
+restrita. Recomendamos fortemente moderar a frequência e o volume dos envios
+para evitar tais consequências.
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+118/141
+
+
+=== PAGE 119 ===
+
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+Exemplo de solicitação
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+
+POST /rest/sendMessage/instance_key/text HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 83
+{"messageData": {"to": "556199999999@s.whatsapp.net", "text": "Mensagem de Texto"}}
+Copy to Clipboard
+
+Envio de arquivos (URL)
+Este método permite o envio de arquivos para seus chats de uma forma distinta:
+Através de um Link: Caso o arquivo já esteja disponível online, você pode simplesmente enviar
+seu URL.
+Quanto ao tamanho e aos formatos dos arquivos, as diretrizes do WhatsApp mudam com frequência.
+Por isso, é sempre uma boa prática consultar o site oficial do WhatsApp para as informações mais
+recentes. Encontre orientações detalhadas sobre tamanhos e formatos de arquivo aqui.
+Exemplo
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+119/141
+
+
+=== PAGE 120 ===
+
+/sendMessage/{{instance_key}}/mediaUrl
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/mediaUrl
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Atributos
+p
+Fique atento!
+Para enviar para contatos privados, o contato deve conter o @s.whatsapp.net.
+Para envios em grupo, você precisará coletar os ID's dos grupos utilizando o
+endpoint listGroup, os ID's devem conter @g.us
+L
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+120/141
+
+
+=== PAGE 121 ===
+
+Atributos
+Tipo
+Descrição
+to
+string
+Grupo que vai receber a mensagem
+url
+string
+URL da mídia a ser enviada
+fileName
+string
+Nome do arquivo
+type
+string
+É o tipo de mídia a ser enviada (image - video - audio - document)
+caption
+string
+É a legenda da mídia a ser enviada (Funciona somente em imagem e vídeo)
+mineType
+string
+MineTypes:
+imagem = image/jpeg,
+video = video/mp4,
+audio = audio/ogg; codecs=opus,
+pdf = application/pdf,
+xlsx = application/vnd.openxmlformats-officedocument.spreadsheetml.she
+word = application/vnd.openxmlformats-officedocument.wordprocessingm
+php, bin, html = application/octet-stream,
+sql = application/x-sql
+Request Body
+Response 200
+                                        
+                                    
+                                            {
+                                                "messageData": {
+                                                    "to": "120363042979163716@g
+                                                    "url": "{link do arquivo}",
+                                                    "fileName": "{nome_do_arqui
+                                                    "type": "{tipo}",
+                                                    "caption": "{texto legenda}
+                                                    "mimeType": "{mimetype}"
+                                                }
+                                            }
+                                        
+p
+⚠️ Atenção
+Tenha em mente que o envio de mensagens para um grande número de contatos
+simultaneamente pode ser interpretado pelo WhatsApp como comportamento de
+spam. Esta prática aumenta significativamente o risco de ter sua conta banida ou
+restrita. Recomendamos fortemente moderar a frequência e o volume dos envios
+para evitar tais consequências.
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+121/141
+
+
+=== PAGE 122 ===
+
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+message
+string
+Mensagem do retorno da requisição
+remoteJid
+string
+Grupo que recebeu a mensagem
+formMe
+boolean
+true - Mensagem Enviada
+false - Mensagem Recebida
+id
+string
+ID da mensagem
+url
+string
+Link do arquivo enviado
+mimetype
+string
+MineType do arquivo enviado
+mediaKey
+string
+Key do arquivo enviado
+fileName
+string
+Nome do arquivo enviado
+directPath
+string
+Path do arquivo enviado
+mediaKeyTimestamp
+string
+Data e Hora do arquivo enviado
+messageTimestamp
+string
+Data e Hora do arquivo enviado
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+Exemplo de solicitação
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+122/141
+
+
+=== PAGE 123 ===
+
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+C#
+Go
+
+
+POST /rest/sendMessage/instance_key/mediaUrl HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 226
+{"messageData": {"to": "551199999999@s.whatsapp.net", "url": "https://www.thecampusqdl.com/u
+Copy to Clipboard
+
+Envio de arquivos (BASE64)
+Este método permite o envio de arquivos para seus chats de uma forma distinta:
+Utilizando Base64: Para esta opção, sua aplicação deve incluir uma funcionalidade para
+transformar a imagem em Base64. Uma boa maneira de verificar se a conversão foi bem-
+sucedida é copiar o código Base64 gerado e colá-lo na barra de endereços do navegador. Se a
+imagem for exibida corretamente, significa que a conversão foi efetiva. Se não, é sinal de que
+algo precisa ser ajustado. Lembre-se de adicionar 'data:{mimetype};base64,' antes do seu
+código Base64.
+Para testar este método, você pode usar ferramentas online de conversão de imagens para Base64.
+Aqui estão alguns exemplos de conversores que você pode experimentar.
+Base64 Guru
+Quanto ao tamanho e aos formatos dos arquivos, as diretrizes do WhatsApp mudam com frequência.
+Por isso, é sempre uma boa prática consultar o site oficial do WhatsApp para as informações mais
+recentes. Encontre orientações detalhadas sobre tamanhos e formatos de arquivo aqui.
+Exemplo
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+123/141
+
+
+=== PAGE 124 ===
+
+/sendMessage/{{instance_key}}/mediaBase64
+POST  https://{{host}}/rest/sendMessage/{{instance_key}}/mediaBase64
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Atributos
+p
+Fique atento!
+Para enviar para contatos privados, o contato deve conter o @s.whatsapp.net.
+Para envios em grupo, você precisará coletar os ID's dos grupos utilizando o
+endpoint listGroup, os ID's devem conter @g.us
+L
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+124/141
+
+
+=== PAGE 125 ===
+
+Atributos
+Tipo
+Descrição
+to
+string
+Contato que vai receber a mensagem
+base64
+string
+Arquivo no formato base64 que vai ser enviado
+fileName
+string
+Nome do arquivo
+type
+string
+É o tipo de mídia a ser enviada (image - video - audio - document)
+caption
+string
+É a legenda da mídia a ser enviada (Funciona somente em imagem e vídeo)
+mineType
+string
+MineTypes:
+imagem = image/jpeg,
+video = video/mp4,
+audio = audio/ogg; codecs=opus,
+pdf = application/pdf,
+xlsx = application/vnd.openxmlformats-officedocument.spreadsheetml.she
+word = application/vnd.openxmlformats-officedocument.wordprocessingm
+php, bin, html = application/octet-stream,
+sql = application/x-sql
+Request Body
+Response 200
+                                        
+                                    
+                                            {
+                                                "messageData": {
+                                                    "to": "551199999999@s.whats
+                                                    "base64": "{arquivo base64}
+                                                    "fileName": "{nome_do_arqui
+                                                    "type": "{tipo}",
+                                                    "caption": "{texto legenda}
+                                                    "mimeType": "{mimetype}"
+                                                }
+                                            }
+                                        
+p
+⚠️ Atenção
+Tenha em mente que o envio de mensagens para um grande número de contatos
+simultaneamente pode ser interpretado pelo WhatsApp como comportamento de
+spam. Esta prática aumenta significativamente o risco de ter sua conta banida ou
+restrita. Recomendamos fortemente moderar a frequência e o volume dos envios
+para evitar tais consequências.
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+125/141
+
+
+=== PAGE 126 ===
+
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+message
+string
+Mensagem do retorno da requisição
+remoteJid
+string
+Contato que recebeu a mensagem
+formMe
+boolean
+true - Mensagem Enviada
+false - Mensagem Recebida
+id
+string
+ID da mensagem
+url
+string
+Link do arquivo enviado
+mimetype
+string
+MineType do arquivo enviado
+mediaKey
+string
+Key do arquivo enviado
+fileName
+string
+Nome do arquivo enviado
+directPath
+string
+Path do arquivo enviado
+mediaKeyTimestamp
+string
+Data e Hora do arquivo enviado
+messageTimestamp
+string
+Data e Hora do arquivo enviado
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+Exemplo de solicitação
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+126/141
+
+
+=== PAGE 127 ===
+
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+Ruby
+She
+
+
+
+POST /rest/sendMessage/instance_key/mediaBase64 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 235
+{"messageData": {"to": "551199999999@s.whatsapp.net", "base64": "data:image/png;base64,iVBOR
+Copy to Clipboard
+
+Criar grupo
+Utilize este procedimento para iniciar um novo grupo, incluindo os participantes desejados.
+/group/{{instance_key}}/create
+POST  https://{{host}}/rest/group/{{instance_key}}/create
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+p
+Dica
+É preciso adicionar pelo menos um contato para conseguir criar o grupo
+p
+Importante
+Esteja ciente de que alguns usuários podem ter restrições para serem adicionados
+diretamente em grupos devido às suas configurações de privacidade. Nestes
+casos, a melhor opção é compartilhar o link do grupo de forma privada, permitindo
+que eles optem por entrar no grupo por conta própria.
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+127/141
+
+
+=== PAGE 128 ===
+
+Atributos
+Atributos
+Tipo
+Descrição
+group_name
+string
+Nome do Grupo
+participants
+array
+Lista de contatos que serão adicionados no grupo ( EX: 551199999999@
+Request Body
+Response 200
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+message
+string
+Mensagem do retorno
+id
+string
+ID do grupo
+subject
+string
+Nome do grupo
+creation
+number
+Data e Hora que o grupo foi criado
+owner
+string
+Contato do criador do grupo
+restrict
+boolean
+true - Somente Admin podem fazer alterações
+false - Todos os participantes podem fazer alterações
+announce
+boolean
+true - Somente Admin podem enviar mensagens
+false - Todos os participantes podem enviar mensagens
+participants
+array
+Lista com os participantes que foram adicionados
+                                        
+                                    
+                                            {
+                                                "group_data": {
+                                                  "group_name": "Nome do Grupo"
+                                                  "participants": [
+                                                    "551199999999@s.whatsapp.ne
+                                                  ]
+                                                }
+                                            }
+                                        
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+128/141
+
+
+=== PAGE 129 ===
+
+Atributos
+Tipo
+Descrição
+id
+string
+Contato whatsapp
+admin
+string
+null - Não é administrador
+superadmin - Contato é um administrador do grupo
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+Exemplo de solicitação
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+C#
+Go
+
+
+POST /rest/group/instance_key/create HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 92
+{"group_data":{"group_name":"Nome do Grupo","participants":["551199999999@s.whatsapp.net"]}}
+Copy to Clipboard
+
+Adicionar participantes no grupo
+Utilize este procedimento para adicionar novos participantes no grupo
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+129/141
+
+
+=== PAGE 130 ===
+
+/group/{{instance_key}}/addParticipants
+POST  https://{{host}}/rest/group/{{instance_key}}/addParticipants
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Atributos
+Atributos
+Tipo
+Descrição
+jid
+string
+ID do grupo
+participants
+array
+Lista de contatos que serão adicionados no grupo ( EX: 551199999999@
+Request Body
+Response 200
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+message
+string
+Mensagem do retorno
+updatedParticipants
+array
+Lista de contatos que foram adicionados no grupo
+Response 401
+                                        
+                                    
+                                            {
+                                                "group_data": {
+                                                    "jid": "120363041490582303@
+                                                    "participants": [
+                                                        "551188888888@s.whatsap
+                                                    ]
+                                                }
+                                            }
+                                        
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+130/141
+
+
+=== PAGE 131 ===
+
+Instância não esta conectada ao Whatsapp
+Response 403
+Sem autorização para adicionar esse contato no grupo
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+Exemplo de solicitação
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+C#
+Go
+
+
+POST /rest/group/instance_key/addParticipants HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 95
+{"group_data":{"jid":"120363041490582303@g.us","participants":["551188888888@s.whatsapp.net"
+Copy to Clipboard
+
+Remover participantes no grupo
+Utilize este procedimento para remover participantes no grupo
+/group/{{instance_key}}/removeParticipants
+POST  https://{{host}}/rest/group/{{instance_key}}/removeParticipants
+Header
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+131/141
+
+
+=== PAGE 132 ===
+
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Atributos
+Atributos
+Tipo
+Descrição
+jid
+string
+ID do grupo
+participants
+array
+Lista de contatos que serão removidos do grupo ( EX: 551199999999@s.
+Request Body
+Response 200
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+message
+string
+Mensagem do retorno
+updatedParticipants
+array
+Lista de contatos que foram removidos do grupo
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+                                        
+                                    
+                                            {
+                                                "group_data": {
+                                                    "jid": "120363041490582303@
+                                                    "participants": [
+                                                        "551188888888@s.whatsap
+                                                    ]
+                                                }
+                                            }
+                                        
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+132/141
+
+
+=== PAGE 133 ===
+
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+Exemplo de solicitação
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+C#
+Go
+
+
+POST /rest/group/instance_key/removeParticipants HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 95
+{"group_data":{"jid":"120363041490582303@g.us","participants":["551188888888@s.whatsapp.net"
+Copy to Clipboard
+
+Remover administrador do grupo
+Utilize este procedimento para remover um ou mais administradores do grupo
+/group/{{instance_key}}/demoteParticipants
+POST  https://{{host}}/rest/group/{{instance_key}}/demoteParticipants
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Atributos
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+133/141
+
+
+=== PAGE 134 ===
+
+Atributos
+Tipo
+Descrição
+jid
+string
+ID do grupo
+participants
+array
+Lista de contatos que serão rebaixados administradores do grupo ( EX: 55
+Request Body
+Response 200
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+message
+string
+Mensagem do retorno
+updatedParticipants
+array
+Lista de contatos que não são mais administradores do grupo
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+                                        
+                                    
+                                            {
+                                                "group_data": {
+                                                    "jid": "120363041490582303@
+                                                    "participants": [
+                                                        "551188888888@s.whatsap
+                                                    ]
+                                                }
+                                            }
+                                        
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+134/141
+
+
+=== PAGE 135 ===
+
+Exemplo de solicitação
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+Ruby
+She
+
+
+
+POST /rest/group/instance_key/demoteParticipants HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 95
+{"group_data":{"jid":"120363041490582303@g.us","participants":["551188888888@s.whatsapp.net"
+Copy to Clipboard
+
+Promover administrador do grupo
+Utilize este procedimento para promover um ou mais administradores do grupo
+/group/{{instance_key}}/promoteParticipants
+POST  https://{{host}}/rest/group/{{instance_key}}/promoteParticipants
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Atributos
+Atributos
+Tipo
+Descrição
+jid
+string
+ID do grupo
+participants
+array
+Lista de contatos que serão promovidos á administradores do grupo ( EX
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+135/141
+
+
+=== PAGE 136 ===
+
+Request Body
+Response 200
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+message
+string
+Mensagem do retorno
+updatedParticipants
+array
+Lista de contatos que serão promovidos á administradores do 
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+Exemplo de solicitação
+                                        
+                                    
+                                            {
+                                                "group_data": {
+                                                    "jid": "120363041490582303@
+                                                    "participants": [
+                                                        "551188888888@s.whatsap
+                                                    ]
+                                                }
+                                            }
+                                        
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+136/141
+
+
+=== PAGE 137 ===
+
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+Ruby
+She
+
+
+
+POST /rest/group/instance_key/promoteParticipants HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Content-Length: 95
+{"group_data":{"jid":"120363041490582303@g.us","participants":["551188888888@s.whatsapp.net"
+Copy to Clipboard
+
+Configurações do grupo
+Abaixo vamos listar todos os métodos que permite configurar as preferências do grupo
+setWhoCanSendMessage
+Esse método define quem poderá enviar mensagens no grupo
+/group/{{instance_key}}/setWhoCanSendMessage?jid=
+{{id_group}}&allowOnlyAdmins=false
+PUT  https://{{host}}/rest/group/{{instance_key}}/setWhoCanSendMessage?jid=
+{{id_group}}&allowOnlyAdmins=false
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Request Params
+p
+Atenção
+Somente administradores podem editar as configurações de um grupo
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+137/141
+
+
+=== PAGE 138 ===
+
+Atributos
+Tipo
+Descrição
+jid
+string
+ID do grupo
+allowOnlyAdmins
+boolean
+true - Somente admin envia mensagem no grupo false - Participan
+Response 200
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+message
+string
+Mensagem do retorno
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+Exemplo de solicitação
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+Ruby
+She
+
+
+
+PUT /rest/group/instance_key/setWhoCanSendMessage?jid=id_group&allowOnlyAdmins=false HTTP/1.
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Copy to Clipboard
+
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+138/141
+
+
+=== PAGE 139 ===
+
+setWhoCanChangeSettings
+Esse método define quem poderá alterar as configurações do grupo
+/group/{{instance_key}}/setWhoCanChangeSettings?jid=
+{{id_group}}&allowOnlyAdmins=false
+PUT  https://{{host}}/rest/group/{{instance_key}}/setWhoCanChangeSettings?jid=
+{{id_group}}&allowOnlyAdmins=false
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Request Params
+Atributos
+Tipo
+Descrição
+jid
+string
+ID do grupo
+allowOnlyAdmins
+boolean
+true - Somente admin pode alterar as configurações do grupo fals
+Response 200
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+message
+string
+Mensagem do retorno
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+Response 500
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+139/141
+
+
+=== PAGE 140 ===
+
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+Exemplo de solicitação
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+
+
+
+PUT /rest/group/instance_key/setWhoCanChangeSettings?jid=id_group&allowOnlyAdmins=false HTTP
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Copy to Clipboard
+
+Sair do Grupo
+Este método permite que você saia do grupo
+/group/{{instance_key}}/leaveGroup?jid={{id_group}}
+DELETE  https://{{host}}/rest/group/{{instance_key}}/leaveGroup?jid={{id_group}}
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Request Params
+Atributos
+Tipo
+Descrição
+jid
+string
+ID do grupo
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+140/141
+
+
+=== PAGE 141 ===
+
+Response 200
+Atributos
+Tipo
+Descrição
+error
+boolean
+Status do retorno
+message
+string
+Mensagem do retorno
+Response 401
+Instância não esta conectada ao Whatsapp
+Response 403
+Número do whatsapp não existe
+Response 500
+Alguma informação enviada incorretamente ou serviços do whatsapp instáveis
+Exemplo de solicitação
+Powered by APIembed (https://apiembed.com/)
+HTTP
+PHP
+JavaScript
+Node.js
+Python
+Java
+C
+Clojure
+Ruby
+She
+
+DELETE /rest/group/instance_key/leaveGroup?jid=id_group HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer token
+Host: host
+Copy to Clipboard
+
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+141/141
+
+

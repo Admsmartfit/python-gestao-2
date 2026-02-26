@@ -209,18 +209,37 @@ class WhatsAppService:
 
         return cls._send_request("mediaUrl", payload)
 
+    # Mapeamento explícito de extensões para MIME (fallback para mimetypes.guess_type)
+    _MIME_MAP = {
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'gif': 'image/gif',
+        'webp': 'image/webp',
+        'heic': 'image/heic',
+        'mp4': 'video/mp4',
+        'pdf': 'application/pdf',
+        'ogg': 'audio/ogg; codecs=opus',
+        'mp3': 'audio/mpeg',
+    }
+
     @classmethod
     def _send_media(cls, recipient: str, arquivo_path: str, tipo_midia: str, caption: str = None):
-        """Envia mídia usando base64."""
+        """Envia mídia via base64 (MegaAPI endpoint mediaBase64)."""
         import os
         import base64
         import mimetypes
 
         if not os.path.exists(arquivo_path):
+            logger.error(f"[WhatsApp Media] Arquivo não encontrado: {arquivo_path}")
             return False, {"error": f"Arquivo não encontrado: {arquivo_path}"}
 
         try:
-            mime_type, _ = mimetypes.guess_type(arquivo_path)
+            # Detectar MIME type com fallback explícito por extensão
+            ext = os.path.splitext(arquivo_path)[1].lstrip('.').lower()
+            mime_type = cls._MIME_MAP.get(ext)
+            if not mime_type:
+                mime_type, _ = mimetypes.guess_type(arquivo_path)
             if not mime_type:
                 mime_type = 'application/octet-stream'
 
@@ -228,32 +247,35 @@ class WhatsAppService:
                 file_data = base64.b64encode(f.read()).decode('utf-8')
 
             base64_str = f"data:{mime_type};base64,{file_data}"
+            filename = os.path.basename(arquivo_path)
 
             payload = {
                 "messageData": {
                     "to": recipient,
                     "base64": base64_str,
-                    "fileName": os.path.basename(arquivo_path),
+                    "fileName": filename,
                     "type": tipo_midia,
                     "caption": caption or "",
                     "mimeType": mime_type
                 }
             }
 
-            return cls._send_request("mediaBase64", payload)
+            logger.info(f"[WhatsApp Media] Enviando {tipo_midia} '{filename}' ({len(file_data)//1024}KB b64) para {recipient}")
+            return cls._send_request("mediaBase64", payload, timeout=60)
 
         except Exception as e:
-            logger.error(f"Erro ao preparar mídia: {e}")
+            logger.error(f"[WhatsApp Media] Erro ao preparar mídia '{arquivo_path}': {e}")
             return False, {"error": str(e)}
 
     @classmethod
-    def _send_request(cls, endpoint_type: str, payload: dict):
+    def _send_request(cls, endpoint_type: str, payload: dict, timeout: int = 15):
         """
         Método interno para enviar requisição à MegaAPI.
 
         Args:
             endpoint_type: Tipo de endpoint (text, mediaBase64, listMessage, buttonMessage, etc.)
             payload: Payload completo da requisição
+            timeout: Timeout em segundos (padrão 15s; use 60s para mídia grande)
 
         Returns:
             tuple: (sucesso: bool, resposta: dict)
@@ -278,7 +300,7 @@ class WhatsAppService:
                 endpoint,
                 json=payload,
                 headers=headers,
-                timeout=10
+                timeout=timeout
             )
 
             if response.status_code in [200, 201]:
@@ -287,12 +309,16 @@ class WhatsAppService:
                 return True, response.json()
             else:
                 CircuitBreaker.record_failure()
-                logger.warning(f"MegaAPI failure [{endpoint_type}]: {response.status_code} - {response.text}")
+                logger.warning(f"MegaAPI failure [{endpoint_type}]: {response.status_code} - {response.text[:300]}")
                 return False, {"status": response.status_code, "text": response.text}
 
+        except requests.exceptions.Timeout:
+            CircuitBreaker.record_failure()
+            logger.error(f"MegaAPI timeout [{endpoint_type}] após {timeout}s")
+            return False, {"error": f"Timeout após {timeout}s"}
         except requests.exceptions.RequestException as e:
             CircuitBreaker.record_failure()
-            logger.error(f"MegaAPI request exception: {str(e)}")
+            logger.error(f"MegaAPI request exception [{endpoint_type}]: {str(e)}")
             return False, {"error": str(e)}
 
     @classmethod

@@ -1,0 +1,205 @@
+Traceback (most recent call last):
+  File "<string>", line 27, in <module>
+    print(text)
+    ~~~~~^^^^^^
+  File "C:\Users\ralan\AppData\Local\Programs\Python\Python313\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\uf0c9' in position 66: character maps to <undefined>
+Found 141 relevant pages
+
+=== PAGE 1 ===
+
+Documentação
+Seja bem vindo a Mega-api ! Documentação completa da melhor api, para integração com o
+whatsapp no Brasil!:
+Introdução à Mega-api
+Bem-vindo à Mega-api! Conheça nossa solução de integração com o WhatsApp e explore seus
+recursos:
+O que é a Mega-api?
+A Mega-api é uma solução avançada para integração com o WhatsApp, permitindo que empresas e
+desenvolvedores ampliem suas capacidades de comunicação, conectando-se de maneira eficiente e
+segura com seus clientes através deste popular aplicativo de mensagens.
+Para quem a Mega-api foi desenvolvida?
+A Mega-api foi desenvolvida para empresas, desenvolvedores e profissionais que desejam otimizar
+sua comunicação via WhatsApp, seja para atendimento ao cliente, marketing ou outros objetivos
+empresariais. Independentemente do tamanho ou do setor, a Mega-api tem as ferramentas para
+impulsionar suas operações.
+Quem pode utilizar a Mega-api?
+Qualquer pessoa ou empresa que deseja melhorar e ampliar sua comunicação no WhatsApp. Desde
+pequenas empresas até grandes corporações, a Mega-api é flexível e escalável para atender às
+necessidades de todos.
+Limites de envio de mensagens:
+NÃO TEMOS LIMITE para o número de mensagens enviadas! No entanto, é importante entender que
+você está utilizando uma sessão do WhatsApp Web, então o padrão de utilização precisa ser
+compatível. Além disso, sempre recomendamos que você leia atentamente as políticas
+estabelecidas pelo próprio WhatsApp em sua página oficial.
+p
+Importante você saber
+A Mega-api não é destinada para práticas de Spam no WhatsApp. Utilize com
+sabedoria e responsabilidade.
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+1/141
+
+
+
+=== PAGE 2 ===
+
+URLs para chamadas dos endpoints
+Os hosts listados abaixo podem variar de acordo com a instância criada. A seleção específica do
+host dependerá da disponibilidade do servidor no momento da criação da instância. Isso é feito para
+garantir que nossos servidores não sejam sobrecarregados e para manter a performance ideal para
+todos os usuários
+HOST
+URL
+api2
+api2.megaapi.com.br
+api4
+api4.megaapi.com.br
+api5
+api5.megaapi.com.br
+apistart01
+apistart01.megaapi.com.br
+apistart02
+apistart02.megaapi.com.br
+apibusiness01
+apibusiness01.megaapi.com.br
+Para sua comodidade, lembre-se de que essas informações, bem como outras configurações e
+detalhes relevantes, estão sempre disponíveis no painel de usuário da Mega-api. Recomendamos
+verificar regularmente para obter as informações mais atualizadas e garantir a otimização do uso da
+nossa API.
+p
+Armazenamento de mensagens
+A Mega-api não armazena nenhuma das mensagens que são trafegadas, durante a
+conexão do seu whatsapp com uma instância da Mega-api, fica por conta do
+usuário, criar seu banco de dados, para armazenamento de todas as mensagens.
+L
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+2/141
+
+
+
+=== PAGE 3 ===
+
+Instance Key e Token
+Entenda os conceitos da Mega-api e saiba como a Instance Key e o Token são fundamentais para a
+integração com sua aplicação.
+Para que serve?
+Para assegurar uma comunicação segura entre a Mega-api e sua aplicação, estabelecemos um
+protocolo de autenticação robusto. Cada interação com nossa API deve ser autenticada usando uma
+Instance Key e um Token. Esses identificadores garantem a integridade e segurança das suas
+requisições.
+Na Mega-api, a Instance Key é usada na URL, enquanto o Token é incluído no header das requisições
+no formato Bearer, garantindo assim uma maior segurança na transmissão de dados.
+Como localizar minha Instance Key e Token?
+Assim que você cria sua conta na Mega-api, será necessário criar uma instância, que terá sua própria
+Instance Key e Token. Estes dois identificadores trabalham juntos para garantir a comunicação
+segura entre sua aplicação e a Mega-api. Para visualizar sua Instance Key e Token, acesse a
+instância no painel do usuário e clique em 'Detalhes'. Lá, você encontrará todos os detalhes
+relacionados à instância. E lembre-se, se você tiver múltiplas instâncias, cada uma terá sua própria
+Instance Key e Token.
+p
+Atenção
+É fundamental proteger sua Instance Key e Token. Se caírem em mãos erradas,
+elas podem ser usadas para se comunicar com a Mega-api em seu nome. Lembre-
+se de manter essas informações longe do frontend e, ao interagir com nossa API,
+sempre inclua o Token no header das requisições no padrão Bearer. Isso garante a
+segurança e a correta autenticação das suas ações.
+L
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+3/141
+
+
+
+=== PAGE 4 ===
+
+Autenticação Bearer Token
+Para garantir uma comunicação segura e autenticada entre sua aplicação e a Mega-api, utilizamos o
+método de autenticação Bearer Token. Esta é uma prática padrão que oferece segurança robusta
+para APIs.
+Na autenticação Bearer Token, o Token é enviado no header da requisição HTTP. Isso permite à
+Mega-api validar e autenticar a requisição antes de processá-la. Assegura-se de que apenas
+entidades autorizadas possam interagir com a API.
+Aqui está um exemplo de como incluir o Bearer Token no header de uma requisição:
+Authorization: Bearer SEU_TOKEN_AQUI
+Substitua "SEU_TOKEN_AQUI" pelo token específico da sua instância. Mantenha o prefixo "Bearer"
+exatamente como mostrado, seguido de um espaço e depois o seu token.
+É essencial que todas as suas requisições para a Mega-api sigam este formato de autenticação. Isso
+não apenas garante a segurança das suas operações, mas também a integridade dos dados
+transmitidos.
+INSTANCE CONTROLLER
+Introdução
+Uma instância pode ser visualizada como uma ponte dedicada entre um número específico de
+telefone com uma conta no WhatsApp e a plataforma Mega-API. Esta ponte permite a transmissão e
+recepção de mensagens, possibilitando uma comunicação fluida e consistente. Com a capacidade
+de criar múltiplas instâncias, os usuários têm a liberdade de conectar diversos números de
+WhatsApp à sua conta na plataforma.
+Por trás da Instância
+No contexto técnico, quando falamos de uma instância, estamos nos referindo a um container ou
+máquina virtual dentro da nossa sofisticada infraestrutura. Essa estrutura é especialmente projetada
+para oferecer um ambiente seguro e otimizado para a conexão do seu número de WhatsApp. Embora
+cada instância esteja vinculada a um único número, há uma flexibilidade inerente; é completamente
+viável desconectar um número existente e estabelecer uma nova conexão com um número diferente
+usando a mesma instância.
+Nossa Abordagem Técnica
+A base do nosso serviço é inspirada na versatilidade do WhatsApp Web. No entanto, evoluímos essa
+ideia ao construir uma camada adicional que permite a manipulação por meio de uma API RestFul,
+oferecendo uma experiência ampliada e mais controlada. Ao avançar, vamos detalhar mais sobre o
+funcionamento das instâncias, garantindo que você esteja bem equipado para começar.
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+4/141
+
+
+
+=== PAGE 5 ===
+
+Status
+Este método te permite verificar se sua instância está conectada a sua conta Whatsapp.
+/instance/{{instance_key}}
+GET  https://{{host}}/rest/instance/{{instance_key}}
+Header
+KEY
+VALUE
+Authorization
+Bearer {{token}}
+Response
+Atributos
+Tipo
+Descrição
+message
+string
+Mensagem de retorno
+instance
+object
+Contém os dados da instancia
+key
+string
+Nome da instancia
+id
+string
+Whatsapp que está conectado
+verifiedName / name
+string
+Nome do contato
+Exemplo de solicitação
+p
+Atenção
+Quando não estiver conectado, o retorno são parecidos, so que não haverá chave
+{user} no objeto de resposta da requisição, assim você saberá que não existe
+nenhum whatsapp conectado nessa instância
+07/01/2026, 15:45
+Mega-api Docs - Sua Solução para Integração com WhatsApp
+https://mega-api.app.br/documentacao/business/
+5/141
+
+
+
+=== PAGE 6 ===
