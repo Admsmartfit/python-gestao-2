@@ -35,6 +35,7 @@ class Equipamento(db.Model):
     unidade_id = db.Column(db.Integer, db.ForeignKey('unidades.id'), nullable=False)
     ativo = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    qrcode_externo = db.Column(db.Text, nullable=True, unique=True)
     unidade = db.relationship('Unidade', backref='lista_equipamentos')
 
 class OrdemServico(db.Model):

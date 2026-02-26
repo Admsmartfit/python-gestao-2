@@ -671,18 +671,31 @@
                     return;
                 }
 
-                // Não reconhecido
-                ToastModule.show("QR Code reconhecido, mas não é uma URL de equipamento/OS válida.", "warning");
+                // 5. Fallback: verificar se é QR code externo vinculado a algum equipamento
+                ToastModule.show("Consultando equipamento...", "info");
+                fetch('/equipamentos/api/buscar-por-qr?codigo=' + encodeURIComponent(decodedText))
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.encontrado) {
+                            showEquipmentOptions(data.id, data.nome);
+                        } else {
+                            ToastModule.show("QR Code não reconhecido. Você pode vincular este QR a um equipamento na página do equipamento.", "warning");
+                        }
+                    })
+                    .catch(() => {
+                        ToastModule.show("QR Code reconhecido, mas não foi possível consultar o sistema.", "warning");
+                    });
             }
 
-            function showEquipmentOptions(equipId) {
+            function showEquipmentOptions(equipId, equipNome) {
+                const titulo = equipNome ? `${equipNome} (#${equipId})` : `Equipamento #${equipId}`;
                 // Criar e mostrar modal de opções
                 const modalHtml = `
                     <div class="modal fade" id="modalEquipOptions" tabindex="-1">
                         <div class="modal-dialog modal-dialog-centered">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title"><i class="bi bi-hdd-network me-2"></i>Equipamento #${equipId}</h5>
+                                    <h5 class="modal-title"><i class="bi bi-hdd-network me-2"></i>${titulo}</h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
                                 <div class="modal-body">

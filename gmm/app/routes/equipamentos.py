@@ -1,6 +1,7 @@
-from flask import Blueprint, render_template, request, abort
+from flask import Blueprint, render_template, request, abort, jsonify, redirect, url_for, flash
 from flask_login import login_required
 from app.models.estoque_models import Equipamento, OrdemServico, MovimentacaoEstoque
+from app.extensions import db
 from sqlalchemy import desc
 
 bp = Blueprint('equipamentos', __name__, url_prefix='/equipamentos')
@@ -63,8 +64,7 @@ def detalhes(id):
 def gerar_qr(id):
     """Gera o arquivo de QR Code no servidor (conforme PRD v3.1)"""
     from app.services.qr_service import QRService
-    from flask import flash, redirect, url_for
-    
+
     Equipamento.query.get_or_404(id)
     try:
         path = QRService.gerar_etiqueta_equipamento(id)
@@ -72,3 +72,57 @@ def gerar_qr(id):
     except Exception as e:
         flash(f'Erro ao gerar QR Code: {str(e)}', 'danger')
         return redirect(url_for('equipamentos.detalhes', id=id))
+
+
+@bp.route('/<int:id>/vincular-qr', methods=['POST'])
+@login_required
+def vincular_qr_externo(id):
+    """Vincula um QR code externo (de outra empresa) a este equipamento."""
+    equipamento = Equipamento.query.get_or_404(id)
+    codigo = (request.json or {}).get('codigo', '').strip()
+
+    if not codigo:
+        return jsonify({'ok': False, 'msg': 'Código não informado.'}), 400
+
+    # Checar se já está vinculado a outro equipamento
+    existente = Equipamento.query.filter(
+        Equipamento.qrcode_externo == codigo,
+        Equipamento.id != id
+    ).first()
+    if existente:
+        return jsonify({'ok': False, 'msg': f'QR já vinculado ao equipamento "{existente.nome}" (#{existente.id}).'}), 409
+
+    equipamento.qrcode_externo = codigo
+    db.session.commit()
+    return jsonify({'ok': True, 'msg': 'QR code externo vinculado com sucesso.'})
+
+
+@bp.route('/<int:id>/desvincular-qr', methods=['POST'])
+@login_required
+def desvincular_qr_externo(id):
+    """Remove o vínculo do QR code externo deste equipamento."""
+    equipamento = Equipamento.query.get_or_404(id)
+    equipamento.qrcode_externo = None
+    db.session.commit()
+    return jsonify({'ok': True, 'msg': 'QR code externo removido.'})
+
+
+@bp.route('/api/buscar-por-qr')
+@login_required
+def buscar_por_qr():
+    """Lookup de equipamento pelo conteúdo de um QR code externo."""
+    codigo = request.args.get('codigo', '').strip()
+    if not codigo:
+        return jsonify({'encontrado': False}), 400
+
+    equipamento = Equipamento.query.filter_by(qrcode_externo=codigo, ativo=True).first()
+    if not equipamento:
+        return jsonify({'encontrado': False})
+
+    return jsonify({
+        'encontrado': True,
+        'id': equipamento.id,
+        'nome': equipamento.nome,
+        'categoria': equipamento.categoria,
+        'unidade': equipamento.unidade.nome if equipamento.unidade else ''
+    })
