@@ -179,6 +179,44 @@ class WhatsAppService:
         return cls._send_request("buttonMessage", payload)
 
     @classmethod
+    def enviar_imagem_url(cls, phone: str, url_publica: str, caption: str = None):
+        """
+        Envia imagem via URL pública (endpoint mediaUrl).
+        Mais confiável que base64 para arquivos grandes.
+
+        Args:
+            phone: Telefone no formato 5511999999999
+            url_publica: URL pública acessível da imagem
+            caption: Legenda opcional
+        """
+        phone = cls.normalizar_telefone(phone)
+        if not cls.validar_telefone(phone):
+            return False, {"error": "Telefone inválido"}
+        if not CircuitBreaker.should_attempt():
+            return False, {"error": "Circuit breaker OPEN"}
+
+        recipient = cls._format_phone(phone)
+
+        # Detectar tipo/mime pela extensão da URL
+        ext = url_publica.rsplit('?', 1)[0].rsplit('.', 1)[-1].lower()
+        mime_type = cls._MIME_MAP.get(ext, 'image/jpeg')
+        filename = url_publica.rsplit('/', 1)[-1].split('?')[0]
+
+        payload = {
+            "messageData": {
+                "to": recipient,
+                "url": url_publica,
+                "fileName": filename,
+                "type": "image",
+                "caption": caption or "",
+                "mimeType": mime_type
+            }
+        }
+
+        logger.info(f"[WhatsApp URL] Enviando imagem via URL para {recipient}: {url_publica}")
+        return cls._send_request("mediaUrl", payload)
+
+    @classmethod
     def enviar_documento(cls, phone: str, document_url: str, filename: str, caption: str = None):
         """
         Envia documento (PDF, etc) via WhatsApp usando URL.

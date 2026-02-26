@@ -717,7 +717,6 @@ def adicionar_tarefa_externa(id):
             # Enviar WhatsApp diretamente
             try:
                 from app.services.whatsapp_service import WhatsAppService
-                import os as os_module
 
                 ok, resp = WhatsAppService.enviar_mensagem(
                     telefone=terceirizado.telefone,
@@ -731,27 +730,23 @@ def adicionar_tarefa_externa(id):
                     notif.status_envio = 'falhou'
                     logger.warning(f"WhatsApp falhou para {terceirizado.nome}: {resp}")
 
-                # Enviar fotos independente do sucesso do texto
+                # Enviar fotos via URL pública (mais confiável que base64)
                 fotos_enviadas = 0
                 if os_obj.anexos_list:
-                    logger.info(f"[Fotos OS] Enviando {len(os_obj.anexos_list)} foto(s) para {terceirizado.nome}")
+                    base_url = request.url_root.rstrip('/')
+                    logger.info(f"[Fotos OS] {len(os_obj.anexos_list)} foto(s) para {terceirizado.nome}")
                     for anexo in os_obj.anexos_list:
-                        foto_path = os_module.path.join(current_app.root_path, 'static', anexo.caminho_arquivo)
-                        logger.info(f"[Fotos OS] Path: {foto_path} | Existe: {os_module.path.exists(foto_path)}")
-                        if os_module.path.exists(foto_path):
-                            ok_foto, resp_foto = WhatsAppService.enviar_mensagem(
-                                telefone=terceirizado.telefone,
-                                texto=f"Foto OS {os_obj.numero_os} - {anexo.tipo.replace('_', ' ')}",
-                                arquivo_path=foto_path,
-                                tipo_midia='image',
-                                prioridade=1
-                            )
-                            if ok_foto:
-                                fotos_enviadas += 1
-                            else:
-                                logger.warning(f"[Fotos OS] Falha: {anexo.nome_arquivo}: {resp_foto}")
+                        url_foto = f"{base_url}/static/{anexo.caminho_arquivo}"
+                        caption = f"Foto OS {os_obj.numero_os} - {anexo.tipo.replace('_', ' ')}"
+                        ok_foto, resp_foto = WhatsAppService.enviar_imagem_url(
+                            phone=terceirizado.telefone,
+                            url_publica=url_foto,
+                            caption=caption
+                        )
+                        if ok_foto:
+                            fotos_enviadas += 1
                         else:
-                            logger.warning(f"[Fotos OS] Arquivo não encontrado: {foto_path}")
+                            logger.warning(f"[Fotos OS] Falha {anexo.nome_arquivo}: {resp_foto}")
                 else:
                     logger.info(f"[Fotos OS] OS {os_obj.id} sem fotos anexadas.")
 
@@ -1040,25 +1035,21 @@ Por favor, envie seu orçamento até a data limite."""
                         notif.status_envio = 'falhou'
                         logger.warning(f"WhatsApp falhou para {prestador.nome}: {resp}")
 
-                    # Enviar fotos da OS independente do sucesso do texto
+                    # Enviar fotos via URL pública (mais confiável que base64)
                     os_obj = OrdemServico.query.get(os_id)
                     if os_obj and os_obj.anexos_list:
-                        logger.info(f"[Fotos OS] Enviando {len(os_obj.anexos_list)} foto(s) para {prestador.nome}")
+                        base_url = request.url_root.rstrip('/')
+                        logger.info(f"[Fotos OS] {len(os_obj.anexos_list)} foto(s) para {prestador.nome} via {base_url}")
                         for anexo in os_obj.anexos_list:
-                            foto_path = os_module.path.join(current_app.root_path, 'static', anexo.caminho_arquivo)
-                            logger.info(f"[Fotos OS] Path: {foto_path} | Existe: {os_module.path.exists(foto_path)}")
-                            if os_module.path.exists(foto_path):
-                                ok_foto, resp_foto = WhatsAppService.enviar_mensagem(
-                                    telefone=prestador.telefone,
-                                    texto=f"Foto OS {os_obj.numero_os} - {anexo.tipo.replace('_', ' ')}",
-                                    arquivo_path=foto_path,
-                                    tipo_midia='image',
-                                    prioridade=1
-                                )
-                                if not ok_foto:
-                                    logger.warning(f"[Fotos OS] Falha ao enviar {anexo.nome_arquivo}: {resp_foto}")
-                            else:
-                                logger.warning(f"[Fotos OS] Arquivo não encontrado: {foto_path}")
+                            url_foto = f"{base_url}/static/{anexo.caminho_arquivo}"
+                            caption = f"Foto OS {os_obj.numero_os} - {anexo.tipo.replace('_', ' ')}"
+                            ok_foto, resp_foto = WhatsAppService.enviar_imagem_url(
+                                phone=prestador.telefone,
+                                url_publica=url_foto,
+                                caption=caption
+                            )
+                            if not ok_foto:
+                                logger.warning(f"[Fotos OS] Falha {anexo.nome_arquivo}: {resp_foto}")
                     else:
                         logger.info(f"[Fotos OS] OS {os_id} sem fotos anexadas.")
 
