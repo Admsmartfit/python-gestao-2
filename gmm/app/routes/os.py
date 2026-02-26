@@ -480,7 +480,23 @@ def verificar_disponibilidade_peca(peca_id):
 @bp.route('/estoque/painel')
 @login_required
 def painel_estoque():
+    from decimal import Decimal
     itens = Estoque.query.order_by(Estoque.nome).all()
+
+    # Reconciliar quantidade_atual com a soma real dos EstoqueSaldo
+    # (os dois podem divergir se movimentacoes foram criadas fora do service)
+    needs_commit = False
+    for item in itens:
+        saldo_real = sum((s.quantidade or Decimal(0)) for s in item.saldos)
+        if abs(float(saldo_real) - float(item.quantidade_atual or 0)) > 0.001:
+            item.quantidade_atual = saldo_real
+            needs_commit = True
+    if needs_commit:
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
     unidades = Unidade.query.order_by(Unidade.nome).all()
     return render_template('estoque.html', estoque=itens, unidades=unidades)
 
@@ -818,7 +834,10 @@ def cancelar_os_route(id):
         db.session.rollback()
         flash(f'Erro ao cancelar OS: {str(e)}', 'danger')
         
-    return redirect(url_for('os.detalhes', id=id))@bp.route('/<int:id>/feedback', methods=['POST'])
+    return redirect(url_for('os.detalhes', id=id))
+
+
+@bp.route('/<int:id>/feedback', methods=['POST'])
 @login_required
 def salvar_feedback(id):
     os_obj = OrdemServico.query.get_or_404(id)

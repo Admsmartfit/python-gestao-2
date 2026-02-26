@@ -1,75 +1,64 @@
 {% extends "base.html" %}
 
-{% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{{ url_for('ponto.index') }}">Dashboard</a></li>
-<li class="breadcrumb-item active">Controle de Estoque</li>
-{% endblock %}
-
 {% block content %}
 <div class="mb-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
     <div>
-        <nav aria-label="breadcrumb" class="mb-1">
-            <ol class="breadcrumb mb-0" style="font-size: 0.75rem;">
-                <li class="breadcrumb-item"><a href="{{ url_for('ponto.index') }}"
-                        class="text-decoration-none">Dashboard</a></li>
-                <li class="breadcrumb-item active">Controle de Estoque</li>
-            </ol>
-        </nav>
         <h2 class="mb-0 fw-bold">Estoque</h2>
         <p class="mb-0 text-muted small">Gerenciamento centralizado de peças e insumos.</p>
     </div>
-    <div class="d-flex gap-2">
-        <button class="btn btn-secondary" onclick="abrirHistorico()">
+    <div class="d-flex gap-2 flex-wrap">
+        <button class="btn btn-outline-secondary" onclick="abrirHistorico()">
             <i class="bi bi-clock-history"></i> Histórico
+        </button>
+        {% if current_user.tipo in ['admin', 'gerente', 'comprador'] %}
+        <button class="btn btn-outline-primary" onclick="abrirModalCompraGeral()">
+            <i class="bi bi-cart-plus"></i> Solicitar Compra
         </button>
         <button class="btn btn-primary" onclick="abrirModalEntrada()">
             <i class="bi bi-plus-lg"></i> Nova Entrada
         </button>
+        {% else %}
+        <button class="btn btn-primary" onclick="abrirCompraSimples(null, '', 0)">
+            <i class="bi bi-cart-plus"></i> Solicitar Compra
+        </button>
+        {% endif %}
     </div>
 </div>
 
 <div class="card border-0 shadow-sm">
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover table-responsive-stack mb-0 align-middle">
+            <table class="table table-hover mb-0 align-middle">
                 <thead class="bg-light">
                     <tr>
                         <th class="ps-4">Item / Código</th>
-                        <th>Categoria</th>
                         <th>Saldo</th>
-                        <th>Valor Unit.</th>
                         <th>Status</th>
                         <th class="text-end pe-4">Ações</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for item in estoque %}
-                    <tr
-                        class="{% if item.quantidade_atual <= item.quantidade_minima %}table-danger bg-opacity-10{% endif %}">
-                        <td class="ps-4" data-label="Item">
+                    <tr class="{% if item.quantidade_atual <= item.quantidade_minima %}table-warning bg-opacity-10{% endif %}">
+                        <td class="ps-4">
                             <div class="fw-bold text-dark">{{ item.nome }}</div>
-                            <small class="text-muted font-monospace bg-light px-2 py-1 rounded border">{{ item.codigo
-                                }}</small>
-                        </td>
-                        <td data-label="Categoria">
-                            <span
-                                class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-10">
-                                {{ item.categoria.nome if item.categoria else 'Geral' }}
+                            <small class="text-muted font-monospace bg-light px-2 py-1 rounded border">{{ item.codigo }}</small>
+                            {% if item.categoria %}
+                            <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-10 ms-1">
+                                {{ item.categoria.nome }}
                             </span>
+                            {% endif %}
                         </td>
-                        <td data-label="Saldo">
+                        <td>
                             <div class="d-flex align-items-center gap-2">
-                                <span class="fw-bold fs-6 text-primary">{{ "{:g}".format(item.quantidade_atual|float)
-                                    }}</span>
+                                <span class="fw-bold fs-6 {{ 'text-danger' if item.quantidade_atual <= 0 else 'text-primary' }}">
+                                    {{ "{:g}".format(item.quantidade_atual|float) }}
+                                </span>
                                 <span class="text-muted small">{{ item.unidade_medida }}</span>
                             </div>
-
                             {% if item.saldos %}
-                            <div class="mt-2 pt-2 border-top border-light">
-                                <div class="small fw-bold text-muted mb-1"
-                                    style="font-size: 0.65rem; text-transform: uppercase;">Por Unidade:</div>
-                                <ul class="list-unstyled mb-0 d-flex flex-wrap gap-x-3 gap-y-1"
-                                    style="font-size: 0.7rem;">
+                            <div class="mt-1">
+                                <ul class="list-unstyled mb-0 d-flex flex-wrap gap-2" style="font-size: 0.72rem;">
                                     {% for s in item.saldos %}
                                     <li class="text-nowrap">
                                         <span class="text-muted">{{ s.unidade.nome }}:</span>
@@ -82,163 +71,129 @@
                             </div>
                             {% endif %}
                         </td>
-                        <td data-label="Valor Unit.">
-                            <span class="text-muted">R$ {{ "{:.2f}".format(item.valor_unitario or 0) }}</span>
+                        <td>
+                            {% if item.quantidade_atual <= item.quantidade_minima %}
+                            <span class="badge bg-danger text-white">BAIXO</span>
+                            {% else %}
+                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">Normal</span>
+                            {% endif %}
                         </td>
-                        <td data-label="Status">
-                            {% if item.quantidade_atual <= item.quantidade_minima %} <div
-                                class="d-flex align-items-center gap-2">
-                                <span class="badge bg-danger text-white shadow-sm shimmer">BAIXO</span>
-                                <button class="btn btn-xs btn-danger btn-sm-custom ms-2 fade-in"
-                                    onclick="solicitarCompraItem('{{ item.id }}', '{{ item.nome }}', '{{ item.quantidade_minima }}')">
-                                    🛒 Comprar
+                        <td class="text-end pe-4">
+                            {% if current_user.tipo in ['admin', 'gerente', 'comprador'] %}
+                            <!-- Admin/Gerente: dropdown completo -->
+                            <div class="dropdown d-inline-block">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-gear"></i>
                                 </button>
-        </div>
-        {% else %}
-        <span class="badge bg-success bg-opacity-10 text-success">
-            <i class="bi bi-check2"></i> Normal
-        </span>
-        {% endif %}
-        </td>
-        <td class="text-end pe-4" data-label="Ações">
-            <div class="dropdown d-inline-block">
-                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
-                    data-bs-toggle="dropdown">
-                    <i class="bi bi-gear"></i>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
-                    <li>
-                        <button class="dropdown-item"
-                            onclick="abrirModalTransferencia('{{ item.id }}', '{{ item.nome }}')">
-                            <i class="bi bi-arrow-left-right me-2 text-primary"></i> Transferir
-                        </button>
-                    </li>
-                    <li>
-                        <button class="dropdown-item"
-                            onclick="ajusteRapido('{{ item.id }}', '{{ item.nome }}', '{{ item.valor_unitario }}')">
-                            <i class="bi bi-sliders me-2"></i> Ajuste Rápido
-                        </button>
-                    </li>
-                </ul>
-            </div>
-        </td>
-        </tr>
-        {% else %}
-        <tr>
-            <td colspan="6" class="text-center py-5">
-                <div class="text-muted opacity-50">
-                    <i class="bi bi-box-seam fs-1 d-block mb-2"></i>
-                    Nenhum item no estoque.
-                </div>
-            </td>
-        </tr>
-        {% endfor %}
-        </tbody>
-        </table>
-    </div>
-</div>
-</div>
-
-<div class="modal fade" id="modalDistribuicao" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold">Distribuição de Estoque</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body pt-4">
-                <h6 id="distItemNome" class="text-primary fw-bold mb-3"></h6>
-                <div class="table-responsive">
-                    <table class="table table-sm align-middle">
-                        <thead class="bg-light">
-                            <tr>
-                                <th>Unidade</th>
-                                <th class="text-end">Saldo</th>
-                                <th class="text-end">Localização</th>
-                            </tr>
-                        </thead>
-                        <tbody id="distTabelaCorpo">
-                            <!-- Preenchido via JS -->
-                        </tbody>
-                    </table>
-                </div>
-                <div class="mt-2 text-end">
-                    <small class="text-muted">Total Global: <span id="distTotalGlobal" class="fw-bold"></span></small>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="modalEntrada" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold" id="entradaModalTitle">Nova Entrada de Estoque</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body pt-4">
-                <form id="formEntrada" onsubmit="event.preventDefault(); salvarEntrada();">
-
-                    <div class="mb-3" id="divSelectPeca">
-                        <label class="form-label">Buscar Item</label>
-                        <div class="position-relative">
-                            <input type="text" class="form-control" id="buscaPecaInput"
-                                placeholder="Digite para buscar..." autocomplete="off">
-                            <input type="hidden" id="pecaIdSelecionada">
-                            <div id="listaSugestoes" class="list-group position-absolute w-100 shadow-sm"
-                                style="z-index: 1000; display: none;"></div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3 d-none" id="divItemFixo">
-                        <label class="form-label">Item Selecionado</label>
-                        <input type="text" class="form-control bg-light" id="nomeItemFixo" readonly>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Unidade (Destino)</label>
-                        <select id="unidadeEntrada" class="form-select" required>
-                            {% for u in unidades %}
-                            <option value="{{ u.id }}">{{ u.nome }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="row g-3">
-                        <div class="col-6">
-                            <label class="form-label">Quantidade</label>
-                            <input type="number" step="0.01" class="form-control" id="qtdEntrada" required>
-                            <div class="form-text x-small">Use valores negativos (ex: -5) para furto, dano ou perda.
+                                <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
+                                    <li>
+                                        <button class="dropdown-item"
+                                            onclick="solicitarCompraItem('{{ item.id }}', '{{ item.nome }}', {{ item.quantidade_minima }})">
+                                            <i class="bi bi-cart-plus me-2 text-success"></i> Solicitar Compra
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button class="dropdown-item"
+                                            onclick="abrirModalTransferencia('{{ item.id }}', '{{ item.nome }}')">
+                                            <i class="bi bi-arrow-left-right me-2 text-primary"></i> Transferir
+                                        </button>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <button class="dropdown-item"
+                                            onclick="ajusteRapido('{{ item.id }}', '{{ item.nome }}', '{{ item.valor_unitario }}')">
+                                            <i class="bi bi-sliders me-2 text-warning"></i> Ajuste de Inventário
+                                        </button>
+                                    </li>
+                                </ul>
                             </div>
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label">Valor Unit. (R$)</label>
-                            <input type="number" step="0.01" class="form-control" id="valorEntrada">
-                        </div>
-                    </div>
+                            {% else %}
+                            <!-- Operador/Técnico: ações diretas -->
+                            <div class="d-flex gap-1 justify-content-end">
+                                <button class="btn btn-sm btn-outline-success"
+                                    onclick="abrirCompraSimples('{{ item.id }}', '{{ item.nome }}', {{ item.quantidade_minima }})"
+                                    title="Solicitar Compra">
+                                    <i class="bi bi-cart-plus"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-primary"
+                                    onclick="abrirModalTransferencia('{{ item.id }}', '{{ item.nome }}')"
+                                    title="Solicitar Transferência">
+                                    <i class="bi bi-arrow-left-right"></i>
+                                </button>
+                            </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center py-5">
+                            <div class="text-muted opacity-50">
+                                <i class="bi bi-box-seam fs-1 d-block mb-2"></i>
+                                Nenhum item no estoque.
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
-                    <div class="mt-3">
-                        <label class="form-label">Motivo / Obs</label>
-                        <input type="text" class="form-control" id="motivoEntrada" placeholder="Ex: Nota Fiscal 1234">
-                    </div>
+<!-- ==================== MODAIS ==================== -->
 
-                    <div class="d-grid mt-4">
-                        <button type="submit" class="btn btn-success" id="btnSalvarEntrada">
-                            Confirmar Entrada
-                        </button>
+<!-- Modal: Solicitar Compra SIMPLES (Operador) -->
+<div class="modal fade" id="modalCompraSimples" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold"><i class="bi bi-cart-plus text-success me-2"></i>Solicitar Compra</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label text-muted small fw-bold text-uppercase">Item</label>
+                    <div id="compraSimplesNomePadrao" class="d-none">
+                        <input type="text" class="form-control bg-light" id="compraSimplesNome" readonly>
+                        <input type="hidden" id="compraSimplesId">
                     </div>
-                </form>
+                    <div id="compraSimplesNomeBusca">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                            <input type="text" class="form-control border-start-0" id="compraSimplesSearch" placeholder="Buscar item...">
+                        </div>
+                        <div id="compraSimplesResultados" class="list-group position-absolute w-100 shadow" style="display:none; z-index:1060;"></div>
+                        <input type="hidden" id="compraSimplesIdBusca">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted small fw-bold text-uppercase">Quantidade</label>
+                    <input type="number" class="form-control form-control-lg" id="compraSimplesQtd" min="1" step="1" placeholder="Ex: 10">
+                </div>
+                <div class="mb-4">
+                    <label class="form-label text-muted small fw-bold text-uppercase">Motivo (opcional)</label>
+                    <input type="text" class="form-control" id="compraSimplesMotivo" placeholder="Ex: Reposição de estoque baixo">
+                </div>
+                <div class="alert alert-info py-2 small border-0">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Sua solicitação será enviada ao gestor para aprovação e compra.
+                </div>
+                <div class="d-grid">
+                    <button type="button" class="btn btn-success btn-lg" id="btnEnviarCompraSimples" onclick="enviarCompraSimples()">
+                        <i class="bi bi-send me-2"></i>Enviar Solicitação
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Modal: Solicitar Compra COMPLETA (Admin/Gerente) -->
 <div class="modal fade" id="modalSolicitarCompra" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold">Solicitar Compra de Peça</h5>
+                <h5 class="modal-title fw-bold">Solicitar Compra</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body pt-4">
@@ -250,49 +205,34 @@
                 <div class="mb-3">
                     <label class="form-label">Quantidade para Reposição</label>
                     <input type="number" class="form-control form-control-lg" id="compraQtd" required>
-                    <div class="form-text">
-                        <i class="bi bi-info-circle"></i> A quantidade será usada para todas as solicitações
-                    </div>
                 </div>
-
-                <!-- Botão para buscar fornecedores -->
                 <div class="d-grid gap-2 mb-3">
                     <button type="button" class="btn btn-outline-primary" onclick="buscarFornecedoresItem()">
-                        <i class="bi bi-search me-1"></i> Buscar Fornecedores para Este Item
+                        <i class="bi bi-search me-1"></i> Buscar Fornecedores
                     </button>
                 </div>
-
-                <!-- Lista de Fornecedores -->
                 <div id="resultadosFornecedores" class="d-none">
                     <hr>
                     <div class="mb-3">
                         <label class="form-label fw-bold">
                             Selecione os Fornecedores (<span id="contadorFornecedoresSelecionados">0</span> selecionados)
                         </label>
-                        <div id="listaFornecedores" class="border rounded p-2" style="max-height: 300px; overflow-y: auto;">
-                            <!-- Lista será preenchida via JavaScript -->
-                        </div>
+                        <div id="listaFornecedores" class="border rounded p-2" style="max-height: 280px; overflow-y: auto;"></div>
                     </div>
-
-                    <div class="alert alert-info small mb-3">
+                    <div class="alert alert-info small mb-3 border-0">
                         <i class="bi bi-info-circle me-1"></i>
-                        Solicitações de orçamento serão enviadas automaticamente via WhatsApp ou Email.
-                        <strong>Compras até R$ 500 são aprovadas automaticamente.</strong>
+                        Pedidos até R$ 500 são aprovados automaticamente.
                     </div>
-
                     <div class="d-grid">
                         <button type="button" class="btn btn-success" onclick="enviarPedidosMultiplosFornecedores()">
                             <i class="bi bi-cart-check me-1"></i> Criar Pedidos
                         </button>
                     </div>
                 </div>
-
-                <!-- Botão original (fallback) -->
                 <div id="botaoCompraOriginal">
-                    <div class="d-grid mt-4">
-                        <button type="button" onclick="confirmarSolicitacaoCompra()" class="btn btn-danger"
-                            id="btnConfirmarCompra">
-                            Confirmar Solicitação
+                    <div class="d-grid mt-3">
+                        <button type="button" onclick="confirmarSolicitacaoCompra()" class="btn btn-primary" id="btnConfirmarCompra">
+                            Confirmar Solicitação (sem fornecedor)
                         </button>
                     </div>
                 </div>
@@ -301,6 +241,7 @@
     </div>
 </div>
 
+<!-- Modal: Solicitar Compra GERAL (Admin, busca item) -->
 <div class="modal fade" id="modalSolicitarCompraGeral" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg">
@@ -312,22 +253,18 @@
                 <div class="mb-3 position-relative">
                     <label class="form-label">Buscar Item</label>
                     <div class="input-group">
-                        <span class="input-group-text bg-white border-end-0"><i
-                                class="bi bi-search text-muted"></i></span>
-                        <input type="text" class="form-control border-start-0" id="buscaPecaCompraGeral"
-                            placeholder="Digite o nome da peça...">
+                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" class="form-control border-start-0" id="buscaPecaCompraGeral" placeholder="Digite o nome...">
                     </div>
-                    <div id="sugestoesCompraGeral" class="list-group position-absolute w-100 shadow-sm"
-                        style="display: none; z-index: 1055;"></div>
+                    <div id="sugestoesCompraGeral" class="list-group position-absolute w-100 shadow-sm" style="display:none; z-index:1055;"></div>
                     <input type="hidden" id="pecaIdCompraGeral">
                 </div>
                 <div class="mb-4">
-                    <label class="form-label">Quantidade para Reposição</label>
+                    <label class="form-label">Quantidade</label>
                     <input type="number" step="0.01" class="form-control form-control-lg" id="qtdCompraGeral" required>
                 </div>
-                <div class="d-grid mt-4">
-                    <button type="button" onclick="confirmarSolicitacaoCompraGeral()"
-                        class="btn btn-danger py-2 fw-bold" id="btnConfirmarCompraGeral">
+                <div class="d-grid">
+                    <button type="button" onclick="confirmarSolicitacaoCompraGeral()" class="btn btn-primary py-2 fw-bold" id="btnConfirmarCompraGeral">
                         <i class="bi bi-cart-plus me-2"></i> Solicitar Compra
                     </button>
                 </div>
@@ -336,6 +273,61 @@
     </div>
 </div>
 
+<!-- Modal: Nova Entrada -->
+<div class="modal fade" id="modalEntrada" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="entradaModalTitle">Nova Entrada de Estoque</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-4">
+                <form id="formEntrada" onsubmit="event.preventDefault(); salvarEntrada();">
+                    <div class="mb-3" id="divSelectPeca">
+                        <label class="form-label">Buscar Item</label>
+                        <div class="position-relative">
+                            <input type="text" class="form-control" id="buscaPecaInput" placeholder="Digite para buscar..." autocomplete="off">
+                            <input type="hidden" id="pecaIdSelecionada">
+                            <div id="listaSugestoes" class="list-group position-absolute w-100 shadow-sm" style="z-index:1000; display:none;"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3 d-none" id="divItemFixo">
+                        <label class="form-label">Item</label>
+                        <input type="text" class="form-control bg-light" id="nomeItemFixo" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Unidade (Destino)</label>
+                        <select id="unidadeEntrada" class="form-select" required>
+                            {% for u in unidades %}
+                            <option value="{{ u.id }}">{{ u.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label">Quantidade</label>
+                            <input type="number" step="0.01" class="form-control" id="qtdEntrada" required>
+                            <div class="form-text x-small">Negativo para furto/perda.</div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Valor Unit. (R$)</label>
+                            <input type="number" step="0.01" class="form-control" id="valorEntrada">
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <label class="form-label">Motivo / Obs</label>
+                        <input type="text" class="form-control" id="motivoEntrada" placeholder="Ex: Nota Fiscal 1234">
+                    </div>
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-success" id="btnSalvarEntrada">Confirmar Entrada</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Transferência -->
 <div class="modal fade" id="modalTransferencia" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg">
@@ -346,58 +338,44 @@
             <div class="modal-body pt-4">
                 <form id="formTransferencia" onsubmit="event.preventDefault(); salvarTransferencia();">
                     <input type="hidden" id="transfEstoqueId">
-
                     <div class="mb-3">
                         <label class="form-label">Item</label>
                         <input type="text" class="form-control bg-light" id="transfNomeItem" readonly>
                     </div>
-
                     <div class="row g-3 mb-3">
                         <div class="col-6">
                             <label class="form-label">Origem</label>
                             <select id="transfOrigem" class="form-select" required>
                                 <option value="" disabled selected>De...</option>
-                                {% for u in unidades %}
-                                <option value="{{ u.id }}">{{ u.nome }}</option>
-                                {% endfor %}
+                                {% for u in unidades %}<option value="{{ u.id }}">{{ u.nome }}</option>{% endfor %}
                             </select>
                         </div>
                         <div class="col-6">
                             <label class="form-label">Destino</label>
                             <select id="transfDestino" class="form-select" required>
                                 <option value="" disabled selected>Para...</option>
-                                {% for u in unidades %}
-                                <option value="{{ u.id }}">{{ u.nome }}</option>
-                                {% endfor %}
+                                {% for u in unidades %}<option value="{{ u.id }}">{{ u.nome }}</option>{% endfor %}
                             </select>
                         </div>
                     </div>
-
                     <div class="mb-3">
                         <label class="form-label">Quantidade</label>
                         <input type="number" step="0.01" class="form-control" id="transfQtd" required>
                     </div>
-
                     <div class="mb-3">
                         <label class="form-label">Observação</label>
                         <input type="text" class="form-control" id="transfObs">
                     </div>
-
-                    <div class="alert alert-info py-2 small border-0 mb-3" id="transfInfoText">
+                    <div class="alert alert-info py-2 small border-0 mb-3">
                         {% if current_user.tipo in ['admin', 'gerente'] %}
                         <i class="bi bi-lightning-fill me-1"></i> Será executado imediatamente
                         {% else %}
-                        <i class="bi bi-hourglass-split me-1"></i> Será enviado para aprovação
+                        <i class="bi bi-hourglass-split me-1"></i> Será enviado para aprovação do gestor
                         {% endif %}
                     </div>
-
-                    <div class="d-grid mt-4">
+                    <div class="d-grid">
                         <button type="submit" class="btn btn-primary" id="btnSalvarTransf">
-                            {% if current_user.tipo in ['admin', 'gerente'] %}
-                            Executar Transferência
-                            {% else %}
-                            Solicitar Transferência
-                            {% endif %}
+                            {% if current_user.tipo in ['admin', 'gerente'] %}Executar Transferência{% else %}Solicitar Transferência{% endif %}
                         </button>
                     </div>
                 </form>
@@ -406,6 +384,7 @@
     </div>
 </div>
 
+<!-- Modal: Histórico -->
 <div class="modal fade" id="modalHistorico" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg">
@@ -418,18 +397,10 @@
                     <table class="table table-sm align-middle small">
                         <thead class="bg-light">
                             <tr>
-                                <th>Data</th>
-                                <th>Item</th>
-                                <th>Tipo</th>
-                                <th>Qtd</th>
-                                <th>Unidade</th>
-                                <th>Usuário</th>
-                                <th>Motivo</th>
+                                <th>Data</th><th>Item</th><th>Tipo</th><th>Qtd</th><th>Unidade</th><th>Usuário</th>
                             </tr>
                         </thead>
-                        <tbody id="histTabelaCorpo">
-                            <!-- Preenchido via JS -->
-                        </tbody>
+                        <tbody id="histTabelaCorpo"></tbody>
                     </table>
                 </div>
             </div>
@@ -438,587 +409,387 @@
 </div>
 
 <style>
-    .saldo-local {
-        font-size: 0.75rem;
-        color: var(--text-muted);
-        margin-top: 0.25rem;
-    }
-
-    .saldo-local .fw-bold {
-        color: var(--primary);
-    }
-
-    .btn-icon:hover {
-        background-color: var(--primary-light);
-    }
-
-    .shimmer {
-        animation: shimmer 2s infinite;
-    }
-
-    @keyframes shimmer {
-        0% {
-            opacity: 1;
-        }
-
-        50% {
-            opacity: 0.7;
-        }
-
-        100% {
-            opacity: 1;
-        }
-    }
-
-    .btn-sm-custom {
-        padding: 0.1rem 0.4rem;
-        font-size: 0.75rem;
-    }
-
-    .table-danger {
-        background-color: #fff5f5 !important;
-    }
+.shimmer { animation: shimmer 2s infinite; }
+@keyframes shimmer { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+.table-warning { background-color: #fffbf0 !important; }
 </style>
 
 <script>
-    let modalEntrada;
-    let modalTransferencia;
-    let modalHistorico;
-    let modalCompraGeral;
-    let buscaInput;
-    let sugestoesDiv;
-    let debounceTimer;
+let modalEntrada, modalTransferencia, modalHistorico, modalCompraGeral, modalCompraSimples;
+let buscaInput, sugestoesDiv, debounceTimer;
+let fornecedoresSelecionados = [];
 
-    document.addEventListener('DOMContentLoaded', () => {
-        modalEntrada = new bootstrap.Modal(document.getElementById('modalEntrada'));
-        modalTransferencia = new bootstrap.Modal(document.getElementById('modalTransferencia'));
-        modalHistorico = new bootstrap.Modal(document.getElementById('modalHistorico'));
-        modalCompraGeral = new bootstrap.Modal(document.getElementById('modalSolicitarCompraGeral'));
+document.addEventListener('DOMContentLoaded', () => {
+    modalEntrada       = new bootstrap.Modal(document.getElementById('modalEntrada'));
+    modalTransferencia = new bootstrap.Modal(document.getElementById('modalTransferencia'));
+    modalHistorico     = new bootstrap.Modal(document.getElementById('modalHistorico'));
+    modalCompraGeral   = new bootstrap.Modal(document.getElementById('modalSolicitarCompraGeral'));
+    modalCompraSimples = new bootstrap.Modal(document.getElementById('modalCompraSimples'));
 
-        buscaInput = document.getElementById('buscaPecaInput');
-        sugestoesDiv = document.getElementById('listaSugestoes');
+    buscaInput  = document.getElementById('buscaPecaInput');
+    sugestoesDiv = document.getElementById('listaSugestoes');
 
-        initBuscaInput();
-        initBuscaGeral();
+    if (buscaInput) initBuscaInput();
+    initBuscaGeral();
+    initBuscaSimples();
+});
+
+// ==================== MODAL COMPRA SIMPLES (Operador) ====================
+function abrirCompraSimples(id, nome, qtdMin) {
+    const isPadrao = id !== null && id !== '';
+    document.getElementById('compraSimplesNomePadrao').classList.toggle('d-none', !isPadrao);
+    document.getElementById('compraSimplesNomeBusca').classList.toggle('d-none', isPadrao);
+
+    if (isPadrao) {
+        document.getElementById('compraSimplesId').value = id;
+        document.getElementById('compraSimplesNome').value = nome;
+    } else {
+        document.getElementById('compraSimplesIdBusca').value = '';
+        document.getElementById('compraSimplesSearch').value = '';
+    }
+    document.getElementById('compraSimplesQtd').value = qtdMin > 0 ? qtdMin : '';
+    document.getElementById('compraSimplesMotivo').value = '';
+    modalCompraSimples.show();
+}
+
+function initBuscaSimples() {
+    const input = document.getElementById('compraSimplesSearch');
+    const resultados = document.getElementById('compraSimplesResultados');
+    if (!input) return;
+
+    input.addEventListener('input', function() {
+        clearTimeout(debounceTimer);
+        if (this.value.length < 2) { resultados.style.display = 'none'; return; }
+        debounceTimer = setTimeout(() => {
+            fetch(`/os/api/pecas/buscar?q=${this.value}`)
+                .then(r => r.json())
+                .then(data => {
+                    resultados.innerHTML = '';
+                    if (data.length > 0) {
+                        data.forEach(item => {
+                            const a = document.createElement('a');
+                            a.className = 'list-group-item list-group-item-action';
+                            a.innerHTML = `<strong>${item.nome}</strong> <span class="text-muted small">(saldo: ${item.saldo})</span>`;
+                            a.onclick = () => {
+                                input.value = item.nome;
+                                document.getElementById('compraSimplesIdBusca').value = item.id;
+                                resultados.style.display = 'none';
+                            };
+                            resultados.appendChild(a);
+                        });
+                        resultados.style.display = 'block';
+                    } else {
+                        resultados.style.display = 'none';
+                    }
+                });
+        }, 300);
     });
+    document.addEventListener('click', e => { if (e.target !== input) resultados.style.display = 'none'; });
+}
 
-    function abrirModalEntrada() {
-        document.getElementById('entradaModalTitle').innerText = "Nova Entrada (Manual)";
-        document.getElementById('divSelectPeca').classList.remove('d-none');
-        document.getElementById('divItemFixo').classList.add('d-none');
-        document.getElementById('formEntrada').reset();
-        document.getElementById('pecaIdSelecionada').value = "";
-        modalEntrada.show();
-        setTimeout(() => buscaInput.focus(), 500);
-    }
+async function enviarCompraSimples() {
+    const idFixo = document.getElementById('compraSimplesId')?.value;
+    const idBusca = document.getElementById('compraSimplesIdBusca')?.value;
+    const id = idFixo || idBusca;
+    const qtd = document.getElementById('compraSimplesQtd').value;
+    const btn = document.getElementById('btnEnviarCompraSimples');
 
-    function abrirModalTransferencia(id, nome) {
-        document.getElementById('transfEstoqueId').value = id;
-        document.getElementById('transfNomeItem').value = nome;
-        document.getElementById('formTransferencia').reset();
-        modalTransferencia.show();
-    }
+    if (!id) { ToastModule.show("Selecione um item.", "warning"); return; }
+    if (!qtd || parseFloat(qtd) <= 0) { ToastModule.show("Informe a quantidade.", "warning"); return; }
 
-    function salvarTransferencia() {
-        const id = document.getElementById('transfEstoqueId').value;
-        const origem = document.getElementById('transfOrigem').value;
-        const destino = document.getElementById('transfDestino').value;
-        const qtd = document.getElementById('transfQtd').value;
-        const obs = document.getElementById('transfObs').value;
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
 
-        if (origem === destino) {
-            ToastModule.show("Origem e Destino devem ser diferentes.", "warning");
-            return;
-        }
-
-        const btn = document.getElementById('btnSalvarTransf');
-        const originalText = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Processando...';
-
-        fetch('/os/api/estoque/transferir', {
+    try {
+        const res = await fetch('/os/api/estoque/solicitar-compra', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                estoque_id: id,
-                unidade_origem_id: origem,
-                unidade_destino_id: destino,
-                quantidade: qtd,
-                observacao: obs
-            })
-        })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    ToastModule.show(data.msg, "success");
-                    modalTransferencia.hide();
-                } else {
-                    ToastModule.show("Erro: " + data.erro, "danger");
-                }
-            })
-            .catch(() => ToastModule.show("Erro de conexão", "danger"))
-            .finally(() => {
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-            });
-    }
-
-    function ajusteRapido(id, nome, valorAtual) {
-        document.getElementById('entradaModalTitle').innerText = "Ajuste Rápido de Estoque";
-        document.getElementById('divSelectPeca').classList.add('d-none');
-        document.getElementById('divItemFixo').classList.remove('d-none');
-        // ... (rest of function remains same)
-        document.getElementById('nomeItemFixo').value = nome;
-        document.getElementById('pecaIdSelecionada').value = id;
-        document.getElementById('valorEntrada').value = valorAtual;
-        document.getElementById('qtdEntrada').value = "";
-        document.getElementById('motivoEntrada').value = "Ajuste de Inventário";
-        modalEntrada.show();
-    }
-
-    // Busca de Peças
-    function initBuscaInput() {
-        buscaInput.addEventListener('input', function () {
-            clearTimeout(debounceTimer);
-            const termo = this.value;
-            if (termo.length < 2) {
-                sugestoesDiv.style.display = 'none';
-                return;
-            }
-
-            debounceTimer = setTimeout(() => {
-                fetch(`/os/api/pecas/buscar?q=${termo}`)
-                    .then(r => r.json())
-                    .then(data => {
-                        sugestoesDiv.innerHTML = '';
-                        if (data.length > 0) {
-                            data.forEach(item => {
-                                const div = document.createElement('a');
-                                div.className = 'list-group-item list-group-item-action cursor-pointer';
-                                div.innerHTML = `<strong>${item.nome}</strong> <span class="text-muted small">(${item.saldo} ${item.unidade})</span>`;
-                                div.onclick = () => selecionarPeca(item);
-                                sugestoesDiv.appendChild(div);
-                            });
-                            sugestoesDiv.style.display = 'block';
-                        } else {
-                            sugestoesDiv.style.display = 'none';
-                        }
-                    });
-            }, 300);
+            body: JSON.stringify({ estoque_id: id, quantidade: parseFloat(qtd) })
         });
-    }
-
-    function selecionarPeca(item) {
-        buscaInput.value = item.nome;
-        document.getElementById('pecaIdSelecionada').value = item.id;
-        document.getElementById('valorEntrada').value = ""; // Pode puxar do item se quiser
-        sugestoesDiv.style.display = 'none';
-    }
-
-    function salvarEntrada() {
-        const id = document.getElementById('pecaIdSelecionada').value;
-        const qtd = document.getElementById('qtdEntrada').value;
-        const valor = document.getElementById('valorEntrada').value;
-        const motivo = document.getElementById('motivoEntrada').value;
-
-        // [NOVO]
-        const unidade = document.getElementById('unidadeEntrada').value;
-
-        if (!id || !qtd) {
-            ToastModule.show("Selecione um item e informe a quantidade.", "warning");
-            return;
+        const data = await res.json();
+        if (data.success) {
+            ToastModule.show("Solicitação enviada! O gestor irá verificar e realizar a compra.", "success");
+            modalCompraSimples.hide();
+        } else {
+            ToastModule.show("Erro: " + (data.erro || data.msg), "danger");
         }
-
-        const btn = document.getElementById('btnSalvarEntrada');
-        const originalText = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Salvando...';
-
-        fetch('/os/api/estoque/entrada', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                estoque_id: id,
-                quantidade: parseFloat(qtd),
-                motivo: motivo,
-                valor_novo: valor ? parseFloat(valor) : null,
-                unidade_id: unidade // [NOVO]
-            })
-        })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    ToastModule.show("Entrada registrada com sucesso!", "success");
-                    modalEntrada.hide();
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    ToastModule.show("Erro: " + data.erro, "danger");
-                }
-            })
-            .catch(err => ToastModule.show("Erro ao conectar.", "danger"))
-            .finally(() => {
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-            });
+    } catch (e) {
+        ToastModule.show("Erro de conexão.", "danger");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = original;
     }
+}
 
-    function solicitarCompraItem(id, nome, qtdMinima = 5) {
-        document.getElementById('compraIdItem').value = id;
-        document.getElementById('compraNomeItem').value = nome;
-        document.getElementById('compraQtd').value = qtdMinima;
+// ==================== MODAL COMPRA COMPLETA (Admin) ====================
+function solicitarCompraItem(id, nome, qtdMinima) {
+    document.getElementById('compraIdItem').value = id;
+    document.getElementById('compraNomeItem').value = nome;
+    document.getElementById('compraQtd').value = qtdMinima || '';
+    document.getElementById('resultadosFornecedores').classList.add('d-none');
+    document.getElementById('botaoCompraOriginal').classList.remove('d-none');
+    document.getElementById('listaFornecedores').innerHTML = '';
+    fornecedoresSelecionados = [];
+    new bootstrap.Modal(document.getElementById('modalSolicitarCompra')).show();
+}
 
-        // Resetar interface de seleção múltipla
-        document.getElementById('resultadosFornecedores').classList.add('d-none');
-        document.getElementById('botaoCompraOriginal').classList.remove('d-none');
-        document.getElementById('listaFornecedores').innerHTML = '';
-        fornecedoresSelecionados = [];
-
-        new bootstrap.Modal(document.getElementById('modalSolicitarCompra')).show();
-    }
-
-    async function confirmarSolicitacaoCompra() {
-        const id = document.getElementById('compraIdItem').value;
-        const qtd = document.getElementById('compraQtd').value;
-        const btn = document.getElementById('btnConfirmarCompra');
-
-        if (!qtd || qtd <= 0) {
-            ToastModule.show("Informe uma quantidade válida.", "warning");
-            return;
-        }
-
-        const originalText = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Solicitando...';
-
-        try {
-            const res = await fetch(`/os/api/estoque/solicitar-compra`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ estoque_id: id, quantidade: qtd })
-            });
-            const data = await res.json();
-
-            if (data.success) {
-                ToastModule.show(data.mensagem || "Solicitação enviada!", "success");
-                bootstrap.Modal.getInstance(document.getElementById('modalSolicitarCompra')).hide();
-                // A página será recarregada para mostrar o pedido? O PRD não pede explicitamente,
-                // mas é boa prática. Aqui vou apenas fechar e talvez atualizar o status se houvesse UI para isso.
-            } else {
-                ToastModule.show("Erro: " + data.erro, "danger");
-            }
-        } catch (e) {
-            ToastModule.show("Erro de conexão.", "danger");
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = originalText;
-        }
-    }
-
-    // === BUSCA E SELEÇÃO MÚLTIPLA DE FORNECEDORES ===
-    let fornecedoresSelecionados = [];
-
-    async function buscarFornecedoresItem() {
-        const estoqueId = document.getElementById('compraIdItem').value;
-        const qtd = document.getElementById('compraQtd').value;
-
-        if (!qtd || qtd <= 0) {
-            ToastModule.show("Informe a quantidade primeiro", "warning");
-            return;
-        }
-
-        try {
-            const res = await fetch('/compras/buscar_fornecedores', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ estoque_id: estoqueId })
-            });
-            const data = await res.json();
-
-            if (!data.success) {
-                ToastModule.show("Erro: " + data.erro, "danger");
-                return;
-            }
-
-            if (data.fornecedores.length === 0) {
-                ToastModule.show("Nenhum fornecedor cadastrado para este item", "info");
-                return;
-            }
-
-            // Mostrar resultados
-            document.getElementById('resultadosFornecedores').classList.remove('d-none');
-            document.getElementById('botaoCompraOriginal').classList.add('d-none');
-
-            const lista = document.getElementById('listaFornecedores');
-            lista.innerHTML = '';
-
-            data.fornecedores.forEach(forn => {
-                const item = document.createElement('div');
-                item.className = 'form-check p-2 border-bottom';
-
-                // Ícones de contato
-                let iconesContato = '';
-                if (forn.tem_whatsapp) {
-                    iconesContato += '<i class="bi bi-whatsapp text-success" title="WhatsApp"></i> ';
-                }
-                if (forn.tem_email) {
-                    iconesContato += '<i class="bi bi-envelope text-primary" title="Email"></i> ';
-                }
-                if (!forn.tem_whatsapp && !forn.tem_email) {
-                    iconesContato += '<i class="bi bi-telephone text-warning" title="Contato Manual"></i> ';
-                }
-
-                // Preço e prazo
-                const precoInfo = forn.preco_atual
-                    ? `<div class="small text-success">Preço: R$ ${forn.preco_atual.toFixed(2)}</div>`
-                    : '<div class="small text-muted">Preço não cadastrado</div>';
-                const prazoInfo = `<div class="small text-muted">Prazo: ${forn.prazo_dias} dias</div>`;
-
-                item.innerHTML = `
-                    <input class="form-check-input" type="checkbox" value="${forn.id}"
-                           id="forn${forn.id}" onchange="atualizarSelecaoFornecedores()">
-                    <label class="form-check-label w-100" for="forn${forn.id}">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div>
-                                <strong>${forn.nome}</strong>
-                                <div class="small">${iconesContato}</div>
-                                ${forn.endereco ? `<div class="small text-muted">${forn.endereco}</div>` : ''}
-                            </div>
-                            <div class="text-end">
-                                ${precoInfo}
-                                ${prazoInfo}
-                            </div>
-                        </div>
-                    </label>
-                `;
-
-                lista.appendChild(item);
-            });
-
-        } catch (e) {
-            console.error(e);
-            ToastModule.show("Erro de conexão", "danger");
-        }
-    }
-
-    function atualizarSelecaoFornecedores() {
-        fornecedoresSelecionados = Array.from(document.querySelectorAll('#listaFornecedores input:checked'))
-            .map(cb => parseInt(cb.value));
-
-        document.getElementById('contadorFornecedoresSelecionados').textContent = fornecedoresSelecionados.length;
-    }
-
-    async function enviarPedidosMultiplosFornecedores() {
-        if (fornecedoresSelecionados.length === 0) {
-            ToastModule.show("Selecione ao menos um fornecedor", "warning");
-            return;
-        }
-
-        const estoqueId = document.getElementById('compraIdItem').value;
-        const quantidade = document.getElementById('compraQtd').value;
-
-        try {
-            const res = await fetch('/compras/criar_pedidos_multiplos', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    fornecedor_ids: fornecedoresSelecionados,
-                    estoque_id: estoqueId,
-                    quantidade: parseInt(quantidade),
-                    unidade_destino_id: null  // ou pegar da unidade do usuário
-                })
-            });
-            const data = await res.json();
-
-            if (data.success) {
-                // Mostrar resumo
-                let resumo = '<div class="mt-2"><strong>Pedidos criados para:</strong><ul>';
-                data.pedidos.forEach(ped => {
-                    resumo += `<li>${ped.fornecedor} - ${ped.status} (${ped.canal})</li>`;
-                });
-                resumo += '</ul></div>';
-
-                ToastModule.show(data.mensagem + resumo, "success", true);
-
-                // Fechar modal e recarregar página
-                setTimeout(() => {
-                    bootstrap.Modal.getInstance(document.getElementById('modalSolicitarCompra')).hide();
-                    location.reload();
-                }, 3000);
-            } else {
-                ToastModule.show("Erro: " + data.erro, "danger");
-            }
-        } catch (e) {
-            console.error(e);
-            ToastModule.show("Erro de conexão", "danger");
-        }
-    }
-
-    function abrirModalCompraGeral() {
-        document.getElementById('pecaIdCompraGeral').value = '';
-        document.getElementById('buscaPecaCompraGeral').value = '';
-        document.getElementById('qtdCompraGeral').value = '';
-        document.getElementById('sugestoesCompraGeral').style.display = 'none';
-        modalCompraGeral.show();
-    }
-
-    function initBuscaGeral() {
-        const buscaGeralInput = document.getElementById('buscaPecaCompraGeral');
-        const sugestoesGeralDiv = document.getElementById('sugestoesCompraGeral');
-
-        if (!buscaGeralInput) return;
-
-        buscaGeralInput.addEventListener('input', function () {
-            clearTimeout(debounceTimer);
-            const termo = this.value;
-            if (termo.length < 2) {
-                sugestoesGeralDiv.style.display = 'none';
-                return;
-            }
-
-            debounceTimer = setTimeout(() => {
-                fetch(`/os/api/pecas/buscar?q=${termo}`)
-                    .then(r => r.json())
-                    .then(data => {
-                        sugestoesGeralDiv.innerHTML = '';
-                        if (data.length > 0) {
-                            data.forEach(item => {
-                                const div = document.createElement('a');
-                                div.className = 'list-group-item list-group-item-action cursor-pointer';
-                                div.innerHTML = `<strong>${item.nome}</strong> <span class="text-muted small">(${item.saldo} ${item.unidade})</span>`;
-                                div.onclick = () => {
-                                    buscaGeralInput.value = item.nome;
-                                    document.getElementById('pecaIdCompraGeral').value = item.id;
-                                    sugestoesGeralDiv.style.display = 'none';
-                                };
-                                sugestoesGeralDiv.appendChild(div);
-                            });
-                            sugestoesGeralDiv.style.display = 'block';
-                        } else {
-                            sugestoesGeralDiv.style.display = 'none';
-                        }
-                    });
-            }, 300);
+async function confirmarSolicitacaoCompra() {
+    const id = document.getElementById('compraIdItem').value;
+    const qtd = document.getElementById('compraQtd').value;
+    const btn = document.getElementById('btnConfirmarCompra');
+    if (!qtd || qtd <= 0) { ToastModule.show("Informe a quantidade.", "warning"); return; }
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Solicitando...';
+    try {
+        const res = await fetch('/os/api/estoque/solicitar-compra', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ estoque_id: id, quantidade: qtd })
         });
-    }
-
-    async function confirmarSolicitacaoCompraGeral() {
-        const id = document.getElementById('pecaIdCompraGeral').value;
-        const qtd = document.getElementById('qtdCompraGeral').value;
-        const btn = document.getElementById('btnConfirmarCompraGeral');
-
-        if (!id) {
-            ToastModule.show("Selecione um item da lista.", "warning");
-            return;
+        const data = await res.json();
+        if (data.success) {
+            ToastModule.show(data.mensagem || "Pedido criado!", "success");
+            bootstrap.Modal.getInstance(document.getElementById('modalSolicitarCompra')).hide();
+        } else {
+            ToastModule.show("Erro: " + data.erro, "danger");
         }
+    } catch (e) { ToastModule.show("Erro de conexão.", "danger"); }
+    finally { btn.disabled = false; btn.innerHTML = original; }
+}
 
-        if (!qtd || qtd <= 0) {
-            ToastModule.show("Informe uma quantidade válida.", "warning");
-            return;
+async function buscarFornecedoresItem() {
+    const estoqueId = document.getElementById('compraIdItem').value;
+    const qtd = document.getElementById('compraQtd').value;
+    if (!qtd || qtd <= 0) { ToastModule.show("Informe a quantidade primeiro.", "warning"); return; }
+    try {
+        const res = await fetch('/compras/buscar_fornecedores', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ estoque_id: estoqueId })
+        });
+        const data = await res.json();
+        if (!data.success) { ToastModule.show("Erro: " + data.erro, "danger"); return; }
+        if (data.fornecedores.length === 0) { ToastModule.show("Nenhum fornecedor cadastrado para este item.", "info"); return; }
+
+        document.getElementById('resultadosFornecedores').classList.remove('d-none');
+        document.getElementById('botaoCompraOriginal').classList.add('d-none');
+        const lista = document.getElementById('listaFornecedores');
+        lista.innerHTML = '';
+        data.fornecedores.forEach(forn => {
+            const item = document.createElement('div');
+            item.className = 'form-check p-2 border-bottom';
+            const preco = forn.preco_atual ? `R$ ${forn.preco_atual.toFixed(2)}` : 'não cadastrado';
+            item.innerHTML = `
+                <input class="form-check-input" type="checkbox" value="${forn.id}" id="forn${forn.id}" onchange="atualizarSelecaoFornecedores()">
+                <label class="form-check-label w-100" for="forn${forn.id}">
+                    <strong>${forn.nome}</strong>
+                    <span class="text-muted small ms-2">${preco} · ${forn.prazo_dias}d</span>
+                    ${forn.tem_whatsapp ? '<i class="bi bi-whatsapp text-success ms-1"></i>' : ''}
+                    ${forn.tem_email ? '<i class="bi bi-envelope text-primary ms-1"></i>' : ''}
+                </label>`;
+            lista.appendChild(item);
+        });
+    } catch (e) { ToastModule.show("Erro de conexão.", "danger"); }
+}
+
+function atualizarSelecaoFornecedores() {
+    fornecedoresSelecionados = Array.from(document.querySelectorAll('#listaFornecedores input:checked')).map(cb => parseInt(cb.value));
+    document.getElementById('contadorFornecedoresSelecionados').textContent = fornecedoresSelecionados.length;
+}
+
+async function enviarPedidosMultiplosFornecedores() {
+    if (fornecedoresSelecionados.length === 0) { ToastModule.show("Selecione ao menos um fornecedor.", "warning"); return; }
+    try {
+        const res = await fetch('/compras/criar_pedidos_multiplos', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                fornecedor_ids: fornecedoresSelecionados,
+                estoque_id: document.getElementById('compraIdItem').value,
+                quantidade: parseInt(document.getElementById('compraQtd').value),
+                unidade_destino_id: null
+            })
+        });
+        const data = await res.json();
+        if (data.success) {
+            ToastModule.show(data.mensagem, "success", true);
+            setTimeout(() => { bootstrap.Modal.getInstance(document.getElementById('modalSolicitarCompra')).hide(); location.reload(); }, 2500);
+        } else {
+            ToastModule.show("Erro: " + data.erro, "danger");
         }
+    } catch (e) { ToastModule.show("Erro de conexão.", "danger"); }
+}
 
-        const originalText = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Solicitando...';
+// ==================== MODAL COMPRA GERAL ====================
+function abrirModalCompraGeral() {
+    document.getElementById('pecaIdCompraGeral').value = '';
+    document.getElementById('buscaPecaCompraGeral').value = '';
+    document.getElementById('qtdCompraGeral').value = '';
+    document.getElementById('sugestoesCompraGeral').style.display = 'none';
+    modalCompraGeral.show();
+}
 
-        try {
-            const res = await fetch('/os/api/estoque/solicitar-compra', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    estoque_id: id,
-                    quantidade: parseFloat(qtd)
-                })
+function initBuscaGeral() {
+    const input = document.getElementById('buscaPecaCompraGeral');
+    const sug = document.getElementById('sugestoesCompraGeral');
+    if (!input) return;
+    input.addEventListener('input', function() {
+        clearTimeout(debounceTimer);
+        if (this.value.length < 2) { sug.style.display = 'none'; return; }
+        debounceTimer = setTimeout(() => {
+            fetch(`/os/api/pecas/buscar?q=${this.value}`).then(r => r.json()).then(data => {
+                sug.innerHTML = '';
+                if (data.length > 0) {
+                    data.forEach(item => {
+                        const a = document.createElement('a');
+                        a.className = 'list-group-item list-group-item-action';
+                        a.innerHTML = `<strong>${item.nome}</strong> <span class="text-muted small">(${item.saldo} ${item.unidade})</span>`;
+                        a.onclick = () => { input.value = item.nome; document.getElementById('pecaIdCompraGeral').value = item.id; sug.style.display = 'none'; };
+                        sug.appendChild(a);
+                    });
+                    sug.style.display = 'block';
+                } else { sug.style.display = 'none'; }
             });
-            const data = await res.json();
-            if (data.success) {
-                ToastModule.show("Solicitação de compra enviada!", "success");
-                modalCompraGeral.hide();
-                setTimeout(() => location.reload(), 1000);
-            } else {
-                ToastModule.show("Erro: " + data.erro, "danger");
-            }
-        } catch (e) {
-            ToastModule.show("Erro ao conectar.", "danger");
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = originalText;
-        }
-    }
-
-    async function abrirHistorico() {
-        const corpo = document.getElementById('histTabelaCorpo');
-        corpo.innerHTML = '<tr><td colspan="6" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></td></tr>';
-
-        modalHistorico.show();
-
-        try {
-            const res = await fetch('/os/api/estoque/historico');
-            const data = await res.json();
-
-            corpo.innerHTML = '';
-            if (data.length > 0) {
-                data.forEach(m => {
-                    const tr = document.createElement('tr');
-                    const corTipo = m.tipo.toLowerCase() === 'entrada' ? 'text-success' : 'text-danger';
-                    tr.innerHTML = `
-                        <td class="text-muted">${m.data}</td>
-                        <td class="fw-bold">${m.item}</td>
-                        <td class="${corTipo}">${m.tipo}</td>
-                        <td class="fw-bold">${m.qtd}</td>
-                        <td>${m.unidade}</td>
-                        <td class="text-muted">${m.usuario}</td>
-                    `;
-                    corpo.appendChild(tr);
-                });
-            } else {
-                corpo.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">Nenhuma movimentação recente.</td></tr>';
-            }
-        } catch (e) {
-            corpo.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-danger">Erro ao carregar histórico.</td></tr>';
-        }
-    }
-
-    async function verDistribuicao(id, nome) {
-        const nomeEl = document.getElementById('distItemNome');
-        const corpo = document.getElementById('distTabelaCorpo');
-        const total = document.getElementById('distTotalGlobal');
-
-        nomeEl.innerText = nome;
-        corpo.innerHTML = '<tr><td colspan="3" class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></td></tr>';
-        total.innerText = '...';
-
-        const modal = new bootstrap.Modal(document.getElementById('modalDistribuicao'));
-        modal.show();
-
-        try {
-            const res = await fetch(`/os/api/estoque/${id}/disponibilidade`);
-            const data = await res.json();
-
-            corpo.innerHTML = '';
-            if (data.distribuicao && data.distribuicao.length > 0) {
-                data.distribuicao.forEach(d => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>${d.unidade_nome}</td>
-                        <td class="text-end fw-bold">${d.saldo} ${data.unidade_medida}</td>
-                        <td class="text-end text-muted small">${d.localizacao}</td>
-                    `;
-                    corpo.appendChild(tr);
-                });
-            } else {
-                corpo.innerHTML = '<tr><td colspan="2" class="text-center py-3 text-muted">Sem saldo em nenhuma unidade.</td></tr>';
-            }
-            total.innerText = `${data.saldo_global} ${data.unidade_medida}`;
-        } catch (e) {
-            corpo.innerHTML = '<tr><td colspan="3" class="text-center py-3 text-danger">Erro ao carregar distribuição.</td></tr>';
-        }
-    }
-
-    // Fecha sugestões ao clicar fora
-    document.addEventListener('click', function (e) {
-        if (e.target !== buscaInput) {
-            sugestoesDiv.style.display = 'none';
-        }
+        }, 300);
     });
+}
+
+async function confirmarSolicitacaoCompraGeral() {
+    const id = document.getElementById('pecaIdCompraGeral').value;
+    const qtd = document.getElementById('qtdCompraGeral').value;
+    const btn = document.getElementById('btnConfirmarCompraGeral');
+    if (!id) { ToastModule.show("Selecione um item.", "warning"); return; }
+    if (!qtd || qtd <= 0) { ToastModule.show("Informe a quantidade.", "warning"); return; }
+    const original = btn.innerHTML;
+    btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Solicitando...';
+    try {
+        const res = await fetch('/os/api/estoque/solicitar-compra', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ estoque_id: id, quantidade: parseFloat(qtd) })
+        });
+        const data = await res.json();
+        if (data.success) { ToastModule.show("Solicitação criada!", "success"); modalCompraGeral.hide(); setTimeout(() => location.reload(), 800); }
+        else { ToastModule.show("Erro: " + data.erro, "danger"); }
+    } catch (e) { ToastModule.show("Erro de conexão.", "danger"); }
+    finally { btn.disabled = false; btn.innerHTML = original; }
+}
+
+// ==================== MODAL ENTRADA ====================
+function abrirModalEntrada() {
+    document.getElementById('entradaModalTitle').innerText = "Nova Entrada (Manual)";
+    document.getElementById('divSelectPeca').classList.remove('d-none');
+    document.getElementById('divItemFixo').classList.add('d-none');
+    document.getElementById('formEntrada').reset();
+    document.getElementById('pecaIdSelecionada').value = "";
+    modalEntrada.show();
+    setTimeout(() => buscaInput?.focus(), 500);
+}
+
+function ajusteRapido(id, nome, valorAtual) {
+    document.getElementById('entradaModalTitle').innerText = "Ajuste de Inventário";
+    document.getElementById('divSelectPeca').classList.add('d-none');
+    document.getElementById('divItemFixo').classList.remove('d-none');
+    document.getElementById('nomeItemFixo').value = nome;
+    document.getElementById('pecaIdSelecionada').value = id;
+    document.getElementById('valorEntrada').value = valorAtual;
+    document.getElementById('qtdEntrada').value = "";
+    document.getElementById('motivoEntrada').value = "Ajuste de Inventário";
+    modalEntrada.show();
+}
+
+function initBuscaInput() {
+    buscaInput.addEventListener('input', function() {
+        clearTimeout(debounceTimer);
+        if (this.value.length < 2) { sugestoesDiv.style.display = 'none'; return; }
+        debounceTimer = setTimeout(() => {
+            fetch(`/os/api/pecas/buscar?q=${this.value}`).then(r => r.json()).then(data => {
+                sugestoesDiv.innerHTML = '';
+                if (data.length > 0) {
+                    data.forEach(item => {
+                        const a = document.createElement('a');
+                        a.className = 'list-group-item list-group-item-action';
+                        a.innerHTML = `<strong>${item.nome}</strong> <span class="text-muted small">(${item.saldo} ${item.unidade})</span>`;
+                        a.onclick = () => { buscaInput.value = item.nome; document.getElementById('pecaIdSelecionada').value = item.id; sugestoesDiv.style.display = 'none'; };
+                        sugestoesDiv.appendChild(a);
+                    });
+                    sugestoesDiv.style.display = 'block';
+                } else { sugestoesDiv.style.display = 'none'; }
+            });
+        }, 300);
+    });
+    document.addEventListener('click', e => { if (e.target !== buscaInput) sugestoesDiv.style.display = 'none'; });
+}
+
+function salvarEntrada() {
+    const id = document.getElementById('pecaIdSelecionada').value;
+    const qtd = document.getElementById('qtdEntrada').value;
+    if (!id || !qtd) { ToastModule.show("Selecione um item e informe a quantidade.", "warning"); return; }
+    const btn = document.getElementById('btnSalvarEntrada');
+    const original = btn.innerHTML;
+    btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Salvando...';
+    fetch('/os/api/estoque/entrada', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            estoque_id: id,
+            quantidade: parseFloat(qtd),
+            motivo: document.getElementById('motivoEntrada').value,
+            valor_novo: document.getElementById('valorEntrada').value ? parseFloat(document.getElementById('valorEntrada').value) : null,
+            unidade_id: document.getElementById('unidadeEntrada').value
+        })
+    }).then(r => r.json()).then(data => {
+        if (data.success) { ToastModule.show("Entrada registrada!", "success"); modalEntrada.hide(); setTimeout(() => location.reload(), 800); }
+        else { ToastModule.show("Erro: " + data.erro, "danger"); }
+    }).catch(() => ToastModule.show("Erro de conexão.", "danger"))
+    .finally(() => { btn.disabled = false; btn.innerHTML = original; });
+}
+
+// ==================== MODAL TRANSFERÊNCIA ====================
+function abrirModalTransferencia(id, nome) {
+    document.getElementById('transfEstoqueId').value = id;
+    document.getElementById('transfNomeItem').value = nome;
+    document.getElementById('formTransferencia').reset();
+    modalTransferencia.show();
+}
+
+function salvarTransferencia() {
+    const id = document.getElementById('transfEstoqueId').value;
+    const origem = document.getElementById('transfOrigem').value;
+    const destino = document.getElementById('transfDestino').value;
+    const qtd = document.getElementById('transfQtd').value;
+    if (origem === destino) { ToastModule.show("Origem e Destino devem ser diferentes.", "warning"); return; }
+    const btn = document.getElementById('btnSalvarTransf');
+    const original = btn.innerHTML;
+    btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Processando...';
+    fetch('/os/api/estoque/transferir', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estoque_id: id, unidade_origem_id: origem, unidade_destino_id: destino, quantidade: qtd, observacao: document.getElementById('transfObs').value })
+    }).then(r => r.json()).then(data => {
+        if (data.success) { ToastModule.show(data.msg, "success"); modalTransferencia.hide(); }
+        else { ToastModule.show("Erro: " + (data.erro || data.msg), "danger"); }
+    }).catch(() => ToastModule.show("Erro de conexão.", "danger"))
+    .finally(() => { btn.disabled = false; btn.innerHTML = original; });
+}
+
+// ==================== MODAL HISTÓRICO ====================
+async function abrirHistorico() {
+    const corpo = document.getElementById('histTabelaCorpo');
+    corpo.innerHTML = '<tr><td colspan="6" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></td></tr>';
+    modalHistorico.show();
+    try {
+        const data = await fetch('/os/api/estoque/historico').then(r => r.json());
+        corpo.innerHTML = '';
+        if (data.length > 0) {
+            data.forEach(m => {
+                const tr = document.createElement('tr');
+                const cor = m.tipo.toLowerCase() === 'entrada' ? 'text-success' : (m.tipo.toLowerCase() === 'consumo' || m.tipo.toLowerCase() === 'saida' ? 'text-danger' : 'text-warning');
+                tr.innerHTML = `<td class="text-muted">${m.data}</td><td class="fw-bold">${m.item}</td><td class="${cor} fw-semibold">${m.tipo}</td><td>${m.qtd}</td><td>${m.unidade}</td><td class="text-muted">${m.usuario}</td>`;
+                corpo.appendChild(tr);
+            });
+        } else {
+            corpo.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">Nenhuma movimentação recente.</td></tr>';
+        }
+    } catch (e) {
+        corpo.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-danger">Erro ao carregar.</td></tr>';
+    }
+}
 </script>
 {% endblock %}
