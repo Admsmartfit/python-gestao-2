@@ -426,6 +426,23 @@ def listar_comunicacoes(pedido_id):
         logger.error(f"Erro ao listar comunicações: {e}")
         return jsonify({'success': False, 'erro': str(e)}), 500
 
+
+@bp.route('/api/buscar-respostas-email', methods=['POST'])
+@login_required
+def buscar_respostas_email():
+    """
+    Dispara verificação imediata da caixa IMAP em busca de respostas de fornecedores.
+    Chamado pelo botão "Atualizar" na tela de detalhes do pedido.
+    """
+    try:
+        from app.services.email_service import EmailService
+        EmailService.fetch_and_process_replies()
+        return jsonify({'success': True, 'msg': 'Caixa de email verificada.'})
+    except Exception as e:
+        logger.error(f"Erro ao buscar respostas de email: {e}", exc_info=True)
+        return jsonify({'success': False, 'erro': str(e)}), 500
+
+
 # [NOVO] Enviar Solicitação de Orçamento
 @bp.route('/<int:pedido_id>/solicitar_orcamento', methods=['POST'])
 @login_required

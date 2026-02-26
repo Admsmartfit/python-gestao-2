@@ -220,12 +220,35 @@ class EmailService:
             mail.login(imap_user, imap_pass)
             mail.select("INBOX")
 
-            # Buscar emails nao lidos
-            status, messages = mail.search(None, '(UNSEEN)')
-            if status != 'OK':
-                return
+            # Buscar emails não lidos E emails recentes com "Re:" no assunto (últimos 3 dias)
+            # Isso cobre casos onde o usuário abriu o email no Gmail antes da task rodar
+            from email.utils import parsedate_to_datetime
+            import time as _time
 
-            for num in messages[0].split():
+            ids_vistos = set()
+            all_nums = []
+
+            # 1. Não lidos
+            status, msgs_unseen = mail.search(None, '(UNSEEN)')
+            if status == 'OK' and msgs_unseen[0]:
+                all_nums.extend(msgs_unseen[0].split())
+
+            # 2. Lidos recentes (últimos 3 dias) com "Re:" no assunto — captura quem abriu no Gmail
+            since_date = __import__('datetime').datetime.now() - __import__('datetime').timedelta(days=3)
+            since_str = since_date.strftime('%d-%b-%Y')
+            status2, msgs_since = mail.search(None, f'(SINCE "{since_str}" SUBJECT "Re:")')
+            if status2 == 'OK' and msgs_since[0]:
+                for n in msgs_since[0].split():
+                    if n not in all_nums:
+                        all_nums.append(n)
+
+            logger.info(f"[Email] {len(all_nums)} email(s) para processar")
+
+            for num in all_nums:
+                if num in ids_vistos:
+                    continue
+                ids_vistos.add(num)
+
                 status, data = mail.fetch(num, '(BODY.PEEK[])')
                 if status != 'OK':
                     continue
@@ -294,19 +317,30 @@ class EmailService:
                             comunicacao_original.status = 'respondido'
                             comunicacao_original.data_resposta = datetime.now()
 
-                        # Criar registro de resposta recebida
-                        com = ComunicacaoFornecedor(
-                            pedido_compra_id=pedido.id,
-                            fornecedor_id=fornecedor_id,
-                            tipo_comunicacao='email',
-                            direcao='recebido',
-                            mensagem=corpo[:2000],
-                            status='respondido',
-                            data_envio=datetime.now()
-                        )
-                        db.session.add(com)
-                        db.session.commit()
-                        logger.info(f"Resposta email arquivada para Pedido #{pedido_id}")
+                        # Evitar duplicatas: checar se já existe entrada 'recebido' com mesmo conteúdo
+                        corpo_trunc = corpo[:200]
+                        ja_existe = ComunicacaoFornecedor.query.filter(
+                            ComunicacaoFornecedor.pedido_compra_id == pedido.id,
+                            ComunicacaoFornecedor.fornecedor_id == fornecedor_id,
+                            ComunicacaoFornecedor.direcao == 'recebido',
+                            ComunicacaoFornecedor.mensagem.like(f"{corpo_trunc}%")
+                        ).first()
+
+                        if ja_existe:
+                            logger.debug(f"Email já processado para Pedido #{pedido_id}, ignorando.")
+                        else:
+                            com = ComunicacaoFornecedor(
+                                pedido_compra_id=pedido.id,
+                                fornecedor_id=fornecedor_id,
+                                tipo_comunicacao='email',
+                                direcao='recebido',
+                                mensagem=corpo[:2000],
+                                status='respondido',
+                                data_envio=datetime.now()
+                            )
+                            db.session.add(com)
+                            db.session.commit()
+                            logger.info(f"Resposta email arquivada para Pedido #{pedido_id}")
 
                 elif chamado_match:
                     from app.models.terceirizados_models import ChamadoExterno, HistoricoNotificacao

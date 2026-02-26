@@ -106,8 +106,8 @@
                     <button class="btn btn-sm btn-outline-success me-1" data-bs-toggle="modal" data-bs-target="#modalRegistrarResposta">
                         <i class="bi bi-reply-fill me-1"></i>Registrar Resposta
                     </button>
-                    <button class="btn btn-sm btn-outline-primary" onclick="atualizarHistorico()">
-                        <i class="bi bi-arrow-clockwise me-1"></i>Atualizar
+                    <button class="btn btn-sm btn-outline-primary" id="btnBuscarEmails" onclick="buscarRespostasEmail()">
+                        <i class="bi bi-envelope-arrow-down me-1"></i>Buscar respostas
                     </button>
                 </div>
             </div>
@@ -399,8 +399,27 @@ async function enviarEmail(fornecedorId) {
     }
 }
 
-async function atualizarHistorico() {
-    location.reload();
+async function buscarRespostasEmail() {
+    const btn = document.getElementById('btnBuscarEmails');
+    const orig = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Verificando...';
+    try {
+        const res = await fetch('/compras/api/buscar-respostas-email', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            ToastModule.show('Email verificado! Recarregando...', 'success');
+            setTimeout(() => location.reload(), 1200);
+        } else {
+            ToastModule.show('Erro ao verificar email: ' + (data.erro || ''), 'danger');
+            btn.disabled = false;
+            btn.innerHTML = orig;
+        }
+    } catch (e) {
+        ToastModule.show('Erro de conexão.', 'danger');
+        btn.disabled = false;
+        btn.innerHTML = orig;
+    }
 }
 
 function toggleMsg(id) {
