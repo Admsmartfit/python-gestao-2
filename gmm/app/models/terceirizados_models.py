@@ -97,5 +97,7 @@ class HistoricoNotificacao(db.Model):
     status_leitura = db.Column(db.String(20), default='nao_lida')  # nao_lida, lida
     mimetype = db.Column(db.String(100), nullable=True)
     caption = db.Column(db.Text, nullable=True)
+    url_midia_local = db.Column(db.Text, nullable=True)  # /static/uploads/whatsapp/YYYY/MM/arquivo.ext
+    mensagem_transcrita = db.Column(db.Text, nullable=True)  # Transcrição automática de áudios
     excluido_em = db.Column(db.DateTime, nullable=True)
     excluido_por = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)

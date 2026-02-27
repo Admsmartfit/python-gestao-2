@@ -193,7 +193,31 @@
     }
 
     .mensagem-audio {
-        width: 250px;
+        width: 260px;
+        max-width: 100%;
+        display: block;
+        margin: 4px 0;
+    }
+
+    .mensagem-midia-aguardando {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem 0.75rem;
+        background: rgba(0,0,0,0.05);
+        border-radius: 0.5rem;
+        min-width: 180px;
+    }
+
+    .mensagem-transcricao {
+        border-top: 1px solid rgba(0,0,0,0.1);
+        padding-top: 0.4rem;
+        margin-top: 0.4rem;
+        max-width: 260px;
+        word-wrap: break-word;
+    }
+
+    .mensagem-item.outbound .mensagem-transcricao {
+        border-top-color: rgba(255,255,255,0.2);
     }
 
     .mensagem-documento {
@@ -452,29 +476,51 @@ function renderizarMensagens(mensagens) {
         let midiaHtml = '';
 
         // Renderizar mídia
-        if (msg.tipo_conteudo === 'image' && msg.url_midia_local) {
-            midiaHtml = `
-                <div class="mensagem-midia" onclick="visualizarMidia('${msg.url_midia_local}', 'image')">
-                    <img src="${msg.url_midia_local}" alt="Imagem" loading="lazy">
-                </div>
-            `;
-        } else if (msg.tipo_conteudo === 'audio' && msg.url_midia_local) {
-            midiaHtml = `
-                <audio controls class="mensagem-audio">
-                    <source src="${msg.url_midia_local}" type="${msg.mimetype || 'audio/ogg'}">
-                </audio>
-            `;
-        } else if (msg.tipo_conteudo === 'document' && msg.url_midia_local) {
-            midiaHtml = `
-                <div class="mensagem-documento" onclick="window.open('${msg.url_midia_local}', '_blank')">
-                    <i class="bi bi-file-earmark-pdf fs-3"></i>
-                    <div class="flex-grow-1">
-                        <div class="fw-bold small">Documento</div>
-                        <div class="text-muted" style="font-size: 0.75rem;">${msg.caption || 'Clique para abrir'}</div>
+        const midiaTipos = ['image', 'audio', 'document', 'video'];
+        if (midiaTipos.includes(msg.tipo_conteudo)) {
+            if (!msg.url_midia_local) {
+                // Ainda aguardando download pelo Celery
+                const iconeAguardo = msg.tipo_conteudo === 'audio' ? 'bi-mic' :
+                                     msg.tipo_conteudo === 'image' ? 'bi-image' : 'bi-file-earmark';
+                midiaHtml = `
+                    <div class="mensagem-midia-aguardando">
+                        <i class="bi ${iconeAguardo} me-2"></i>
+                        <span class="text-muted small fst-italic">Aguardando download...</span>
+                        <div class="spinner-border spinner-border-sm ms-2" role="status"></div>
                     </div>
-                    <i class="bi bi-download"></i>
-                </div>
-            `;
+                `;
+            } else if (msg.tipo_conteudo === 'image') {
+                midiaHtml = `
+                    <div class="mensagem-midia" onclick="visualizarMidia('${msg.url_midia_local}', 'image')">
+                        <img src="${msg.url_midia_local}" alt="Imagem" loading="lazy">
+                    </div>
+                `;
+            } else if (msg.tipo_conteudo === 'audio') {
+                const textoTransc = msg.mensagem_transcrita || (msg.mensagem && !msg.mensagem.startsWith('[') ? msg.mensagem : null);
+                const transcricao = textoTransc
+                    ? `<div class="mensagem-transcricao mt-1"><i class="bi bi-chat-quote me-1 opacity-50"></i><em class="small opacity-75">${escapeHtml(textoTransc)}</em></div>`
+                    : '';
+                midiaHtml = `
+                    <audio controls class="mensagem-audio">
+                        <source src="${msg.url_midia_local}" type="${msg.mimetype || 'audio/ogg'}">
+                        Seu navegador não suporta reprodução de áudio.
+                    </audio>
+                    ${transcricao}
+                `;
+            } else if (msg.tipo_conteudo === 'document') {
+                const iconDoc = getIconeDocumento(msg.mimetype, msg.caption);
+                const nomeArq = msg.caption || msg.url_midia_local.split('/').pop() || 'Documento';
+                midiaHtml = `
+                    <div class="mensagem-documento" onclick="abrirDocumento('${msg.url_midia_local}', '${escapeHtml(msg.mimetype || '')}')">
+                        <i class="bi ${iconDoc} fs-3 flex-shrink-0"></i>
+                        <div class="flex-grow-1 overflow-hidden">
+                            <div class="fw-bold small text-truncate">${escapeHtml(nomeArq)}</div>
+                            <div class="text-muted" style="font-size: 0.75rem;">${getTipoDocumento(msg.mimetype)} · Clique para abrir</div>
+                        </div>
+                        <i class="bi bi-box-arrow-up-right flex-shrink-0"></i>
+                    </div>
+                `;
+            }
         }
 
         const statusIcon = getStatusIcon(msg.status);
@@ -557,12 +603,53 @@ function getStatusIcon(status) {
     return icons[status] || 'bi-clock';
 }
 
+function getIconeDocumento(mimetype, filename) {
+    const mt = (mimetype || '').toLowerCase();
+    const fn = (filename || '').toLowerCase();
+    if (mt.includes('pdf') || fn.endsWith('.pdf')) return 'bi-file-earmark-pdf text-danger';
+    if (mt.includes('word') || fn.match(/\.docx?$/)) return 'bi-file-earmark-word text-primary';
+    if (mt.includes('excel') || mt.includes('spreadsheet') || fn.match(/\.xlsx?$/)) return 'bi-file-earmark-excel text-success';
+    if (mt.includes('powerpoint') || mt.includes('presentation') || fn.match(/\.pptx?$/)) return 'bi-file-earmark-ppt text-warning';
+    if (mt.includes('image') || fn.match(/\.(jpg|jpeg|png|gif|webp)$/)) return 'bi-file-earmark-image text-info';
+    if (mt.includes('audio') || fn.match(/\.(mp3|ogg|wav|m4a)$/)) return 'bi-file-earmark-music text-purple';
+    if (mt.includes('video') || fn.match(/\.(mp4|mov|avi|webm)$/)) return 'bi-file-earmark-play text-danger';
+    if (mt.includes('zip') || mt.includes('compressed') || fn.match(/\.(zip|rar|7z)$/)) return 'bi-file-earmark-zip text-secondary';
+    return 'bi-file-earmark text-secondary';
+}
+
+function getTipoDocumento(mimetype) {
+    const mt = (mimetype || '').toLowerCase();
+    if (mt.includes('pdf')) return 'PDF';
+    if (mt.includes('word') || mt.includes('msword')) return 'Word';
+    if (mt.includes('excel') || mt.includes('spreadsheet')) return 'Excel';
+    if (mt.includes('powerpoint') || mt.includes('presentation')) return 'PowerPoint';
+    if (mt.includes('image')) return 'Imagem';
+    if (mt.includes('audio')) return 'Áudio';
+    if (mt.includes('video')) return 'Vídeo';
+    if (mt.includes('zip') || mt.includes('compressed')) return 'Arquivo ZIP';
+    return 'Arquivo';
+}
+
+function abrirDocumento(url, mimetype) {
+    // PDFs abrem no modal; outros tipos fazem download/nova aba
+    if ((mimetype || '').includes('pdf')) {
+        const modal = new bootstrap.Modal(document.getElementById('modalVisualizarMidia'));
+        const content = document.getElementById('modalMidiaContent');
+        content.innerHTML = `<iframe src="${url}" style="width:100%;height:70vh;border:none;"></iframe>`;
+        modal.show();
+    } else {
+        window.open(url, '_blank');
+    }
+}
+
 function visualizarMidia(url, tipo) {
     const modal = new bootstrap.Modal(document.getElementById('modalVisualizarMidia'));
     const content = document.getElementById('modalMidiaContent');
 
     if (tipo === 'image') {
-        content.innerHTML = `<img src="${url}" class="img-fluid" alt="Imagem">`;
+        content.innerHTML = `<img src="${url}" class="img-fluid rounded" alt="Imagem">`;
+    } else if (tipo === 'audio') {
+        content.innerHTML = `<audio controls autoplay style="width:100%"><source src="${url}"></audio>`;
     }
 
     modal.show();
