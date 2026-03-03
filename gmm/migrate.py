@@ -41,6 +41,32 @@ MIGRATIONS = [
 ]
 
 
+def create_new_tables(conn):
+    """Cria tabelas novas que ainda não existem no banco de produção."""
+    conn.execute(db.text('''
+        CREATE TABLE IF NOT EXISTS listas_compra (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome VARCHAR(100) NOT NULL,
+            descricao TEXT,
+            periodicidade_dias INTEGER,
+            criador_id INTEGER REFERENCES usuarios(id),
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            ativo BOOLEAN DEFAULT 1
+        )
+    '''))
+    conn.execute(db.text('''
+        CREATE TABLE IF NOT EXISTS lista_compra_itens (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            lista_id INTEGER NOT NULL REFERENCES listas_compra(id),
+            estoque_id INTEGER REFERENCES estoque(id),
+            descricao_livre VARCHAR(300),
+            quantidade NUMERIC(10,3) NOT NULL DEFAULT 1,
+            categoria_compra VARCHAR(50)
+        )
+    '''))
+    print('  [ok]   listas_compra e lista_compra_itens (CREATE IF NOT EXISTS)')
+
+
 def fix_estoque_id_nullable(conn):
     """
     SQLite não suporta ALTER COLUMN.
@@ -114,6 +140,9 @@ def run():
 
             # Migração especial: tornar estoque_id nullable em pedidos_compra
             fix_estoque_id_nullable(conn)
+
+            # Criar novas tabelas (listas de compra padrão)
+            create_new_tables(conn)
 
             conn.commit()
         print(f'\nConcluído: {ok} colunas adicionadas, {skip} já existiam.')

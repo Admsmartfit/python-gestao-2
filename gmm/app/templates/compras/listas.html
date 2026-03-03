@@ -1,0 +1,354 @@
+{% extends "base.html" %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin.compras_painel') }}">Compras</a></li>
+<li class="breadcrumb-item active">Listas Padrão</li>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4 d-flex justify-content-between align-items-center">
+    <div>
+        <h2 class="fw-bold mb-0">Listas de Compra Padrão</h2>
+        <p class="text-muted small mb-0">Crie listas recorrentes e envie para o comprador quando precisar.</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNovaLista">
+        <i class="bi bi-plus-lg me-1"></i> Nova Lista
+    </button>
+</div>
+
+{% if not listas %}
+<div class="card border-0 shadow-sm">
+    <div class="card-body text-center py-5 text-muted">
+        <i class="bi bi-list-check fs-1 d-block mb-3 opacity-25"></i>
+        <p class="mb-3">Nenhuma lista cadastrada ainda.<br>Crie listas de compras recorrentes para agilizar as solicitações.</p>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNovaLista">
+            <i class="bi bi-plus-lg me-1"></i> Criar primeira lista
+        </button>
+    </div>
+</div>
+{% endif %}
+
+{% for lista in listas %}
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="fw-bold mb-0">{{ lista.nome }}</h5>
+            <div class="text-muted small">
+                {% if lista.descricao %}{{ lista.descricao }} · {% endif %}
+                {% if lista.periodicidade_dias %}
+                <i class="bi bi-arrow-repeat me-1"></i>A cada {{ lista.periodicidade_dias }} dias ·
+                {% endif %}
+                Criada por {{ lista.criador.nome if lista.criador else '—' }}
+                <span class="badge bg-secondary bg-opacity-10 text-secondary border ms-2">{{ lista.itens|length }} iten(s)</span>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-success btn-sm"
+                    onclick="abrirModalUsarLista({{ lista.id }}, {{ lista.nome|tojson }}, {{ lista.itens|map(attribute='id')|list|tojson }})"
+                    {% if not lista.itens %}disabled title="Adicione itens antes de enviar"{% endif %}>
+                <i class="bi bi-send me-1"></i> Enviar para Compras
+            </button>
+            <form action="{{ url_for('compras.excluir_lista_compra', lista_id=lista.id) }}" method="POST"
+                  onsubmit="return confirm('Arquivar esta lista?')">
+                <button type="submit" class="btn btn-outline-secondary btn-sm" title="Arquivar lista">
+                    <i class="bi bi-archive"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card-body p-0">
+        {% if lista.itens %}
+        <table class="table table-sm align-middle mb-0">
+            <thead class="bg-light">
+                <tr>
+                    <th class="ps-3">Item</th>
+                    <th>Categoria</th>
+                    <th>Qtd padrão</th>
+                    <th class="text-end pe-3">Ação</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set cat_map = {'peca':'Peça','limpeza':'Limpeza','escritorio':'Escritório','ti':'TI','outros':'Outros'} %}
+                {% for item in lista.itens %}
+                <tr>
+                    <td class="ps-3 fw-medium">
+                        {% if item.peca %}{{ item.peca.nome }}
+                        {% elif item.descricao_livre %}{{ item.descricao_livre }}
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        <span class="badge bg-secondary bg-opacity-10 text-secondary border small">
+                            {{ cat_map.get(item.categoria_compra, item.categoria_compra or 'Geral') }}
+                        </span>
+                    </td>
+                    <td>
+                        {{ "{:g}".format(item.quantidade|float) }}
+                        {% if item.peca %}{{ item.peca.unidade_medida }}{% endif %}
+                    </td>
+                    <td class="text-end pe-3">
+                        <button class="btn btn-outline-danger btn-sm"
+                                onclick="removerItem({{ item.id }}, this)">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="text-center py-4 text-muted small">
+            <i class="bi bi-inbox me-1"></i>Nenhum item nesta lista ainda.
+        </div>
+        {% endif %}
+
+        <!-- Adicionar item à lista -->
+        <div class="border-top p-3 bg-light">
+            <form action="{{ url_for('compras.adicionar_item_lista', lista_id=lista.id) }}" method="POST">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold mb-1">Item do catálogo</label>
+                        <select name="estoque_id" class="form-select form-select-sm">
+                            <option value="">— Descrição livre —</option>
+                            {% for item in itens_catalogo %}
+                            <option value="{{ item.id }}">{{ item.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-semibold mb-1">Ou descreva</label>
+                        <input type="text" name="descricao_livre" class="form-control form-control-sm"
+                               placeholder="Item não cadastrado...">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-semibold mb-1">Categoria</label>
+                        <select name="categoria_compra" class="form-select form-select-sm">
+                            <option value="peca">Peça</option>
+                            <option value="limpeza">Limpeza</option>
+                            <option value="escritorio">Escritório</option>
+                            <option value="ti">TI</option>
+                            <option value="outros">Outros</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label small fw-semibold mb-1">Qtd</label>
+                        <input type="number" name="quantidade" class="form-control form-control-sm"
+                               value="1" min="0.01" step="0.01" required>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+                            <i class="bi bi-plus-lg me-1"></i>Adicionar
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- MODAL NOVA LISTA -->
+<div class="modal fade" id="modalNovaLista" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold"><i class="bi bi-list-check me-2 text-primary"></i>Nova Lista de Compra</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('compras.nova_lista_compra') }}" method="POST">
+                <div class="modal-body pt-3">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Nome da Lista <span class="text-danger">*</span></label>
+                        <input type="text" name="nome" class="form-control" required
+                               placeholder="Ex: Limpeza Trimestral, Material de Escritório Mensal...">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Descrição <span class="text-muted fw-normal">(opcional)</span></label>
+                        <textarea name="descricao" class="form-control" rows="2"
+                                  placeholder="Contexto ou observações sobre esta lista..."></textarea>
+                    </div>
+                    <div class="mb-1">
+                        <label class="form-label fw-semibold">Periodicidade <span class="text-muted fw-normal">(opcional)</span></label>
+                        <select name="periodicidade_dias" class="form-select">
+                            <option value="">— Sem periodicidade definida —</option>
+                            <option value="30">Mensal (30 dias)</option>
+                            <option value="60">Bimestral (60 dias)</option>
+                            <option value="90">Trimestral (90 dias)</option>
+                            <option value="180">Semestral (180 dias)</option>
+                            <option value="365">Anual (365 dias)</option>
+                        </select>
+                        <div class="form-text">Serve apenas como referência visual. O envio é sempre manual.</div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg me-1"></i>Criar Lista
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL USAR LISTA (enviar para compras) -->
+<div class="modal fade" id="modalUsarLista" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <div>
+                    <h5 class="modal-title fw-bold"><i class="bi bi-send me-2 text-success"></i>Enviar Lista para Compras</h5>
+                    <div class="text-muted small" id="modalUsarListaNome"></div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-3">
+                <div class="alert alert-info py-2 small border-0 mb-3">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Ajuste as quantidades se necessário. Itens com quantidade 0 serão ignorados.
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Unidade de Destino</label>
+                    <select id="usarListaUnidade" class="form-select">
+                        <option value="">— Sem unidade específica —</option>
+                        {% for u in unidades %}
+                        <option value="{{ u.id }}">{{ u.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <table class="table table-sm align-middle mb-0" id="tabelaUsarLista">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>Item</th>
+                            <th class="text-center" style="width:120px;">Quantidade</th>
+                            <th class="text-center" style="width:60px;">Incluir</th>
+                        </tr>
+                    </thead>
+                    <tbody id="corpoUsarLista"></tbody>
+                </table>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="btnConfirmarUsar" class="btn btn-success" onclick="confirmarUsarLista()">
+                    <i class="bi bi-send me-1"></i> Enviar Solicitações
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Dados das listas (injetados pelo servidor)
+    const listasDados = {
+        {% for lista in listas %}
+        {{ lista.id }}: [
+            {% for item in lista.itens %}
+            {
+                id: {{ item.id }},
+                nome: {{ (item.peca.nome if item.peca else item.descricao_livre or '')|tojson }},
+                quantidade: {{ item.quantidade|float }},
+                unidade: {{ (item.peca.unidade_medida if item.peca else '')|tojson }}
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ]{% if not loop.last %},{% endif %}
+        {% endfor %}
+    };
+
+    let listaIdAtual = null;
+
+    function abrirModalUsarLista(listaId, listaNome, itemIds) {
+        listaIdAtual = listaId;
+        document.getElementById('modalUsarListaNome').textContent = listaNome;
+        document.getElementById('usarListaUnidade').value = '';
+
+        const tbody = document.getElementById('corpoUsarLista');
+        tbody.innerHTML = '';
+
+        const itens = listasDados[listaId] || [];
+        itens.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="fw-medium">${item.nome}</td>
+                <td class="text-center">
+                    <input type="number" class="form-control form-control-sm text-center"
+                           id="qtd_item_${item.id}" value="${item.quantidade}"
+                           min="0" step="0.01" style="width:90px;margin:auto;">
+                    <small class="text-muted">${item.unidade}</small>
+                </td>
+                <td class="text-center">
+                    <input type="checkbox" class="form-check-input" id="chk_item_${item.id}" checked>
+                </td>
+            `;
+            tr.dataset.itemId = item.id;
+            tbody.appendChild(tr);
+        });
+
+        new bootstrap.Modal(document.getElementById('modalUsarLista')).show();
+    }
+
+    async function confirmarUsarLista() {
+        const unidade = document.getElementById('usarListaUnidade').value || null;
+        const rows = document.querySelectorAll('#corpoUsarLista tr');
+        const itens = [];
+
+        rows.forEach(row => {
+            const id = parseInt(row.dataset.itemId);
+            const chk = document.getElementById(`chk_item_${id}`);
+            const qtd = parseFloat(document.getElementById(`qtd_item_${id}`).value);
+            if (chk.checked && qtd > 0) {
+                itens.push({ id, quantidade: qtd, unidade_id: unidade });
+            }
+        });
+
+        if (itens.length === 0) {
+            ToastModule.show('Selecione ao menos um item com quantidade maior que zero.', 'warning');
+            return;
+        }
+
+        const btn = document.getElementById('btnConfirmarUsar');
+        const orig = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Enviando...';
+
+        try {
+            const res = await fetch(`/compras/listas/${listaIdAtual}/usar`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ itens })
+            });
+            const data = await res.json();
+            if (data.ok) {
+                ToastModule.show(`${data.criados} solicitação(ões) enviada(s) para o setor de compras!`, 'success');
+                bootstrap.Modal.getInstance(document.getElementById('modalUsarLista')).hide();
+            } else {
+                ToastModule.show('Erro: ' + (data.erro || 'Falha ao enviar'), 'danger');
+                btn.disabled = false;
+                btn.innerHTML = orig;
+            }
+        } catch (e) {
+            ToastModule.show('Erro de conexão.', 'danger');
+            btn.disabled = false;
+            btn.innerHTML = orig;
+        }
+    }
+
+    async function removerItem(itemId, btn) {
+        if (!confirm('Remover este item da lista?')) return;
+        const orig = btn.innerHTML;
+        btn.disabled = true;
+        try {
+            const res = await fetch(`/compras/listas/item/${itemId}/remover`, { method: 'POST' });
+            const data = await res.json();
+            if (data.ok) {
+                btn.closest('tr').remove();
+            } else {
+                ToastModule.show('Erro ao remover.', 'danger');
+                btn.disabled = false;
+            }
+        } catch (e) {
+            ToastModule.show('Erro de conexão.', 'danger');
+            btn.disabled = false;
+        }
+    }
+</script>
+{% endblock %}

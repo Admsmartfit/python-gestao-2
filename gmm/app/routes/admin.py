@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from flask_login import login_required, current_user
 from werkzeug.security import generate_password_hash
 from app.models.models import Unidade, Usuario, RegistroPonto
-from app.models.estoque_models import Equipamento, Fornecedor, CatalogoFornecedor, Estoque, OrdemServico, PedidoCompra, EstoqueSaldo, MovimentacaoEstoque, SolicitacaoTransferencia
+from app.models.estoque_models import Equipamento, Fornecedor, CatalogoFornecedor, Estoque, OrdemServico, PedidoCompra, EstoqueSaldo, MovimentacaoEstoque, SolicitacaoTransferencia, CategoriaEstoque
 from datetime import datetime
 from app.models.terceirizados_models import Terceirizado
 from app.services.estoque_service import EstoqueService
@@ -27,7 +27,7 @@ def restrict_to_admin():
         
     # 2. Compradores podem acessar painel de compras e APIs
     if current_user.is_authenticated and current_user.tipo == 'comprador':
-        if request.endpoint in ['admin.compras_painel', 'admin.aprovar_pedido', 'admin.rejeitar_pedido', 'admin.receber_pedido''admin.transferencias_painel','admin.aprovar_transferencia','admin.rejeitar_transferencia']:
+        if request.endpoint in ['admin.compras_painel', 'admin.aprovar_pedido', 'admin.rejeitar_pedido', 'admin.receber_pedido', 'admin.registrar_item_compra', 'admin.transferencias_painel', 'admin.aprovar_transferencia', 'admin.rejeitar_transferencia']:
             return
 
     # 3. Gerentes podem acessar painel de transferências, relatórios e gestão de fornecedores/terceirizados
@@ -635,26 +635,76 @@ def buscar_pecas_fornecedor(id):
 @bp.route('/compras', methods=['GET'])
 @login_required
 def compras_painel():
-    # Carrega pedidos pendentes
-    pendentes = PedidoCompra.query.filter_by(status='pendente').order_by(PedidoCompra.data_solicitacao.desc()).all()
-    
+    # Pedidos normais aguardando ação do comprador
+    pendentes = PedidoCompra.query.filter(
+        PedidoCompra.status.in_(['pendente', 'solicitado'])
+    ).order_by(PedidoCompra.data_solicitacao.desc()).all()
+
+    # Itens solicitados sem cadastro — comprador precisa cadastrar e vincular fornecedor
+    em_analise = PedidoCompra.query.filter_by(
+        status='analise_cadastro'
+    ).order_by(PedidoCompra.data_solicitacao.desc()).all()
+
     # Carrega pedidos aprovados/em andamento
-    aprovados = PedidoCompra.query.filter(PedidoCompra.status.in_(['aprovado', 'encomendado'])).all()
-    
+    aprovados = PedidoCompra.query.filter(PedidoCompra.status.in_(['aprovado', 'encomendado', 'aguardando_entrega'])).all()
+
     # Histórico (concluidos ou cancelados)
-    historico = PedidoCompra.query.filter(PedidoCompra.status.in_(['entregue', 'cancelado'])).order_by(PedidoCompra.data_solicitacao.desc()).limit(20).all()
-    
-    # Dados para modais (fornecedores e unidades)
-    fornecedores = Fornecedor.query.all()
-    unidades = Unidade.query.all()
-    
-    return render_template('compras.html', 
-                         pendentes=pendentes, 
-                         aprovados=aprovados, 
-                         historico=historico, 
+    historico = PedidoCompra.query.filter(PedidoCompra.status.in_(['entregue', 'cancelado', 'recusado'])).order_by(PedidoCompra.data_solicitacao.desc()).limit(30).all()
+
+    fornecedores = Fornecedor.query.filter_by(ativo=True).order_by(Fornecedor.nome).all()
+    unidades = Unidade.query.order_by(Unidade.nome).all()
+    categorias = CategoriaEstoque.query.order_by(CategoriaEstoque.nome).all()
+
+    return render_template('compras.html',
+                         pendentes=pendentes,
+                         em_analise=em_analise,
+                         aprovados=aprovados,
+                         historico=historico,
                          fornecedores=fornecedores,
                          unidades=unidades,
+                         categorias=categorias,
                          today=datetime.utcnow().date())
+
+@bp.route('/api/compras/<int:id>/registrar-item', methods=['POST'])
+@login_required
+def registrar_item_compra(id):
+    """Comprador cadastra o produto da solicitação livre e muda status para pendente."""
+    pedido = PedidoCompra.query.get_or_404(id)
+    if pedido.status != 'analise_cadastro':
+        return jsonify({'success': False, 'erro': 'Pedido não está em análise'}), 400
+
+    data = request.get_json()
+    nome = (data.get('nome') or '').strip()
+    codigo = (data.get('codigo') or '').strip()
+    unidade_medida = (data.get('unidade_medida') or 'un').strip()
+    categoria_id = data.get('categoria_id') or None
+    valor_unitario = data.get('valor_unitario') or None
+
+    if not nome or not codigo:
+        return jsonify({'success': False, 'erro': 'Nome e código são obrigatórios'}), 400
+
+    if Estoque.query.filter_by(codigo=codigo).first():
+        return jsonify({'success': False, 'erro': f'Código "{codigo}" já está cadastrado'}), 400
+
+    novo_item = Estoque(
+        nome=nome,
+        codigo=codigo,
+        unidade_medida=unidade_medida,
+        categoria_id=int(categoria_id) if categoria_id else None,
+        valor_unitario=float(valor_unitario) if valor_unitario else None,
+        quantidade_atual=0,
+        quantidade_minima=1,
+    )
+    db.session.add(novo_item)
+    db.session.flush()
+
+    pedido.estoque_id = novo_item.id
+    pedido.descricao_livre = None
+    pedido.status = 'pendente'
+    db.session.commit()
+
+    return jsonify({'success': True, 'mensagem': f'Item "{nome}" cadastrado. Pedido #{ pedido.id} agora está pendente de aprovação.'})
+
 @bp.route('/api/compras/<int:id>/aprovar', methods=['POST'])
 @login_required
 def aprovar_pedido(id):

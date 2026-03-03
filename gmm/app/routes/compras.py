@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
-from app.models.estoque_models import PedidoCompra, Fornecedor, Estoque, CatalogoFornecedor, ComunicacaoFornecedor
+from app.models.estoque_models import PedidoCompra, Fornecedor, Estoque, CatalogoFornecedor, ComunicacaoFornecedor, ListaCompra, ListaCompraItem
 from app.extensions import db
 from datetime import datetime
 import logging
@@ -625,3 +625,144 @@ def painel_solicitante():
                            minhas_solicitacoes=minhas_solicitacoes,
                            unidades=unidades,
                            itens_rapidos=itens_rapidos)
+
+
+# =============================================================================
+# LISTAS DE COMPRA PADRÃO
+# =============================================================================
+
+@bp.route('/listas', methods=['GET'])
+@login_required
+def listas_compra():
+    """Gerencia listas de compra padrão / recorrentes."""
+    if current_user.tipo not in ['admin', 'gerente']:
+        flash('Acesso negado.', 'danger')
+        return redirect(url_for('ponto.index'))
+
+    from app.models.models import Unidade
+    listas = ListaCompra.query.filter_by(ativo=True).order_by(ListaCompra.nome).all()
+    itens_catalogo = Estoque.query.order_by(Estoque.nome).all()
+    unidades = Unidade.query.order_by(Unidade.nome).all()
+    return render_template('compras/listas.html',
+                           listas=listas,
+                           itens_catalogo=itens_catalogo,
+                           unidades=unidades)
+
+
+@bp.route('/listas/nova', methods=['POST'])
+@login_required
+def nova_lista_compra():
+    if current_user.tipo not in ['admin', 'gerente']:
+        flash('Acesso negado.', 'danger')
+        return redirect(url_for('ponto.index'))
+
+    nome = request.form.get('nome', '').strip()
+    descricao = request.form.get('descricao', '').strip()
+    periodicidade = request.form.get('periodicidade_dias') or None
+
+    if not nome:
+        flash('Nome da lista é obrigatório.', 'warning')
+        return redirect(url_for('compras.listas_compra'))
+
+    lista = ListaCompra(
+        nome=nome,
+        descricao=descricao or None,
+        periodicidade_dias=int(periodicidade) if periodicidade else None,
+        criador_id=current_user.id,
+    )
+    db.session.add(lista)
+    db.session.commit()
+    flash(f'Lista "{nome}" criada com sucesso!', 'success')
+    return redirect(url_for('compras.listas_compra'))
+
+
+@bp.route('/listas/<int:lista_id>/excluir', methods=['POST'])
+@login_required
+def excluir_lista_compra(lista_id):
+    if current_user.tipo not in ['admin', 'gerente']:
+        flash('Acesso negado.', 'danger')
+        return redirect(url_for('ponto.index'))
+
+    lista = ListaCompra.query.get_or_404(lista_id)
+    lista.ativo = False
+    db.session.commit()
+    flash('Lista arquivada.', 'info')
+    return redirect(url_for('compras.listas_compra'))
+
+
+@bp.route('/listas/<int:lista_id>/item/adicionar', methods=['POST'])
+@login_required
+def adicionar_item_lista(lista_id):
+    if current_user.tipo not in ['admin', 'gerente']:
+        return jsonify({'ok': False, 'erro': 'Acesso negado'}), 403
+
+    lista = ListaCompra.query.get_or_404(lista_id)
+    estoque_id = request.form.get('estoque_id') or None
+    descricao = request.form.get('descricao_livre', '').strip()
+    quantidade = request.form.get('quantidade', 1)
+    categoria = request.form.get('categoria_compra', 'outros')
+
+    if not estoque_id and not descricao:
+        flash('Selecione um item do catálogo ou informe uma descrição.', 'warning')
+        return redirect(url_for('compras.listas_compra'))
+
+    item = ListaCompraItem(
+        lista_id=lista.id,
+        estoque_id=int(estoque_id) if estoque_id else None,
+        descricao_livre=descricao if not estoque_id else None,
+        quantidade=float(quantidade),
+        categoria_compra=categoria,
+    )
+    db.session.add(item)
+    db.session.commit()
+    return redirect(url_for('compras.listas_compra'))
+
+
+@bp.route('/listas/item/<int:item_id>/remover', methods=['POST'])
+@login_required
+def remover_item_lista(item_id):
+    if current_user.tipo not in ['admin', 'gerente']:
+        return jsonify({'ok': False, 'erro': 'Acesso negado'}), 403
+
+    item = ListaCompraItem.query.get_or_404(item_id)
+    db.session.delete(item)
+    db.session.commit()
+    return jsonify({'ok': True})
+
+
+@bp.route('/listas/<int:lista_id>/usar', methods=['POST'])
+@login_required
+def usar_lista_compra(lista_id):
+    """Gera pedidos de compra a partir da lista, com quantidades ajustadas pelo usuário."""
+    if current_user.tipo not in ['admin', 'gerente']:
+        return jsonify({'ok': False, 'erro': 'Acesso negado'}), 403
+
+    lista = ListaCompra.query.get_or_404(lista_id)
+    data = request.get_json()
+    itens = data.get('itens', [])  # [{id, quantidade, unidade_id}]
+
+    criados = 0
+    for it in itens:
+        item_lista = ListaCompraItem.query.get(it.get('id'))
+        if not item_lista or item_lista.lista_id != lista.id:
+            continue
+        qtd = float(it.get('quantidade', item_lista.quantidade))
+        if qtd <= 0:
+            continue
+
+        unidade_id = it.get('unidade_id') or None
+        status = 'solicitado' if item_lista.estoque_id else 'analise_cadastro'
+        pedido = PedidoCompra(
+            estoque_id=item_lista.estoque_id,
+            descricao_livre=item_lista.descricao_livre,
+            categoria_compra=item_lista.categoria_compra,
+            quantidade=qtd,
+            status=status,
+            solicitante_id=current_user.id,
+            unidade_destino_id=int(unidade_id) if unidade_id else None,
+        )
+        db.session.add(pedido)
+        criados += 1
+
+    db.session.commit()
+    return jsonify({'ok': True, 'criados': criados})

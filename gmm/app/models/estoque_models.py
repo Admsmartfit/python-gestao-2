@@ -233,6 +233,34 @@ class PedidoCompra(db.Model):
     unidade_destino = db.relationship('Unidade', foreign_keys=[unidade_destino_id])
     os_origem = db.relationship('OrdemServico', foreign_keys=[os_id], backref='pedidos_vinculados')
 
+class ListaCompra(db.Model):
+    """Lista de compra padrão / recorrente."""
+    __tablename__ = 'listas_compra'
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(150), nullable=False)
+    descricao = db.Column(db.Text, nullable=True)
+    periodicidade_dias = db.Column(db.Integer, nullable=True)  # 30, 90, 180, etc.
+    criador_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    ativo = db.Column(db.Boolean, default=True)
+
+    criador = db.relationship('Usuario', backref='listas_compra')
+    itens = db.relationship('ListaCompraItem', backref='lista', cascade='all, delete-orphan', lazy='joined')
+
+
+class ListaCompraItem(db.Model):
+    """Item de uma lista de compra padrão."""
+    __tablename__ = 'lista_compra_itens'
+    id = db.Column(db.Integer, primary_key=True)
+    lista_id = db.Column(db.Integer, db.ForeignKey('listas_compra.id'), nullable=False)
+    estoque_id = db.Column(db.Integer, db.ForeignKey('estoque.id'), nullable=True)
+    descricao_livre = db.Column(db.String(300), nullable=True)
+    quantidade = db.Column(db.Numeric(10, 3), nullable=False, default=1)
+    categoria_compra = db.Column(db.String(50), nullable=True)
+
+    peca = db.relationship('Estoque')
+
+
 class SolicitacaoPeca(db.Model):
     """Solicitação de peça para OS via WhatsApp"""
     __tablename__ = 'solicitacoes_peca'

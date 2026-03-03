@@ -8,15 +8,13 @@
 {% block content %}
 <div class="mb-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
     <div>
-        <nav aria-label="breadcrumb" class="mb-1">
-            <ol class="breadcrumb mb-0" style="font-size: 0.75rem;">
-                <li class="breadcrumb-item"><a href="{{ url_for('ponto.index') }}"
-                        class="text-decoration-none">Dashboard</a></li>
-                <li class="breadcrumb-item active">Gestão de Compras</li>
-            </ol>
-        </nav>
         <h2 class="mb-0 fw-bold">Compras</h2>
         <p class="mb-0 text-muted small">Aprovação e acompanhamento de pedidos de reposição.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('compras.listas_compra') }}" class="btn btn-outline-primary">
+            <i class="bi bi-list-check me-1"></i> Listas Padrão
+        </a>
     </div>
 </div>
 
@@ -24,21 +22,28 @@
     <div class="card-header bg-white border-0 pb-0">
         <ul class="nav nav-tabs border-0" id="purchaseTabs" role="tablist">
             <li class="nav-item">
-                <button class="nav-link active fw-bold border-0 px-4 py-3" id="pendentes-tab" data-bs-toggle="tab"
+                <button class="nav-link fw-bold border-0 px-4 py-3 {{ 'active' if em_analise }}" data-bs-toggle="tab"
+                    data-bs-target="#analise" type="button">
+                    <i class="bi bi-search me-2"></i> Em Análise
+                    {% if em_analise %}<span class="badge bg-warning text-dark ms-2">{{ em_analise|length }}</span>{% endif %}
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link fw-bold border-0 px-4 py-3 {{ 'active' if not em_analise }}" data-bs-toggle="tab"
                     data-bs-target="#pendentes" type="button">
                     <i class="bi bi-hourglass-split me-2"></i> Pendentes
-                    <span class="badge bg-danger ms-2">{{ pendentes|length }}</span>
+                    {% if pendentes %}<span class="badge bg-danger ms-2">{{ pendentes|length }}</span>{% endif %}
                 </button>
             </li>
             <li class="nav-item">
-                <button class="nav-link fw-bold border-0 px-4 py-3" id="receber-tab" data-bs-toggle="tab"
+                <button class="nav-link fw-bold border-0 px-4 py-3" data-bs-toggle="tab"
                     data-bs-target="#receber" type="button">
                     <i class="bi bi-truck me-2"></i> A Receber
-                    <span class="badge bg-primary ms-2">{{ aprovados|length }}</span>
+                    {% if aprovados %}<span class="badge bg-primary ms-2">{{ aprovados|length }}</span>{% endif %}
                 </button>
             </li>
             <li class="nav-item">
-                <button class="nav-link fw-bold border-0 px-4 py-3" id="historico-tab" data-bs-toggle="tab"
+                <button class="nav-link fw-bold border-0 px-4 py-3" data-bs-toggle="tab"
                     data-bs-target="#historico" type="button">
                     <i class="bi bi-clock-history me-2"></i> Histórico
                 </button>
@@ -47,8 +52,71 @@
     </div>
     <div class="card-body p-0">
         <div class="tab-content" id="purchaseTabsContent">
+
+            <!-- ABA EM ANÁLISE (itens sem cadastro) -->
+            <div class="tab-pane fade {{ 'show active' if em_analise }}" id="analise" role="tabpanel">
+                {% if em_analise %}
+                <div class="alert alert-warning border-0 rounded-0 mb-0 py-2 px-4 small">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Estas solicitações foram feitas para itens <strong>não cadastrados no estoque</strong>.
+                    Cadastre o item e vincule um fornecedor para avançar o pedido.
+                </div>
+                {% endif %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-4">Descrição / Categoria</th>
+                                <th>Qtd</th>
+                                <th>Solicitante</th>
+                                <th>Justificativa</th>
+                                <th class="text-end pe-4">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pedido in em_analise %}
+                            {% set cat_map = {'peca':'Peça Técnica','limpeza':'Limpeza','escritorio':'Escritório','ti':'TI/Eletrônico','outros':'Outros'} %}
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="fw-bold">{{ pedido.descricao_livre or '—' }}</div>
+                                    <small class="badge bg-secondary bg-opacity-10 text-secondary border">
+                                        {{ cat_map.get(pedido.categoria_compra, pedido.categoria_compra or 'Geral') }}
+                                    </small>
+                                </td>
+                                <td class="fw-bold">{{ "{:g}".format(pedido.quantidade|float) }}</td>
+                                <td>
+                                    <div>{{ pedido.solicitante.nome if pedido.solicitante else 'N/A' }}</div>
+                                    <small class="text-muted">{{ pedido.data_solicitacao.strftime('%d/%m %H:%M') }}</small>
+                                </td>
+                                <td class="text-muted small" style="max-width:200px;">
+                                    {{ pedido.justificativa or '—' }}
+                                </td>
+                                <td class="text-end pe-4">
+                                    <button class="btn btn-sm btn-primary me-1"
+                                        onclick="abrirModalCadastrarItem({{ pedido.id }}, {{ pedido.descricao_livre|tojson }}, {{ pedido.categoria_compra|tojson if pedido.categoria_compra else 'null' }})">
+                                        <i class="bi bi-plus-circle me-1"></i> Cadastrar Item
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger"
+                                        onclick="rejeitarPedido({{ pedido.id }})">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-5 text-muted">
+                                    <i class="bi bi-check-circle fs-2 d-block mb-2 opacity-25"></i>
+                                    Nenhum item aguardando análise.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <!-- ABA PENDENTES -->
-            <div class="tab-pane fade show active" id="pendentes" role="tabpanel">
+            <div class="tab-pane fade {{ 'show active' if not em_analise }}" id="pendentes" role="tabpanel">
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
                         <thead class="bg-light">
@@ -56,6 +124,7 @@
                                 <th class="ps-4">Item / Código</th>
                                 <th>Quantidade</th>
                                 <th>Solicitado por</th>
+                                <th>Urgência</th>
                                 <th class="text-end pe-4">Ações</th>
                             </tr>
                         </thead>
@@ -66,31 +135,35 @@
                                     <div class="fw-bold">
                                         <a href="{{ url_for('compras.detalhes', id=pedido.id) }}"
                                             class="text-decoration-none text-primary">
-                                            {{ pedido.peca.nome }}
+                                            {% if pedido.peca %}{{ pedido.peca.nome }}
+                                            {% elif pedido.descricao_livre %}{{ pedido.descricao_livre }}
+                                            {% else %}Pedido #{{ pedido.id }}{% endif %}
                                         </a>
                                     </div>
+                                    {% if pedido.peca %}
                                     <small class="text-muted font-monospace">{{ pedido.peca.codigo }}</small>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     <span class="fw-bold fs-6">{{ "{:g}".format(pedido.quantidade|float) }}</span>
+                                    {% if pedido.peca %}
                                     <small class="text-muted">{{ pedido.peca.unidade_medida }}</small>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     <div>{{ pedido.data_solicitacao.strftime('%d/%m %H:%M') }}</div>
-                                    <small class="text-muted">{{ pedido.solicitante.nome if pedido.solicitante else
-                                        'N/A' }}</small>
+                                    <small class="text-muted">{{ pedido.solicitante.nome if pedido.solicitante else 'N/A' }}</small>
                                 </td>
                                 <td>
-                                    {% if pedido.peca.quantidade_atual <= pedido.peca.quantidade_minima %} <span
-                                        class="badge bg-danger shadow-sm">CRÍTICO</span>
-                                        {% else %}
-                                        <span
-                                            class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25">REPOSIÇÃO</span>
-                                        {% endif %}
+                                    {% if pedido.peca and pedido.peca.quantidade_atual <= pedido.peca.quantidade_minima %}
+                                    <span class="badge bg-danger shadow-sm">CRÍTICO</span>
+                                    {% else %}
+                                    <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25">REPOSIÇÃO</span>
+                                    {% endif %}
                                 </td>
                                 <td class="text-end pe-4">
                                     <button class="btn btn-sm btn-success me-1"
-                                        onclick="abrirModalAprovar({{ pedido.id }}, {{ pedido.peca.nome|tojson|forceescape }})">
+                                        onclick="abrirModalAprovar({{ pedido.id }}, {{ (pedido.peca.nome if pedido.peca else pedido.descricao_livre or 'Pedido #' ~ pedido.id)|tojson|forceescape }})">
                                         <i class="bi bi-check-lg me-1"></i> Aprovar
                                     </button>
                                     <button class="btn btn-sm btn-outline-danger"
@@ -117,6 +190,7 @@
                             <tr>
                                 <th class="ps-4">Pedido / Fornecedor</th>
                                 <th>Item / Qtd</th>
+                                <th>Previsão</th>
                                 <th>Auditoria</th>
                                 <th class="text-end pe-4">Ações</th>
                             </tr>
@@ -125,46 +199,40 @@
                             {% for pedido in aprovados %}
                             <tr>
                                 <td class="ps-4">
-                                    <div class="fw-bold">#{{ pedido.id }} - {{ pedido.fornecedor.nome if
-                                        pedido.fornecedor else 'N/A' }}</div>
-                                    <small class="text-muted">{{ pedido.fornecedor.telefone if pedido.fornecedor else ''
-                                        }}</small>
+                                    <div class="fw-bold">#{{ pedido.id }} — {{ pedido.fornecedor.nome if pedido.fornecedor else 'N/A' }}</div>
+                                    <small class="text-muted">{{ pedido.fornecedor.telefone if pedido.fornecedor else '' }}</small>
                                 </td>
                                 <td>
                                     <div class="fw-bold">
-                                        <a href="{{ url_for('compras.detalhes', id=pedido.id) }}"
-                                            class="text-decoration-none text-primary">
-                                            {{ pedido.peca.nome }}
+                                        <a href="{{ url_for('compras.detalhes', id=pedido.id) }}" class="text-decoration-none text-primary">
+                                            {% if pedido.peca %}{{ pedido.peca.nome }}
+                                            {% elif pedido.descricao_livre %}{{ pedido.descricao_livre }}
+                                            {% else %}Pedido #{{ pedido.id }}{% endif %}
                                         </a>
                                     </div>
-                                    <small class="fw-bold">{{ "{:g}".format(pedido.quantidade|float) }} {{
-                                        pedido.peca.unidade_medida }}</small>
+                                    <small class="fw-bold">{{ "{:g}".format(pedido.quantidade|float) }}
+                                        {% if pedido.peca %}{{ pedido.peca.unidade_medida }}{% endif %}
+                                    </small>
                                 </td>
                                 <td>
-                                    <div class="fw-bold">
-                                        <span
-                                            class="{% if pedido.data_chegada and pedido.data_chegada.date() < today %}text-danger{% endif %}">
-                                            {{ pedido.data_chegada.strftime('%d/%m/%Y') if pedido.data_chegada else
-                                            'N/A' }}
-                                        </span>
-                                    </div>
-                                    <small class="text-muted">Status: {{ pedido.status|capitalize }}</small>
+                                    <span class="{{ 'text-danger fw-bold' if pedido.data_chegada and pedido.data_chegada.date() < today }}">
+                                        {{ pedido.data_chegada.strftime('%d/%m/%Y') if pedido.data_chegada else 'N/A' }}
+                                    </span>
+                                    <div><small class="text-muted">{{ pedido.status|capitalize }}</small></div>
                                 </td>
                                 <td>
-                                    <div class="small">
-                                        <span class="text-muted">Por:</span> {{ pedido.solicitante.nome if
-                                        pedido.solicitante else 'N/A' }}
-                                    </div>
-                                    <div class="small">
-                                        <span class="text-muted">Aprov:</span> {{ pedido.aprovador.nome if
-                                        pedido.aprovador else 'N/A' }}
-                                    </div>
+                                    <div class="small"><span class="text-muted">Por:</span> {{ pedido.solicitante.nome if pedido.solicitante else 'N/A' }}</div>
+                                    <div class="small"><span class="text-muted">Aprov:</span> {{ pedido.aprovador.nome if pedido.aprovador else 'N/A' }}</div>
                                 </td>
                                 <td class="text-end pe-4">
+                                    {% if pedido.peca %}
                                     <button class="btn btn-sm btn-primary"
-                                        onclick='receberPedido({{ pedido.id }}, {{ pedido.peca.nome|tojson }}, "{{ pedido.quantidade }} {{ pedido.peca.unidade_medida }}")'>
+                                        onclick='receberPedido({{ pedido.id }}, {{ pedido.peca.nome|tojson }}, "{{ "{:g}".format(pedido.quantidade|float) }} {{ pedido.peca.unidade_medida }}")'>
                                         <i class="bi bi-box-seam me-1"></i> Receber
                                     </button>
+                                    {% else %}
+                                    <span class="badge bg-warning text-dark">Sem item vinculado</span>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% else %}
@@ -184,55 +252,109 @@
                         <thead class="bg-light">
                             <tr>
                                 <th class="ps-4">Item / Fornecedor</th>
-                                <th>Qtd / Valor</th>
+                                <th>Qtd</th>
                                 <th>Solicitado em</th>
                                 <th>Finalizado em</th>
-                                <th class="pe-4">Auditoria</th>
+                                <th class="pe-4">Status</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for pedido in historico %}
-                            <tr class="{% if pedido.status == 'cancelado' %}opacity-75{% endif %}">
+                            <tr class="{{ 'opacity-75' if pedido.status in ['cancelado','recusado'] }}">
                                 <td class="ps-4">
                                     <div class="fw-bold">
-                                        <a href="{{ url_for('compras.detalhes', id=pedido.id) }}"
-                                            class="text-decoration-none text-primary">
-                                            {{ pedido.peca.nome }}
+                                        <a href="{{ url_for('compras.detalhes', id=pedido.id) }}" class="text-decoration-none text-primary">
+                                            {% if pedido.peca %}{{ pedido.peca.nome }}
+                                            {% elif pedido.descricao_livre %}{{ pedido.descricao_livre }}
+                                            {% else %}Pedido #{{ pedido.id }}{% endif %}
                                         </a>
                                     </div>
-                                    <small class="text-muted">{{ pedido.fornecedor.nome if pedido.fornecedor else 'N/A'
-                                        }}</small>
+                                    <small class="text-muted">{{ pedido.fornecedor.nome if pedido.fornecedor else 'N/A' }}</small>
                                 </td>
-                                <td>
-                                    <div class="fw-bold">{{ "{:g}".format(pedido.quantidade|float) }}</div>
-                                    <small class="text-muted">R$ {{ "{:.2f}".format(pedido.valor_total if
-                                        pedido.valor_total is defined else 0) }}</small>
-                                </td>
+                                <td class="fw-bold">{{ "{:g}".format(pedido.quantidade|float) }}</td>
                                 <td>{{ pedido.data_solicitacao.strftime('%d/%m/%Y') }}</td>
-                                <td>
-                                    <div class="fw-bold">{{ pedido.data_chegada.strftime('%d/%m/%Y') if
-                                        pedido.data_chegada else '-' }}</div>
-                                    <div class="small">
-                                        {% if pedido.status == 'entregue' %}
-                                        <span class="text-success">ENTREGUE</span>
-                                        {% else %}
-                                        <span class="text-danger">CANCELADO</span>
-                                        {% endif %}
-                                    </div>
-                                </td>
+                                <td>{{ pedido.data_chegada.strftime('%d/%m/%Y') if pedido.data_chegada else '—' }}</td>
                                 <td class="pe-4">
-                                    <div class="small"><span class="text-muted">Ped:</span> {{
-                                        pedido.solicitante.nome|default('N/A') }}</div>
-                                    <div class="small"><span class="text-muted">Apr:</span> {{
-                                        pedido.aprovador.nome|default('N/A') }}</div>
-                                    <div class="small"><span class="text-muted">Rec:</span> {{
-                                        pedido.recebedor.nome|default('N/A') }}</div>
+                                    {% if pedido.status == 'entregue' %}<span class="badge bg-success">Entregue</span>
+                                    {% elif pedido.status == 'cancelado' %}<span class="badge bg-danger">Cancelado</span>
+                                    {% elif pedido.status == 'recusado' %}<span class="badge bg-danger">Recusado</span>
+                                    {% else %}<span class="badge bg-secondary">{{ pedido.status|capitalize }}</span>{% endif %}
                                 </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-5 text-muted">Nenhum registro no histórico.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- MODAL CADASTRAR ITEM (analise_cadastro) -->
+<div class="modal fade" id="modalCadastrarItem" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold"><i class="bi bi-plus-circle me-2 text-primary"></i>Cadastrar Item no Estoque</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-3">
+                <div class="alert alert-info py-2 small border-0 mb-3">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Preencha os dados do produto. Após cadastrar, o pedido ficará <strong>Pendente</strong> e poderá ser aprovado normalmente.
+                </div>
+                <input type="hidden" id="cadastrarPedidoId">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Descrição original do solicitante</label>
+                    <div class="p-2 bg-light rounded border small text-muted" id="cadastrarDescricaoOriginal"></div>
+                </div>
+                <div class="row g-3">
+                    <div class="col-8">
+                        <label class="form-label fw-semibold">Nome do Produto <span class="text-danger">*</span></label>
+                        <input type="text" id="cadastrarNome" class="form-control" placeholder="Nome completo do produto">
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label fw-semibold">Código <span class="text-danger">*</span></label>
+                        <input type="text" id="cadastrarCodigo" class="form-control" placeholder="Ex: LIM-001">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label fw-semibold">Unidade de Medida</label>
+                        <select id="cadastrarUnidade" class="form-select">
+                            <option value="un">un (unidade)</option>
+                            <option value="kg">kg (quilograma)</option>
+                            <option value="l">l (litro)</option>
+                            <option value="m">m (metro)</option>
+                            <option value="cx">cx (caixa)</option>
+                            <option value="pct">pct (pacote)</option>
+                            <option value="rolo">rolo</option>
+                            <option value="par">par</option>
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label fw-semibold">Categoria</label>
+                        <select id="cadastrarCategoria" class="form-select">
+                            <option value="">— Sem categoria —</option>
+                            {% for cat in categorias %}
+                            <option value="{{ cat.id }}">{{ cat.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label fw-semibold">Valor Unitário (R$) <span class="text-muted fw-normal">(opcional)</span></label>
+                        <input type="number" step="0.01" id="cadastrarValor" class="form-control" placeholder="0,00">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="btnConfirmarCadastro" class="btn btn-primary" onclick="confirmarCadastroItem()">
+                    <i class="bi bi-check-lg me-1"></i> Cadastrar e Avançar Pedido
+                </button>
             </div>
         </div>
     </div>
@@ -243,7 +365,7 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold">Aprovar Compra - <span id="aprovarNomeItemTitle"></span></h5>
+                <h5 class="modal-title fw-bold">Aprovar Compra — <span id="aprovarNomeItemTitle"></span></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body pt-4">
@@ -258,8 +380,7 @@
                             <option value="" disabled selected>Escolha um fornecedor...</option>
                             {% for forn in fornecedores|sort(attribute='prazo_medio_entrega_dias') %}
                             <option value="{{ forn.id }}" data-prazo="{{ forn.prazo_medio_entrega_dias }}">
-                                {{ forn.nome }} ({{ forn.prazo_medio_entrega_dias|int }} dias | {{
-                                forn.total_pedidos_entregues }} envios)
+                                {{ forn.nome }} ({{ forn.prazo_medio_entrega_dias|int }} dias | {{ forn.total_pedidos_entregues }} envios)
                             </option>
                             {% endfor %}
                         </select>
@@ -279,19 +400,17 @@
     </div>
 </div>
 
-<!-- MODAL RECEBIMENTO (PROMPT 4) -->
+<!-- MODAL RECEBIMENTO -->
 <div class="modal fade" id="modalReceber" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold">Confirmar Recebimento - Pedido #<span
-                        id="receberPedidoIdDisplay"></span></h5>
+                <h5 class="modal-title fw-bold">Confirmar Recebimento — Pedido #<span id="receberPedidoIdDisplay"></span></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body pt-4">
                 <div class="alert alert-warning py-2 small border-0">
-                    <i class="bi bi-exclamation-triangle me-2"></i> <strong>RN026:</strong> O recebimento é irreversível
-                    e atualizará o estoque imediatamente.
+                    <i class="bi bi-exclamation-triangle me-2"></i> O recebimento é irreversível e atualizará o estoque imediatamente.
                 </div>
                 <div class="mb-3">
                     <label class="form-label text-muted small mb-1">Resumo do Pedido</label>
@@ -305,10 +424,7 @@
                     <label class="form-label">Unidade de Destino</label>
                     <select id="unidadeDestinoId" class="form-select">
                         {% for unidade in unidades %}
-                        <option value="{{ unidade.id }}" {% if current_user.unidade_padrao_id==unidade.id %}selected{%
-                            endif %}>
-                            {{ unidade.nome }}
-                        </option>
+                        <option value="{{ unidade.id }}">{{ unidade.nome }}</option>
                         {% endfor %}
                     </select>
                     <small class="text-muted">A quantidade será adicionada ao saldo desta unidade.</small>
@@ -325,14 +441,68 @@
 </div>
 
 <script>
-    let modalAprovar;
-    let modalReceber;
+    let modalAprovar, modalReceber, modalCadastrar;
 
     document.addEventListener('DOMContentLoaded', () => {
-        modalAprovar = new bootstrap.Modal(document.getElementById('modalAprovar'));
-        modalReceber = new bootstrap.Modal(document.getElementById('modalReceber'));
+        modalAprovar  = new bootstrap.Modal(document.getElementById('modalAprovar'));
+        modalReceber  = new bootstrap.Modal(document.getElementById('modalReceber'));
+        modalCadastrar = new bootstrap.Modal(document.getElementById('modalCadastrarItem'));
     });
 
+    // --- EM ANÁLISE ---
+    function abrirModalCadastrarItem(pedidoId, descricao, categoria) {
+        document.getElementById('cadastrarPedidoId').value = pedidoId;
+        document.getElementById('cadastrarDescricaoOriginal').textContent = descricao || '—';
+        document.getElementById('cadastrarNome').value = descricao || '';
+        document.getElementById('cadastrarCodigo').value = '';
+        document.getElementById('cadastrarValor').value = '';
+        document.getElementById('cadastrarUnidade').value = 'un';
+        document.getElementById('cadastrarCategoria').value = '';
+        modalCadastrar.show();
+    }
+
+    async function confirmarCadastroItem() {
+        const id = document.getElementById('cadastrarPedidoId').value;
+        const nome = document.getElementById('cadastrarNome').value.trim();
+        const codigo = document.getElementById('cadastrarCodigo').value.trim();
+        const unidade = document.getElementById('cadastrarUnidade').value;
+        const categoria = document.getElementById('cadastrarCategoria').value || null;
+        const valor = document.getElementById('cadastrarValor').value || null;
+        const btn = document.getElementById('btnConfirmarCadastro');
+
+        if (!nome || !codigo) {
+            ToastModule.show('Nome e código são obrigatórios.', 'warning');
+            return;
+        }
+
+        const orig = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Cadastrando...';
+
+        try {
+            const res = await fetch(`/admin/api/compras/${id}/registrar-item`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nome, codigo, unidade_medida: unidade, categoria_id: categoria, valor_unitario: valor })
+            });
+            const data = await res.json();
+            if (data.success) {
+                ToastModule.show(data.mensagem, 'success');
+                modalCadastrar.hide();
+                setTimeout(() => location.reload(), 1200);
+            } else {
+                ToastModule.show('Erro: ' + data.erro, 'danger');
+                btn.disabled = false;
+                btn.innerHTML = orig;
+            }
+        } catch (e) {
+            ToastModule.show('Erro de conexão.', 'danger');
+            btn.disabled = false;
+            btn.innerHTML = orig;
+        }
+    }
+
+    // --- PENDENTES ---
     function abrirModalAprovar(id, nome) {
         document.getElementById('aprovarPedidoId').value = id;
         document.getElementById('aprovarNomeItemTitle').innerText = nome;
@@ -344,7 +514,6 @@
         const select = document.getElementById('fornecedorId');
         const option = select.options[select.selectedIndex];
         const prazo = parseInt(option.dataset.prazo || 0);
-
         if (prazo > 0) {
             const data = new Date();
             data.setDate(data.getDate() + prazo);
@@ -358,7 +527,7 @@
         const dataChegada = document.getElementById('dataChegada').value;
 
         if (!fornecedorId || !dataChegada) {
-            ToastModule.show("Selecione o fornecedor e a data.", "warning");
+            ToastModule.show('Selecione o fornecedor e a data.', 'warning');
             return;
         }
 
@@ -366,27 +535,23 @@
             const res = await fetch(`/admin/api/compras/${id}/aprovar`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    fornecedor_id: fornecedorId,
-                    data_chegada: dataChegada
-                })
+                body: JSON.stringify({ fornecedor_id: fornecedorId, data_chegada: dataChegada })
             });
             const data = await res.json();
             if (data.success) {
-                ToastModule.show("Pedido aprovado com sucesso!", "success");
+                ToastModule.show('Pedido aprovado com sucesso!', 'success');
                 modalAprovar.hide();
                 setTimeout(() => location.reload(), 1000);
             } else {
-                ToastModule.show("Erro: " + data.erro, "danger");
+                ToastModule.show('Erro: ' + data.erro, 'danger');
             }
         } catch (e) {
-            ToastModule.show("Erro de conexão.", "danger");
+            ToastModule.show('Erro de conexão.', 'danger');
         }
     }
 
     async function rejeitarPedido(id) {
-        if (!confirm("Deseja realmente cancelar este pedido?")) return;
-
+        if (!confirm('Deseja realmente cancelar este pedido?')) return;
         try {
             const res = await fetch(`/admin/api/compras/${id}/rejeitar`, {
                 method: 'POST',
@@ -394,19 +559,20 @@
             });
             const data = await res.json();
             if (data.success) {
-                ToastModule.show("Pedido cancelado.", "info");
+                ToastModule.show('Pedido cancelado.', 'info');
                 setTimeout(() => location.reload(), 500);
             }
         } catch (e) {
-            ToastModule.show("Erro ao cancelar.", "danger");
+            ToastModule.show('Erro ao cancelar.', 'danger');
         }
     }
 
-    function receberPedido(id, nome) {
+    // --- A RECEBER ---
+    function receberPedido(id, nome, qtdStr) {
         document.getElementById('receberPedidoId').value = id;
         document.getElementById('receberPedidoIdDisplay').innerText = id;
         document.getElementById('receberResumoItem').innerText = nome;
-        // Buscamos a quantidade na tabela para o checklist de resumo
+        document.getElementById('receberResumoQtd').innerText = qtdStr;
         modalReceber.show();
     }
 
@@ -414,15 +580,16 @@
         const id = document.getElementById('receberPedidoId').value;
         const unidadeId = document.getElementById('unidadeDestinoId').value;
         const btn = document.getElementById('btnConfirmarRecebimento');
+        const orig = btn.innerHTML;
 
         if (!id || !unidadeId) {
-            ToastModule.show("Erro ao identificar pedido ou unidade.", "danger");
+            ToastModule.show('Erro ao identificar pedido ou unidade.', 'danger');
             return;
         }
+        if (!confirm('O recebimento é irreversível e atualizará o estoque imediatamente. Confirmar?')) return;
 
-        if (!confirm("O recebimento é irreversível e atualizará o estoque imediatamente. Confirmar?")) {
-            return;
-        }
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Processando...';
 
         try {
             const res = await fetch(`/admin/api/compras/${id}/receber`, {
@@ -431,37 +598,26 @@
                 body: JSON.stringify({ unidade_destino_id: unidadeId })
             });
             const data = await res.json();
-
             if (data.success) {
-                ToastModule.show("Estoque atualizado com sucesso!", "success");
+                ToastModule.show('Estoque atualizado com sucesso!', 'success');
                 modalReceber.hide();
                 setTimeout(() => location.reload(), 1000);
             } else {
-                ToastModule.show("Erro: " + data.erro, "danger");
+                ToastModule.show('Erro: ' + data.erro, 'danger');
                 btn.disabled = false;
-                btn.innerHTML = originalText;
+                btn.innerHTML = orig;
             }
         } catch (e) {
-            ToastModule.show("Erro de conexão.", "danger");
+            ToastModule.show('Erro de conexão.', 'danger');
             btn.disabled = false;
-            btn.innerHTML = originalText;
+            btn.innerHTML = orig;
         }
     }
 </script>
 
 <style>
-    .nav-tabs .nav-link {
-        color: #6c757d;
-        transition: all 0.3s ease;
-    }
-
-    .nav-tabs .nav-link.active {
-        color: #0d6efd;
-        border-bottom: 2px solid #0d6efd !important;
-    }
-
-    .nav-tabs .nav-link:hover:not(.active) {
-        background-color: #f8f9fa;
-    }
+    .nav-tabs .nav-link { color: #6c757d; transition: all 0.3s ease; }
+    .nav-tabs .nav-link.active { color: #0d6efd; border-bottom: 2px solid #0d6efd !important; }
+    .nav-tabs .nav-link:hover:not(.active) { background-color: #f8f9fa; }
 </style>
 {% endblock %}

@@ -108,6 +108,12 @@
                                 <i class="bi bi-cart-plus"></i> Solicitar Compra
                             </a>
                             {% endif %}
+                            {% if current_user.tipo in ['admin', 'gerente'] %}
+                            <a href="{{ url_for('compras.listas_compra') }}"
+                                class="nav-link-saas nav-link-sub {{ 'active' if request.endpoint == 'compras.listas_compra' }}">
+                                <i class="bi bi-list-stars"></i> Listas Padrão
+                            </a>
+                            {% endif %}
                             {% if current_user.tipo in ['admin', 'comprador', 'gerente'] %}
                             <a href="{{ url_for('admin.transferencias_painel') }}"
                                 class="nav-link-saas nav-link-sub {{ 'active' if 'transferencias' in request.endpoint }}">
