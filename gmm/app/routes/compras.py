@@ -734,39 +734,49 @@ def remover_item_lista(item_id):
     return jsonify({'ok': True})
 
 
-@bp.route('/listas/<int:lista_id>/usar', methods=['POST'])
+@bp.route('/listas/<int:lista_id>/usar', methods=['GET', 'POST'])
 @login_required
 def usar_lista_compra(lista_id):
-    """Gera pedidos de compra a partir da lista, com quantidades ajustadas pelo usuário."""
-    if current_user.tipo not in ['admin', 'gerente']:
-        return jsonify({'ok': False, 'erro': 'Acesso negado'}), 403
+    """Tela dedicada para revisar e enviar uma lista de compra."""
+    from app.models.models import Unidade
+    if current_user.tipo not in ['admin', 'gerente', 'tecnico']:
+        flash('Acesso negado.', 'danger')
+        return redirect(url_for('ponto.index'))
 
     lista = ListaCompra.query.get_or_404(lista_id)
-    data = request.get_json()
-    itens = data.get('itens', [])  # [{id, quantidade, unidade_id}]
 
-    criados = 0
-    for it in itens:
-        item_lista = ListaCompraItem.query.get(it.get('id'))
-        if not item_lista or item_lista.lista_id != lista.id:
-            continue
-        qtd = float(it.get('quantidade', item_lista.quantidade))
-        if qtd <= 0:
-            continue
+    if request.method == 'POST':
+        unidade_id = request.form.get('unidade_id') or None
+        criados = 0
+        for item_lista in lista.itens:
+            incluir = request.form.get(f'incluir_{item_lista.id}')
+            if not incluir:
+                continue
+            qtd_raw = request.form.get(f'quantidade_{item_lista.id}', '')
+            try:
+                qtd = float(qtd_raw)
+            except (ValueError, TypeError):
+                qtd = 0
+            if qtd <= 0:
+                continue
+            status = 'solicitado' if item_lista.estoque_id else 'analise_cadastro'
+            pedido = PedidoCompra(
+                estoque_id=item_lista.estoque_id,
+                descricao_livre=item_lista.descricao_livre,
+                categoria_compra=item_lista.categoria_compra,
+                quantidade=qtd,
+                status=status,
+                solicitante_id=current_user.id,
+                unidade_destino_id=int(unidade_id) if unidade_id else None,
+            )
+            db.session.add(pedido)
+            criados += 1
+        db.session.commit()
+        if criados:
+            flash(f'{criados} solicitação(ões) enviada(s) para o setor de compras!', 'success')
+        else:
+            flash('Nenhum item selecionado com quantidade válida.', 'warning')
+        return redirect(url_for('compras.painel_solicitante'))
 
-        unidade_id = it.get('unidade_id') or None
-        status = 'solicitado' if item_lista.estoque_id else 'analise_cadastro'
-        pedido = PedidoCompra(
-            estoque_id=item_lista.estoque_id,
-            descricao_livre=item_lista.descricao_livre,
-            categoria_compra=item_lista.categoria_compra,
-            quantidade=qtd,
-            status=status,
-            solicitante_id=current_user.id,
-            unidade_destino_id=int(unidade_id) if unidade_id else None,
-        )
-        db.session.add(pedido)
-        criados += 1
-
-    db.session.commit()
-    return jsonify({'ok': True, 'criados': criados})
+    unidades = Unidade.query.order_by(Unidade.nome).all()
+    return render_template('compras/usar_lista.html', lista=lista, unidades=unidades)

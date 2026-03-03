@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('compras.painel_solicitante') }}">Solicitar Compra</a></li>
+<li class="breadcrumb-item active">{{ lista.nome }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h2 class="fw-bold mb-1">{{ lista.nome }}</h2>
+    {% if lista.descricao %}
+    <p class="text-muted mb-0">{{ lista.descricao }}</p>
+    {% endif %}
+</div>
+
+{% if not lista.itens %}
+<div class="card border-0 shadow-sm">
+    <div class="card-body text-center py-5 text-muted">
+        <i class="bi bi-inbox fs-1 d-block mb-3 opacity-25"></i>
+        <p>Esta lista não possui itens cadastrados.</p>
+        <a href="{{ url_for('compras.painel_solicitante') }}" class="btn btn-outline-secondary">Voltar</a>
+    </div>
+</div>
+{% else %}
+
+<form method="POST" action="{{ url_for('compras.usar_lista_compra', lista_id=lista.id) }}">
+
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white border-bottom py-3">
+            <h5 class="fw-bold mb-0"><i class="bi bi-geo-alt me-2 text-primary"></i>Unidade de Destino</h5>
+        </div>
+        <div class="card-body">
+            <select name="unidade_id" class="form-select">
+                <option value="">— Sem unidade específica —</option>
+                {% for u in unidades %}
+                <option value="{{ u.id }}">{{ u.nome }}</option>
+                {% endfor %}
+            </select>
+            <div class="form-text">Selecione para qual unidade os itens serão destinados.</div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold mb-0"><i class="bi bi-list-check me-2 text-primary"></i>Itens da Lista</h5>
+            <span class="text-muted small">{{ lista.itens|length }} iten(s)</span>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-sm align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-3" style="width:44px;">
+                            <input type="checkbox" class="form-check-input" id="checkAll" checked
+                                   title="Selecionar/desmarcar todos">
+                        </th>
+                        <th>Item</th>
+                        <th style="width:120px;">Categoria</th>
+                        <th style="width:160px;">Quantidade</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set cat_map = {'peca':'Peça','limpeza':'Limpeza','escritorio':'Escritório','ti':'TI','outros':'Outros'} %}
+                    {% for item in lista.itens %}
+                    <tr>
+                        <td class="ps-3">
+                            <input type="checkbox" class="form-check-input item-check"
+                                   name="incluir_{{ item.id }}" value="1" checked
+                                   id="chk_{{ item.id }}">
+                        </td>
+                        <td>
+                            <label for="chk_{{ item.id }}" class="fw-medium mb-0" style="cursor:pointer;">
+                                {% if item.peca %}{{ item.peca.nome }}
+                                {% elif item.descricao_livre %}{{ item.descricao_livre }}
+                                {% else %}—{% endif %}
+                            </label>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary bg-opacity-10 text-secondary border small">
+                                {{ cat_map.get(item.categoria_compra, item.categoria_compra or 'Geral') }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center gap-1">
+                                <input type="number" name="quantidade_{{ item.id }}"
+                                       class="form-control form-control-sm"
+                                       value="{{ '{:g}'.format(item.quantidade|float) }}"
+                                       min="0.01" step="0.01" required
+                                       style="width:90px;">
+                                {% if item.peca %}
+                                <small class="text-muted">{{ item.peca.unidade_medida }}</small>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2 justify-content-end">
+        <a href="{{ url_for('compras.painel_solicitante') }}" class="btn btn-light px-4">Cancelar</a>
+        <button type="submit" class="btn btn-success px-5">
+            <i class="bi bi-send-fill me-2"></i>Enviar Solicitações
+        </button>
+    </div>
+
+</form>
+{% endif %}
+
+<script>
+document.getElementById('checkAll')?.addEventListener('change', function () {
+    document.querySelectorAll('.item-check').forEach(c => c.checked = this.checked);
+});
+</script>
+{% endblock %}

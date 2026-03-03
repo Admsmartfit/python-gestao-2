@@ -36,11 +36,16 @@
                     <span class="badge bg-secondary bg-opacity-10 text-secondary border small">
                         {{ lista.itens|length }} iten(s)
                     </span>
-                    <button class="btn btn-sm btn-success"
-                            {% if not lista.itens %}disabled title="Adicione itens na lista primeiro"{% endif %}
-                            onclick="abrirModalUsarLista({{ lista.id }}, {{ lista.nome|tojson }})">
+                    {% if lista.itens %}
+                    <a href="{{ url_for('compras.usar_lista_compra', lista_id=lista.id) }}"
+                       class="btn btn-sm btn-success">
+                        <i class="bi bi-send me-1"></i>Usar
+                    </a>
+                    {% else %}
+                    <button class="btn btn-sm btn-success" disabled title="Adicione itens na lista primeiro">
                         <i class="bi bi-send me-1"></i>Usar
                     </button>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -204,52 +209,6 @@
     </div>
 </div>
 
-<!-- MODAL USAR LISTA -->
-<div class="modal fade" id="modalUsarLista" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header border-0 pb-0">
-                <div>
-                    <h5 class="modal-title fw-bold"><i class="bi bi-send me-2 text-success"></i>Enviar Lista para Compras</h5>
-                    <div class="text-muted small" id="modalUsarListaNome"></div>
-                </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body pt-3">
-                <div class="alert alert-info py-2 small border-0 mb-3">
-                    <i class="bi bi-info-circle me-1"></i>
-                    Ajuste as quantidades se necessário. Itens com quantidade 0 serão ignorados.
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Unidade de Destino</label>
-                    <select id="usarListaUnidade" class="form-select">
-                        <option value="">— Sem unidade específica —</option>
-                        {% for u in unidades %}
-                        <option value="{{ u.id }}">{{ u.nome }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <table class="table table-sm align-middle mb-0">
-                    <thead class="bg-light">
-                        <tr>
-                            <th>Item</th>
-                            <th class="text-center" style="width:120px;">Quantidade</th>
-                            <th class="text-center" style="width:60px;">Incluir</th>
-                        </tr>
-                    </thead>
-                    <tbody id="corpoUsarLista"></tbody>
-                </table>
-            </div>
-            <div class="modal-footer border-0">
-                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" id="btnConfirmarUsar" class="btn btn-success" onclick="confirmarUsarLista()">
-                    <i class="bi bi-send me-1"></i> Enviar Solicitações
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script>
 document.getElementById('toggleItemLivre').addEventListener('change', function() {
     const isLivre = this.checked;
@@ -260,98 +219,5 @@ document.getElementById('toggleItemLivre').addEventListener('change', function()
 });
 document.getElementById('selectEstoque').disabled = false;
 document.getElementById('inputDescricaoLivre').disabled = true;
-
-// --- Listas Padrão ---
-const listasDados = {
-    {% for lista in listas %}
-    {{ lista.id }}: [
-        {% for item in lista.itens %}
-        {
-            id: {{ item.id }},
-            nome: {{ (item.peca.nome if item.peca else item.descricao_livre or '')|tojson }},
-            quantidade: {{ item.quantidade|float }},
-            unidade: {{ (item.peca.unidade_medida if item.peca else '')|tojson }}
-        }{% if not loop.last %},{% endif %}
-        {% endfor %}
-    ]{% if not loop.last %},{% endif %}
-    {% endfor %}
-};
-
-let listaIdAtual = null;
-
-function abrirModalUsarLista(listaId, listaNome) {
-    listaIdAtual = listaId;
-    document.getElementById('modalUsarListaNome').textContent = listaNome;
-    document.getElementById('usarListaUnidade').value = '';
-
-    const tbody = document.getElementById('corpoUsarLista');
-    tbody.innerHTML = '';
-    const itens = listasDados[listaId] || [];
-    itens.forEach(item => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td class="fw-medium">${item.nome}</td>
-            <td class="text-center">
-                <input type="number" class="form-control form-control-sm text-center"
-                       id="qtd_item_${item.id}" value="${item.quantidade}"
-                       min="0" step="0.01" style="width:90px;margin:auto;">
-                <small class="text-muted">${item.unidade}</small>
-            </td>
-            <td class="text-center">
-                <input type="checkbox" class="form-check-input" id="chk_item_${item.id}" checked>
-            </td>
-        `;
-        tr.dataset.itemId = item.id;
-        tbody.appendChild(tr);
-    });
-
-    new bootstrap.Modal(document.getElementById('modalUsarLista')).show();
-}
-
-async function confirmarUsarLista() {
-    const unidade = document.getElementById('usarListaUnidade').value || null;
-    const rows = document.querySelectorAll('#corpoUsarLista tr');
-    const itens = [];
-    rows.forEach(row => {
-        const id = parseInt(row.dataset.itemId);
-        const chk = document.getElementById(`chk_item_${id}`);
-        const qtd = parseFloat(document.getElementById(`qtd_item_${id}`).value);
-        if (chk.checked && qtd > 0) {
-            itens.push({ id, quantidade: qtd, unidade_id: unidade });
-        }
-    });
-
-    if (itens.length === 0) {
-        ToastModule.show('Selecione ao menos um item com quantidade maior que zero.', 'warning');
-        return;
-    }
-
-    const btn = document.getElementById('btnConfirmarUsar');
-    const orig = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Enviando...';
-
-    try {
-        const res = await fetch(`/compras/listas/${listaIdAtual}/usar`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ itens })
-        });
-        const data = await res.json();
-        if (data.ok) {
-            ToastModule.show(`${data.criados} solicitação(ões) enviada(s)!`, 'success');
-            bootstrap.Modal.getInstance(document.getElementById('modalUsarLista')).hide();
-            setTimeout(() => location.reload(), 1200);
-        } else {
-            ToastModule.show('Erro: ' + (data.erro || 'Falha ao enviar'), 'danger');
-            btn.disabled = false;
-            btn.innerHTML = orig;
-        }
-    } catch (e) {
-        ToastModule.show('Erro de conexão.', 'danger');
-        btn.disabled = false;
-        btn.innerHTML = orig;
-    }
-}
 </script>
 {% endblock %}

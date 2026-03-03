@@ -43,11 +43,16 @@
             </div>
         </div>
         <div class="d-flex gap-2">
-            <button class="btn btn-success btn-sm"
-                    onclick="abrirModalUsarLista({{ lista.id }}, {{ lista.nome|tojson }}, {{ lista.itens|map(attribute='id')|list|tojson }})"
-                    {% if not lista.itens %}disabled title="Adicione itens antes de enviar"{% endif %}>
+            {% if lista.itens %}
+            <a href="{{ url_for('compras.usar_lista_compra', lista_id=lista.id) }}"
+               class="btn btn-success btn-sm">
+                <i class="bi bi-send me-1"></i> Enviar para Compras
+            </a>
+            {% else %}
+            <button class="btn btn-success btn-sm" disabled title="Adicione itens antes de enviar">
                 <i class="bi bi-send me-1"></i> Enviar para Compras
             </button>
+            {% endif %}
             <form action="{{ url_for('compras.excluir_lista_compra', lista_id=lista.id) }}" method="POST"
                   onsubmit="return confirm('Arquivar esta lista?')">
                 <button type="submit" class="btn btn-outline-secondary btn-sm" title="Arquivar lista">
