@@ -621,10 +621,14 @@ def painel_solicitante():
         Estoque.categoria_id.isnot(None)
     ).order_by(Estoque.nome).limit(50).all()
 
+    # Listas padrão disponíveis para uso rápido
+    listas = ListaCompra.query.filter_by(ativo=True).order_by(ListaCompra.nome).all()
+
     return render_template('compras/painel_solicitante.html',
                            minhas_solicitacoes=minhas_solicitacoes,
                            unidades=unidades,
-                           itens_rapidos=itens_rapidos)
+                           itens_rapidos=itens_rapidos,
+                           listas=listas)
 
 
 # =============================================================================
