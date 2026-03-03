@@ -38,6 +38,14 @@ MIGRATIONS = [
      'ALTER TABLE historico_notificacoes ADD COLUMN url_midia_local TEXT'),
     ('historico_notificacoes', 'mensagem_transcrita',
      'ALTER TABLE historico_notificacoes ADD COLUMN mensagem_transcrita TEXT'),
+
+    # Etapa 5 — Fornecedor pré-definido em itens de lista padrão
+    ('lista_compra_itens', 'fornecedor_id',
+     'ALTER TABLE lista_compra_itens ADD COLUMN fornecedor_id INTEGER REFERENCES fornecedores(id)'),
+
+    # Etapa 5 — Vínculo de pedido individual com OrdemCompraLista
+    ('pedidos_compra', 'ordem_lista_id',
+     'ALTER TABLE pedidos_compra ADD COLUMN ordem_lista_id INTEGER REFERENCES ordens_compra_lista(id)'),
 ]
 
 
@@ -61,10 +69,22 @@ def create_new_tables(conn):
             estoque_id INTEGER REFERENCES estoque(id),
             descricao_livre VARCHAR(300),
             quantidade NUMERIC(10,3) NOT NULL DEFAULT 1,
-            categoria_compra VARCHAR(50)
+            categoria_compra VARCHAR(50),
+            fornecedor_id INTEGER REFERENCES fornecedores(id)
         )
     '''))
-    print('  [ok]   listas_compra e lista_compra_itens (CREATE IF NOT EXISTS)')
+    conn.execute(db.text('''
+        CREATE TABLE IF NOT EXISTS ordens_compra_lista (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            lista_id INTEGER REFERENCES listas_compra(id),
+            nome VARCHAR(200) NOT NULL,
+            solicitante_id INTEGER REFERENCES usuarios(id),
+            unidade_destino_id INTEGER REFERENCES unidades(id),
+            data_criacao DATETIME DEFAULT CURRENT_TIMESTAMP,
+            observacao TEXT
+        )
+    '''))
+    print('  [ok]   listas_compra, lista_compra_itens, ordens_compra_lista (CREATE IF NOT EXISTS)')
 
 
 def fix_estoque_id_nullable(conn):

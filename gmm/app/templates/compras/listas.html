@@ -69,6 +69,7 @@
                 <tr>
                     <th class="ps-3">Item</th>
                     <th>Categoria</th>
+                    <th>Fornecedor</th>
                     <th>Qtd padrão</th>
                     <th class="text-end pe-3">Ação</th>
                 </tr>
@@ -86,6 +87,9 @@
                         <span class="badge bg-secondary bg-opacity-10 text-secondary border small">
                             {{ cat_map.get(item.categoria_compra, item.categoria_compra or 'Geral') }}
                         </span>
+                    </td>
+                    <td class="text-muted small">
+                        {{ item.fornecedor.nome if item.fornecedor else '—' }}
                     </td>
                     <td>
                         {{ "{:g}".format(item.quantidade|float) }}
@@ -111,7 +115,7 @@
         <div class="border-top p-3 bg-light">
             <form action="{{ url_for('compras.adicionar_item_lista', lista_id=lista.id) }}" method="POST">
                 <div class="row g-2 align-items-end">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label small fw-semibold mb-1">Item do catálogo</label>
                         <select name="estoque_id" class="form-select form-select-sm">
                             <option value="">— Descrição livre —</option>
@@ -120,10 +124,19 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label small fw-semibold mb-1">Ou descreva</label>
                         <input type="text" name="descricao_livre" class="form-control form-control-sm"
                                placeholder="Item não cadastrado...">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-semibold mb-1">Fornecedor</label>
+                        <select name="fornecedor_id" class="form-select form-select-sm">
+                            <option value="">— Nenhum —</option>
+                            {% for f in fornecedores %}
+                            <option value="{{ f.id }}">{{ f.nome }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
                     <div class="col-md-2">
                         <label class="form-label small fw-semibold mb-1">Categoria</label>

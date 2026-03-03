@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin.compras_painel') }}">Compras</a></li>
+<li class="breadcrumb-item active">Ordem #{{ ordem.id }}</li>
+{% endblock %}
+
+{% block content %}
+{% set st = ordem.status_geral %}
+{% set st_map = {
+    'pendente': ('warning', 'Pendente'),
+    'em_andamento': ('primary', 'Em Andamento'),
+    'concluido': ('success', 'Concluído'),
+    'cancelado': ('danger', 'Cancelado'),
+} %}
+{% set cor, label_st = st_map.get(st, ('secondary', st)) %}
+
+<div class="mb-4 d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2">
+    <div>
+        <h2 class="fw-bold mb-1">{{ ordem.nome }}</h2>
+        <div class="text-muted small">
+            Solicitada por <strong>{{ ordem.solicitante.nome if ordem.solicitante else '—' }}</strong>
+            em {{ ordem.data_criacao.strftime('%d/%m/%Y às %H:%M') }}
+            {% if ordem.unidade_destino %}
+            · Destino: <strong>{{ ordem.unidade_destino.nome }}</strong>
+            {% endif %}
+        </div>
+        {% if ordem.observacao %}
+        <div class="text-muted small mt-1"><i class="bi bi-chat-text me-1"></i>{{ ordem.observacao }}</div>
+        {% endif %}
+    </div>
+    <span class="badge bg-{{ cor }} bg-opacity-15 text-{{ cor }} border border-{{ cor }} border-opacity-25 fs-6 px-3 py-2 flex-shrink-0">
+        {{ label_st }}
+    </span>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+        <h5 class="fw-bold mb-0"><i class="bi bi-list-check me-2 text-primary"></i>Itens da Ordem</h5>
+        <span class="badge bg-secondary bg-opacity-10 text-secondary border">{{ ordem.total_itens }} iten(s)</span>
+    </div>
+    <div class="card-body p-0">
+        {% set cat_map = {'peca':'Peça','limpeza':'Limpeza','escritorio':'Escritório','ti':'TI','outros':'Outros'} %}
+        {% set status_map = {
+            'pendente': ('secondary', 'Pendente'),
+            'solicitado': ('primary', 'Solicitado'),
+            'analise_cadastro': ('warning', 'Em Análise'),
+            'aprovado': ('success', 'Aprovado'),
+            'cotacao': ('info', 'Em Cotação'),
+            'aguardando_entrega': ('info', 'Aguardando Entrega'),
+            'concluido': ('success', 'Concluído'),
+            'cancelado': ('danger', 'Cancelado'),
+            'recusado': ('danger', 'Recusado'),
+        } %}
+        <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light">
+                <tr>
+                    <th class="ps-4">Item</th>
+                    <th>Categoria</th>
+                    <th>Fornecedor</th>
+                    <th class="text-center">Qtd</th>
+                    <th>Status</th>
+                    <th class="text-end pe-4">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pedido in ordem.pedidos %}
+                {% set pcor, plabel = status_map.get(pedido.status, ('secondary', pedido.status)) %}
+                <tr>
+                    <td class="ps-4">
+                        <div class="fw-medium">
+                            {% if pedido.peca %}{{ pedido.peca.nome }}
+                            {% elif pedido.descricao_livre %}{{ pedido.descricao_livre }}
+                            {% else %}Item #{{ pedido.id }}{% endif %}
+                        </div>
+                        {% if pedido.peca %}
+                        <small class="text-muted font-monospace">{{ pedido.peca.codigo }}</small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge bg-secondary bg-opacity-10 text-secondary border small">
+                            {{ cat_map.get(pedido.categoria_compra, pedido.categoria_compra or 'Geral') }}
+                        </span>
+                    </td>
+                    <td class="text-muted small">
+                        {% if pedido.fornecedor %}
+                        {{ pedido.fornecedor.nome }}
+                        {% else %}
+                        <select class="form-select form-select-sm" style="min-width:160px;"
+                                onchange="atribuirFornecedor({{ pedido.id }}, this.value)">
+                            <option value="">— Selecionar —</option>
+                            {% for f in fornecedores %}
+                            <option value="{{ f.id }}">{{ f.nome }}</option>
+                            {% endfor %}
+                        </select>
+                        {% endif %}
+                    </td>
+                    <td class="text-center fw-bold">
+                        {{ "{:g}".format(pedido.quantidade|float) }}
+                        {% if pedido.peca %}<small class="text-muted fw-normal">{{ pedido.peca.unidade_medida }}</small>{% endif %}
+                    </td>
+                    <td>
+                        <span class="badge bg-{{ pcor }} bg-opacity-15 text-{{ pcor }} border border-{{ pcor }} border-opacity-25">
+                            {{ plabel }}
+                        </span>
+                    </td>
+                    <td class="text-end pe-4">
+                        {% if pedido.status in ['pendente', 'solicitado'] %}
+                        <button class="btn btn-sm btn-success me-1"
+                                onclick="aprovarItem({{ pedido.id }}, {{ (pedido.peca.nome if pedido.peca else pedido.descricao_livre or 'Item')|tojson }})">
+                            <i class="bi bi-check-lg"></i> Aprovar
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger"
+                                onclick="rejeitarItem({{ pedido.id }})">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                        {% elif pedido.status in ['aprovado', 'aguardando_entrega'] and pedido.peca %}
+                        <button class="btn btn-sm btn-primary"
+                                onclick="receberItem({{ pedido.id }}, {{ pedido.peca.nome|tojson }}, '{{ '{:g}'.format(pedido.quantidade|float) }} {{ pedido.peca.unidade_medida }}')">
+                            <i class="bi bi-box-seam me-1"></i> Receber
+                        </button>
+                        {% else %}
+                        <span class="text-muted small">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center py-5 text-muted">Nenhum item nesta ordem.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="card-footer bg-white border-top d-flex gap-2 justify-content-end">
+        <a href="{{ url_for('admin.compras_painel') }}" class="btn btn-light">
+            <i class="bi bi-arrow-left me-1"></i> Voltar
+        </a>
+    </div>
+</div>
+
+<!-- MODAL APROVAR ITEM -->
+<div class="modal fade" id="modalAprovar" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold"><i class="bi bi-check-circle me-2 text-success"></i>Aprovar Item</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">Aprovando: <strong id="nomeItemAprovar"></strong></p>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Fornecedor</label>
+                    <select id="fornecedorAprovar" class="form-select">
+                        <option value="">— Selecione —</option>
+                        {% for f in fornecedores %}
+                        <option value="{{ f.id }}">{{ f.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Previsão de chegada</label>
+                    <input type="date" id="dataChegadaAprovar" class="form-control">
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="confirmarAprovacao()">
+                    <i class="bi bi-check-lg me-1"></i>Confirmar Aprovação
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL RECEBER ITEM -->
+<div class="modal fade" id="modalReceber" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold"><i class="bi bi-box-seam me-2 text-primary"></i>Receber Item</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">Confirmar recebimento de <strong id="nomeItemReceber"></strong>?</p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="confirmarRecebimento()">
+                    <i class="bi bi-check-lg me-1"></i> Confirmar Recebimento
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let pedidoIdAtual = null;
+
+function aprovarItem(pedidoId, nome) {
+    pedidoIdAtual = pedidoId;
+    document.getElementById('nomeItemAprovar').textContent = nome;
+    document.getElementById('fornecedorAprovar').value = '';
+    document.getElementById('dataChegadaAprovar').value = '';
+    new bootstrap.Modal(document.getElementById('modalAprovar')).show();
+}
+
+async function confirmarAprovacao() {
+    const fornecedor_id = document.getElementById('fornecedorAprovar').value || null;
+    const data_chegada = document.getElementById('dataChegadaAprovar').value || null;
+    const res = await fetch(`/compras/${pedidoIdAtual}/aprovar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fornecedor_id, data_chegada })
+    });
+    const data = await res.json();
+    if (data.success) {
+        bootstrap.Modal.getInstance(document.getElementById('modalAprovar')).hide();
+        location.reload();
+    } else {
+        ToastModule.show(data.erro || 'Erro ao aprovar.', 'danger');
+    }
+}
+
+async function rejeitarItem(pedidoId) {
+    if (!confirm('Rejeitar este item?')) return;
+    const res = await fetch(`/compras/${pedidoId}/rejeitar`, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) location.reload();
+    else ToastModule.show(data.erro || 'Erro ao rejeitar.', 'danger');
+}
+
+function receberItem(pedidoId, nome, qtd) {
+    pedidoIdAtual = pedidoId;
+    document.getElementById('nomeItemReceber').textContent = `${nome} — ${qtd}`;
+    new bootstrap.Modal(document.getElementById('modalReceber')).show();
+}
+
+async function confirmarRecebimento() {
+    const res = await fetch(`/compras/${pedidoIdAtual}/receber`, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+        bootstrap.Modal.getInstance(document.getElementById('modalReceber')).hide();
+        location.reload();
+    } else {
+        ToastModule.show(data.erro || 'Erro ao registrar recebimento.', 'danger');
+    }
+}
+
+async function atribuirFornecedor(pedidoId, fornecedorId) {
+    if (!fornecedorId) return;
+    const res = await fetch(`/compras/${pedidoId}/atribuir-fornecedor`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fornecedor_id: fornecedorId })
+    });
+    const data = await res.json();
+    if (data.success) location.reload();
+    else ToastModule.show(data.erro || 'Erro ao atribuir fornecedor.', 'danger');
+}
+</script>
+{% endblock %}

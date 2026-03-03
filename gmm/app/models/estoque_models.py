@@ -225,6 +225,9 @@ class PedidoCompra(db.Model):
     descricao_livre = db.Column(db.String(300), nullable=True)
     categoria_compra = db.Column(db.String(50), nullable=True)  # peca, limpeza, escritorio, ti, outros
 
+    # Vínculo com OrdemCompraLista (lista padrão enviada como uma única ordem)
+    ordem_lista_id = db.Column(db.Integer, db.ForeignKey('ordens_compra_lista.id'), nullable=True)
+
     fornecedor = db.relationship('Fornecedor', backref='pedidos')
     peca = db.relationship('Estoque')
     solicitante = db.relationship('Usuario', foreign_keys=[solicitante_id])
@@ -257,8 +260,42 @@ class ListaCompraItem(db.Model):
     descricao_livre = db.Column(db.String(300), nullable=True)
     quantidade = db.Column(db.Numeric(10, 3), nullable=False, default=1)
     categoria_compra = db.Column(db.String(50), nullable=True)
+    fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedores.id'), nullable=True)
 
     peca = db.relationship('Estoque')
+    fornecedor = db.relationship('Fornecedor')
+
+
+class OrdemCompraLista(db.Model):
+    """Ordem de compra gerada a partir de uma lista padrão — agrupa vários pedidos numa única entrada."""
+    __tablename__ = 'ordens_compra_lista'
+    id = db.Column(db.Integer, primary_key=True)
+    lista_id = db.Column(db.Integer, db.ForeignKey('listas_compra.id'), nullable=True)
+    nome = db.Column(db.String(200), nullable=False)
+    solicitante_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'))
+    unidade_destino_id = db.Column(db.Integer, db.ForeignKey('unidades.id'), nullable=True)
+    data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
+    observacao = db.Column(db.Text, nullable=True)
+
+    solicitante = db.relationship('Usuario', foreign_keys=[solicitante_id])
+    unidade_destino = db.relationship('Unidade', foreign_keys=[unidade_destino_id])
+    lista_origem = db.relationship('ListaCompra')
+    pedidos = db.relationship('PedidoCompra', backref='ordem_lista', lazy='joined')
+
+    @property
+    def status_geral(self):
+        if not self.pedidos:
+            return 'vazio'
+        statuses = {p.status for p in self.pedidos}
+        if all(s in ['concluido', 'cancelado', 'recusado'] for s in statuses):
+            return 'concluido' if any(s == 'concluido' for s in statuses) else 'cancelado'
+        if any(s in ['aguardando_entrega', 'aprovado', 'cotacao'] for s in statuses):
+            return 'em_andamento'
+        return 'pendente'
+
+    @property
+    def total_itens(self):
+        return len(self.pedidos)
 
 
 class SolicitacaoPeca(db.Model):

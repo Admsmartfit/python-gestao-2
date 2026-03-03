@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from flask_login import login_required, current_user
 from werkzeug.security import generate_password_hash
 from app.models.models import Unidade, Usuario, RegistroPonto
-from app.models.estoque_models import Equipamento, Fornecedor, CatalogoFornecedor, Estoque, OrdemServico, PedidoCompra, EstoqueSaldo, MovimentacaoEstoque, SolicitacaoTransferencia, CategoriaEstoque
+from app.models.estoque_models import Equipamento, Fornecedor, CatalogoFornecedor, Estoque, OrdemServico, PedidoCompra, EstoqueSaldo, MovimentacaoEstoque, SolicitacaoTransferencia, CategoriaEstoque, OrdemCompraLista
 from datetime import datetime
 from app.models.terceirizados_models import Terceirizado
 from app.services.estoque_service import EstoqueService
@@ -635,27 +635,41 @@ def buscar_pecas_fornecedor(id):
 @bp.route('/compras', methods=['GET'])
 @login_required
 def compras_painel():
-    # Pedidos normais aguardando ação do comprador
+    # Ordens de lista padrão (cada uma agrupa vários itens numa única entrada)
+    ordens_lista = OrdemCompraLista.query.order_by(
+        OrdemCompraLista.data_criacao.desc()
+    ).limit(50).all()
+    # Filtra apenas as ativas (não 100% concluídas/canceladas)
+    ordens_lista_ativas = [o for o in ordens_lista if o.status_geral not in ('concluido', 'cancelado', 'vazio')]
+
+    # Pedidos individuais (sem ordem de lista) aguardando ação do comprador
     pendentes = PedidoCompra.query.filter(
-        PedidoCompra.status.in_(['pendente', 'solicitado'])
+        PedidoCompra.status.in_(['pendente', 'solicitado']),
+        PedidoCompra.ordem_lista_id.is_(None)
     ).order_by(PedidoCompra.data_solicitacao.desc()).all()
 
     # Itens solicitados sem cadastro — comprador precisa cadastrar e vincular fornecedor
     em_analise = PedidoCompra.query.filter_by(
         status='analise_cadastro'
-    ).order_by(PedidoCompra.data_solicitacao.desc()).all()
+    ).filter(PedidoCompra.ordem_lista_id.is_(None)).order_by(PedidoCompra.data_solicitacao.desc()).all()
 
-    # Carrega pedidos aprovados/em andamento
-    aprovados = PedidoCompra.query.filter(PedidoCompra.status.in_(['aprovado', 'encomendado', 'aguardando_entrega'])).all()
+    # Carrega pedidos aprovados/em andamento (individuais)
+    aprovados = PedidoCompra.query.filter(
+        PedidoCompra.status.in_(['aprovado', 'encomendado', 'aguardando_entrega']),
+        PedidoCompra.ordem_lista_id.is_(None)
+    ).all()
 
     # Histórico (concluidos ou cancelados)
-    historico = PedidoCompra.query.filter(PedidoCompra.status.in_(['entregue', 'cancelado', 'recusado'])).order_by(PedidoCompra.data_solicitacao.desc()).limit(30).all()
+    historico = PedidoCompra.query.filter(
+        PedidoCompra.status.in_(['entregue', 'cancelado', 'recusado'])
+    ).order_by(PedidoCompra.data_solicitacao.desc()).limit(30).all()
 
     fornecedores = Fornecedor.query.filter_by(ativo=True).order_by(Fornecedor.nome).all()
     unidades = Unidade.query.order_by(Unidade.nome).all()
     categorias = CategoriaEstoque.query.order_by(CategoriaEstoque.nome).all()
 
     return render_template('compras.html',
+                         ordens_lista=ordens_lista_ativas,
                          pendentes=pendentes,
                          em_analise=em_analise,
                          aprovados=aprovados,

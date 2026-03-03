@@ -22,14 +22,21 @@
     <div class="card-header bg-white border-0 pb-0">
         <ul class="nav nav-tabs border-0" id="purchaseTabs" role="tablist">
             <li class="nav-item">
-                <button class="nav-link fw-bold border-0 px-4 py-3 {{ 'active' if em_analise }}" data-bs-toggle="tab"
+                <button class="nav-link fw-bold border-0 px-4 py-3 {{ 'active' if ordens_lista }}" data-bs-toggle="tab"
+                    data-bs-target="#ordens" type="button">
+                    <i class="bi bi-list-check me-2"></i> Ordens de Lista
+                    {% if ordens_lista %}<span class="badge bg-success ms-2">{{ ordens_lista|length }}</span>{% endif %}
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link fw-bold border-0 px-4 py-3 {{ 'active' if em_analise and not ordens_lista }}" data-bs-toggle="tab"
                     data-bs-target="#analise" type="button">
                     <i class="bi bi-search me-2"></i> Em Análise
                     {% if em_analise %}<span class="badge bg-warning text-dark ms-2">{{ em_analise|length }}</span>{% endif %}
                 </button>
             </li>
             <li class="nav-item">
-                <button class="nav-link fw-bold border-0 px-4 py-3 {{ 'active' if not em_analise }}" data-bs-toggle="tab"
+                <button class="nav-link fw-bold border-0 px-4 py-3 {{ 'active' if not em_analise and not ordens_lista }}" data-bs-toggle="tab"
                     data-bs-target="#pendentes" type="button">
                     <i class="bi bi-hourglass-split me-2"></i> Pendentes
                     {% if pendentes %}<span class="badge bg-danger ms-2">{{ pendentes|length }}</span>{% endif %}
@@ -53,8 +60,74 @@
     <div class="card-body p-0">
         <div class="tab-content" id="purchaseTabsContent">
 
+            <!-- ABA ORDENS DE LISTA -->
+            <div class="tab-pane fade {{ 'show active' if ordens_lista }}" id="ordens" role="tabpanel">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-4">Lista / Solicitante</th>
+                                <th>Itens</th>
+                                <th>Unidade de Destino</th>
+                                <th>Data</th>
+                                <th>Status</th>
+                                <th class="text-end pe-4">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ordem in ordens_lista %}
+                            {% set st = ordem.status_geral %}
+                            {% set st_map = {
+                                'pendente': ('warning', 'Pendente'),
+                                'em_andamento': ('primary', 'Em Andamento'),
+                                'concluido': ('success', 'Concluído'),
+                                'cancelado': ('danger', 'Cancelado'),
+                                'vazio': ('secondary', 'Vazio'),
+                            } %}
+                            {% set cor, label_st = st_map.get(st, ('secondary', st)) %}
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="fw-bold">{{ ordem.nome }}</div>
+                                    <small class="text-muted">{{ ordem.solicitante.nome if ordem.solicitante else '—' }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border">
+                                        {{ ordem.total_itens }} iten(s)
+                                    </span>
+                                </td>
+                                <td class="text-muted small">
+                                    {{ ordem.unidade_destino.nome if ordem.unidade_destino else '—' }}
+                                </td>
+                                <td class="text-muted small">
+                                    {{ ordem.data_criacao.strftime('%d/%m/%Y %H:%M') }}
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ cor }} bg-opacity-15 text-{{ cor }} border border-{{ cor }} border-opacity-25">
+                                        {{ label_st }}
+                                    </span>
+                                </td>
+                                <td class="text-end pe-4">
+                                    <a href="{{ url_for('compras.ordem_lista_detalhes', ordem_id=ordem.id) }}"
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye me-1"></i> Ver Detalhes
+                                    </a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center py-5 text-muted">
+                                    <i class="bi bi-list-check fs-2 d-block mb-2 opacity-25"></i>
+                                    Nenhuma ordem de lista pendente.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <!-- ABA EM ANÁLISE (itens sem cadastro) -->
-            <div class="tab-pane fade {{ 'show active' if em_analise }}" id="analise" role="tabpanel">
+            <div class="tab-pane fade {{ 'show active' if em_analise and not ordens_lista }}" id="analise" role="tabpanel">
                 {% if em_analise %}
                 <div class="alert alert-warning border-0 rounded-0 mb-0 py-2 px-4 small">
                     <i class="bi bi-info-circle me-1"></i>
@@ -116,7 +189,7 @@
             </div>
 
             <!-- ABA PENDENTES -->
-            <div class="tab-pane fade {{ 'show active' if not em_analise }}" id="pendentes" role="tabpanel">
+            <div class="tab-pane fade {{ 'show active' if not em_analise and not ordens_lista }}" id="pendentes" role="tabpanel">
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
                         <thead class="bg-light">

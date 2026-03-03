@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
-from app.models.estoque_models import PedidoCompra, Fornecedor, Estoque, CatalogoFornecedor, ComunicacaoFornecedor, ListaCompra, ListaCompraItem
+from app.models.estoque_models import PedidoCompra, Fornecedor, Estoque, CatalogoFornecedor, ComunicacaoFornecedor, ListaCompra, ListaCompraItem, OrdemCompraLista
 from app.extensions import db
 from datetime import datetime
 import logging
@@ -647,10 +647,12 @@ def listas_compra():
     listas = ListaCompra.query.filter_by(ativo=True).order_by(ListaCompra.nome).all()
     itens_catalogo = Estoque.query.order_by(Estoque.nome).all()
     unidades = Unidade.query.order_by(Unidade.nome).all()
+    fornecedores = Fornecedor.query.filter_by(ativo=True).order_by(Fornecedor.nome).all()
     return render_template('compras/listas.html',
                            listas=listas,
                            itens_catalogo=itens_catalogo,
-                           unidades=unidades)
+                           unidades=unidades,
+                           fornecedores=fornecedores)
 
 
 @bp.route('/listas/nova', methods=['POST'])
@@ -705,6 +707,7 @@ def adicionar_item_lista(lista_id):
     descricao = request.form.get('descricao_livre', '').strip()
     quantidade = request.form.get('quantidade', 1)
     categoria = request.form.get('categoria_compra', 'outros')
+    fornecedor_id = request.form.get('fornecedor_id') or None
 
     if not estoque_id and not descricao:
         flash('Selecione um item do catálogo ou informe uma descrição.', 'warning')
@@ -716,6 +719,7 @@ def adicionar_item_lista(lista_id):
         descricao_livre=descricao if not estoque_id else None,
         quantidade=float(quantidade),
         categoria_compra=categoria,
+        fornecedor_id=int(fornecedor_id) if fornecedor_id else None,
     )
     db.session.add(item)
     db.session.commit()
@@ -737,7 +741,7 @@ def remover_item_lista(item_id):
 @bp.route('/listas/<int:lista_id>/usar', methods=['GET', 'POST'])
 @login_required
 def usar_lista_compra(lista_id):
-    """Tela dedicada para revisar e enviar uma lista de compra."""
+    """Tela dedicada para revisar e enviar uma lista como uma única ordem de compra."""
     from app.models.models import Unidade
     if current_user.tipo not in ['admin', 'gerente', 'tecnico']:
         flash('Acesso negado.', 'danger')
@@ -747,36 +751,67 @@ def usar_lista_compra(lista_id):
 
     if request.method == 'POST':
         unidade_id = request.form.get('unidade_id') or None
-        criados = 0
+        observacao = request.form.get('observacao', '').strip() or None
+
+        # Coleta itens selecionados
+        itens_pedido = []
         for item_lista in lista.itens:
-            incluir = request.form.get(f'incluir_{item_lista.id}')
-            if not incluir:
+            if not request.form.get(f'incluir_{item_lista.id}'):
                 continue
-            qtd_raw = request.form.get(f'quantidade_{item_lista.id}', '')
             try:
-                qtd = float(qtd_raw)
+                qtd = float(request.form.get(f'quantidade_{item_lista.id}', 0))
             except (ValueError, TypeError):
                 qtd = 0
             if qtd <= 0:
                 continue
+            itens_pedido.append((item_lista, qtd))
+
+        if not itens_pedido:
+            flash('Selecione ao menos um item com quantidade válida.', 'warning')
+            unidades = Unidade.query.order_by(Unidade.nome).all()
+            return render_template('compras/usar_lista.html', lista=lista, unidades=unidades)
+
+        # Cria a OrdemCompraLista (entrada única no painel de compras)
+        ordem = OrdemCompraLista(
+            lista_id=lista.id,
+            nome=lista.nome,
+            solicitante_id=current_user.id,
+            unidade_destino_id=int(unidade_id) if unidade_id else None,
+            observacao=observacao,
+        )
+        db.session.add(ordem)
+        db.session.flush()  # gera ordem.id
+
+        for item_lista, qtd in itens_pedido:
             status = 'solicitado' if item_lista.estoque_id else 'analise_cadastro'
             pedido = PedidoCompra(
                 estoque_id=item_lista.estoque_id,
                 descricao_livre=item_lista.descricao_livre,
                 categoria_compra=item_lista.categoria_compra,
                 quantidade=qtd,
+                fornecedor_id=item_lista.fornecedor_id,
                 status=status,
                 solicitante_id=current_user.id,
                 unidade_destino_id=int(unidade_id) if unidade_id else None,
+                ordem_lista_id=ordem.id,
             )
             db.session.add(pedido)
-            criados += 1
+
         db.session.commit()
-        if criados:
-            flash(f'{criados} solicitação(ões) enviada(s) para o setor de compras!', 'success')
-        else:
-            flash('Nenhum item selecionado com quantidade válida.', 'warning')
+        flash(f'Ordem "{lista.nome}" enviada com {len(itens_pedido)} iten(s) para o setor de compras!', 'success')
         return redirect(url_for('compras.painel_solicitante'))
 
     unidades = Unidade.query.order_by(Unidade.nome).all()
     return render_template('compras/usar_lista.html', lista=lista, unidades=unidades)
+
+
+@bp.route('/ordens-lista/<int:ordem_id>')
+@login_required
+def ordem_lista_detalhes(ordem_id):
+    """Detalhe de uma ordem de compra gerada a partir de uma lista padrão."""
+    if current_user.tipo not in ['admin', 'comprador', 'gerente']:
+        flash('Acesso negado.', 'danger')
+        return redirect(url_for('ponto.index'))
+    ordem = OrdemCompraLista.query.get_or_404(ordem_id)
+    fornecedores = Fornecedor.query.filter_by(ativo=True).order_by(Fornecedor.nome).all()
+    return render_template('compras/ordem_lista.html', ordem=ordem, fornecedores=fornecedores)
