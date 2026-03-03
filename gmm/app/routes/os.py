@@ -596,8 +596,10 @@ def solicitar_transferencia():
         if not all([estoque_id, qtd, unidade_origem_id, unidade_destino_id]):
              return jsonify({'success': False, 'erro': 'Dados incompletos'}), 400
         
-        # Define se aprova automaticamente baseado no cargo
-        aprovacao_automatica = current_user.tipo in ['admin', 'gerente']
+        # Transferências originadas de uma OS sempre ficam pendentes para aprovação
+        # (mesmo admin/gerente devem confirmar pelo painel de transferências)
+        os_id = data.get('os_id')
+        aprovacao_automatica = current_user.tipo in ['admin', 'gerente'] and not os_id
 
         solicitacao = EstoqueService.transferir_entre_unidades(
             estoque_id=estoque_id,
@@ -629,7 +631,12 @@ def solicitar_transferencia():
 
                 WhatsAppService.enviar_mensagem(responsavel.telefone, msg)
         
-        msg = 'Transferência realizada com sucesso!' if solicitacao.status == 'concluida' else 'Solicitação criada'
+        if solicitacao.status == 'concluida':
+            msg = 'Transferência realizada com sucesso!'
+        elif os_id:
+            msg = 'Solicitação criada! Aguardando aprovação do gerente/comprador.'
+        else:
+            msg = 'Solicitação criada e aguardando aprovação.'
         return jsonify({'success': True, 'msg': msg})
 
     except ValueError as e:
