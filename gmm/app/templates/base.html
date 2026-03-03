@@ -102,7 +102,7 @@
                                 <i class="bi bi-cart3"></i> Compras
                             </a>
                             {% endif %}
-                            {% if current_user.tipo in ['gerente', 'tecnico'] %}
+                            {% if current_user.tipo in ['admin', 'gerente', 'tecnico'] %}
                             <a href="{{ url_for('compras.painel_solicitante') }}"
                                 class="nav-link-saas nav-link-sub {{ 'active' if request.endpoint == 'compras.painel_solicitante' }}">
                                 <i class="bi bi-cart-plus"></i> Solicitar Compra
