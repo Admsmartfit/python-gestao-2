@@ -14,42 +14,49 @@
 </div>
 
 {% if listas %}
-<!-- Listas Padrão -->
+<!-- Listas Padrão (recolhível) -->
 <div class="mb-4">
-    <div class="d-flex align-items-center justify-content-between mb-2">
-        <h6 class="fw-bold mb-0 text-muted text-uppercase" style="font-size:.75rem; letter-spacing:.05em;">
-            <i class="bi bi-list-stars me-1"></i>Listas Padrão
-        </h6>
-        <a href="{{ url_for('compras.listas_compra') }}" class="small text-muted text-decoration-none">
-            Gerenciar <i class="bi bi-chevron-right"></i>
-        </a>
-    </div>
-    <div class="d-flex gap-3 flex-wrap">
-        {% for lista in listas %}
-        <div class="card border-0 shadow-sm flex-shrink-0" style="min-width:220px; max-width:280px;">
-            <div class="card-body py-3 px-3">
-                <div class="fw-semibold mb-1" style="font-size:.9rem;">{{ lista.nome }}</div>
-                {% if lista.descricao %}
-                <div class="text-muted small mb-2 text-truncate" title="{{ lista.descricao }}">{{ lista.descricao }}</div>
-                {% endif %}
-                <div class="d-flex align-items-center justify-content-between">
-                    <span class="badge bg-secondary bg-opacity-10 text-secondary border small">
-                        {{ lista.itens|length }} iten(s)
-                    </span>
-                    {% if lista.itens %}
-                    <a href="{{ url_for('compras.usar_lista_compra', lista_id=lista.id) }}"
-                       class="btn btn-sm btn-success">
-                        <i class="bi bi-send me-1"></i>Usar
-                    </a>
-                    {% else %}
-                    <button class="btn btn-sm btn-success" disabled title="Adicione itens na lista primeiro">
-                        <i class="bi bi-send me-1"></i>Usar
-                    </button>
+    <button class="btn btn-light border w-100 d-flex align-items-center gap-2 text-start px-3 py-2"
+            type="button" data-bs-toggle="collapse" data-bs-target="#collapseListasPadrao"
+            aria-expanded="false">
+        <i class="bi bi-list-stars text-primary"></i>
+        <span class="fw-semibold">Listas Padrão</span>
+        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 ms-1">{{ listas|length }}</span>
+        <i class="bi bi-chevron-down ms-auto text-muted"></i>
+    </button>
+    <div class="collapse" id="collapseListasPadrao">
+        <div class="d-flex gap-3 flex-wrap pt-3 pb-1">
+            {% for lista in listas %}
+            <div class="card border-0 shadow-sm flex-shrink-0" style="min-width:220px; max-width:280px;">
+                <div class="card-body py-3 px-3">
+                    <div class="fw-semibold mb-1" style="font-size:.9rem;">{{ lista.nome }}</div>
+                    {% if lista.descricao %}
+                    <div class="text-muted small mb-2 text-truncate" title="{{ lista.descricao }}">{{ lista.descricao }}</div>
                     {% endif %}
+                    <div class="d-flex align-items-center justify-content-between">
+                        <span class="badge bg-secondary bg-opacity-10 text-secondary border small">
+                            {{ lista.itens|length }} iten(s)
+                        </span>
+                        {% if lista.itens %}
+                        <a href="{{ url_for('compras.usar_lista_compra', lista_id=lista.id) }}"
+                           class="btn btn-sm btn-success">
+                            <i class="bi bi-send me-1"></i>Usar
+                        </a>
+                        {% else %}
+                        <button class="btn btn-sm btn-success" disabled title="Adicione itens na lista primeiro">
+                            <i class="bi bi-send me-1"></i>Usar
+                        </button>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
+            {% endfor %}
+            <div class="d-flex align-items-center">
+                <a href="{{ url_for('compras.listas_compra') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-gear me-1"></i>Gerenciar Listas
+                </a>
+            </div>
         </div>
-        {% endfor %}
     </div>
 </div>
 {% endif %}
@@ -90,7 +97,7 @@
                         </div>
                     </div>
 
-                    <!-- Item do estoque OU descrição livre -->
+                    <!-- Item do catálogo OU descrição livre -->
                     <div class="mb-3">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <label class="form-label fw-semibold mb-0">Item</label>
@@ -100,14 +107,30 @@
                             </div>
                         </div>
 
+                        <!-- Busca no catálogo -->
                         <div id="blocoEstoque">
-                            <select name="estoque_id" id="selectEstoque" class="form-select">
-                                <option value="">— Selecione um item do catálogo —</option>
-                                {% for item in itens_rapidos %}
-                                <option value="{{ item.id }}">{{ item.nome }} ({{ item.unidade_medida }})</option>
-                                {% endfor %}
-                            </select>
+                            <input type="hidden" name="estoque_id" id="hiddenEstoqueId">
+                            <div class="position-relative">
+                                <span class="position-absolute top-50 translate-middle-y ps-3 text-muted" style="pointer-events:none;">
+                                    <i class="bi bi-search"></i>
+                                </span>
+                                <input type="text" id="buscaCatalogo" class="form-control ps-5" autocomplete="off"
+                                       placeholder="Buscar item do catálogo...">
+                            </div>
+                            <div id="dropdownCatalogo" class="list-group shadow-sm mt-1 d-none"
+                                 style="max-height:220px;overflow-y:auto;position:absolute;z-index:1000;width:calc(100% - 3rem);">
+                            </div>
+                            <div id="itemSelecionado" class="d-none mt-2">
+                                <span class="badge bg-success bg-opacity-15 text-success border border-success border-opacity-25 px-3 py-2">
+                                    <i class="bi bi-check-circle me-1"></i>
+                                    <span id="nomeItemSelecionado"></span>
+                                    <button type="button" class="btn-close btn-close-sm ms-2" style="font-size:.6rem;"
+                                            onclick="limparItem()"></button>
+                                </span>
+                            </div>
                         </div>
+
+                        <!-- Descrição livre -->
                         <div id="blocoLivre" class="d-none">
                             <input type="text" name="descricao_livre" id="inputDescricaoLivre"
                                    class="form-control" placeholder="Descreva o item que deseja comprar...">
@@ -180,6 +203,7 @@
                                 <div class="fw-medium">
                                     {% if p.peca %}{{ p.peca.nome }}
                                     {% elif p.descricao_livre %}{{ p.descricao_livre }}
+                                    {% elif p.ordem_lista %}Lista: {{ p.ordem_lista.nome }}
                                     {% else %}Pedido #{{ p.id }}{% endif %}
                                 </div>
                                 <div class="text-muted small">
@@ -210,14 +234,74 @@
 </div>
 
 <script>
-document.getElementById('toggleItemLivre').addEventListener('change', function() {
+// --- Toggle item livre / catálogo ---
+document.getElementById('toggleItemLivre').addEventListener('change', function () {
     const isLivre = this.checked;
     document.getElementById('blocoEstoque').classList.toggle('d-none', isLivre);
     document.getElementById('blocoLivre').classList.toggle('d-none', !isLivre);
-    document.getElementById('selectEstoque').disabled = isLivre;
     document.getElementById('inputDescricaoLivre').disabled = !isLivre;
+    if (isLivre) limparItem();
 });
-document.getElementById('selectEstoque').disabled = false;
 document.getElementById('inputDescricaoLivre').disabled = true;
+
+// --- Catálogo de itens (busca client-side) ---
+const catalogoItens = [
+    {% for item in itens_rapidos %}
+    { id: {{ item.id }}, nome: {{ item.nome|tojson }}, unidade: {{ item.unidade_medida|tojson }} }{% if not loop.last %},{% endif %}
+    {% endfor %}
+];
+
+const inputBusca   = document.getElementById('buscaCatalogo');
+const dropdown     = document.getElementById('dropdownCatalogo');
+const hiddenId     = document.getElementById('hiddenEstoqueId');
+const divSel       = document.getElementById('itemSelecionado');
+const nomeSel      = document.getElementById('nomeItemSelecionado');
+
+inputBusca.addEventListener('input', function () {
+    const q = this.value.trim().toLowerCase();
+    if (!q) { dropdown.classList.add('d-none'); dropdown.innerHTML = ''; return; }
+
+    const matches = catalogoItens.filter(i => i.nome.toLowerCase().includes(q)).slice(0, 12);
+    if (!matches.length) {
+        dropdown.innerHTML = '<div class="list-group-item text-muted small py-2">Nenhum item encontrado.</div>';
+        dropdown.classList.remove('d-none');
+        return;
+    }
+
+    dropdown.innerHTML = matches.map(i =>
+        `<button type="button" class="list-group-item list-group-item-action py-2 d-flex justify-content-between align-items-center"
+                 onclick="selecionarItem(${i.id}, ${JSON.stringify(i.nome)}, ${JSON.stringify(i.unidade)})">
+            <span>${i.nome}</span>
+            <small class="text-muted ms-2">${i.unidade}</small>
+        </button>`
+    ).join('');
+    dropdown.classList.remove('d-none');
+});
+
+// Fecha dropdown ao clicar fora
+document.addEventListener('click', function (e) {
+    if (!inputBusca.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.classList.add('d-none');
+    }
+});
+
+function selecionarItem(id, nome, unidade) {
+    hiddenId.value = id;
+    nomeSel.textContent = `${nome}  (${unidade})`;
+    divSel.classList.remove('d-none');
+    inputBusca.value = '';
+    inputBusca.placeholder = 'Item selecionado ✓';
+    inputBusca.classList.add('d-none');
+    dropdown.classList.add('d-none');
+}
+
+function limparItem() {
+    hiddenId.value = '';
+    divSel.classList.add('d-none');
+    inputBusca.value = '';
+    inputBusca.placeholder = 'Buscar item do catálogo...';
+    inputBusca.classList.remove('d-none');
+    inputBusca.focus();
+}
 </script>
 {% endblock %}
