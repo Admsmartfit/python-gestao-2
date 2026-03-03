@@ -221,7 +221,7 @@
         {% if pedidos_pendentes or transferencias_pendentes %}
         <div class="bg-warning bg-opacity-10 px-3 py-2 border-bottom border-top d-flex align-items-center gap-2">
             <i class="bi bi-hourglass-split text-warning"></i>
-            <span class="fw-bold text-uppercase small text-warning">Solicitações Pendentes</span>
+            <span class="fw-bold text-uppercase small text-warning">Solicitações Vinculadas à OS</span>
             <span class="badge bg-warning text-dark ms-1">{{ (pedidos_pendentes|length) + (transferencias_pendentes|length) }}</span>
         </div>
         <div class="table-responsive">
@@ -236,9 +236,21 @@
                     </tr>
                 </thead>
                 <tbody>
+                    {% set status_compra_map = {
+                        'pendente':           ('secondary', 'Pendente'),
+                        'solicitado':         ('primary',   'Solicitado'),
+                        'analise_cadastro':   ('warning',   'Em Análise'),
+                        'aprovado':           ('success',   'Aprovado'),
+                        'cotacao':            ('info',      'Em Cotação'),
+                        'aguardando_entrega': ('info',      'Aguardando Entrega'),
+                        'concluido':          ('success',   'Concluído'),
+                        'cancelado':          ('danger',    'Cancelado'),
+                        'recusado':           ('danger',    'Recusado'),
+                    } %}
                     {% for p in pedidos_pendentes %}
+                    {% set cor_c, label_c = status_compra_map.get(p.status, ('secondary', p.status|capitalize)) %}
                     <tr>
-                        <td class="ps-3"><span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25">Compra</span></td>
+                        <td class="ps-3"><span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25"><i class="bi bi-cart me-1"></i>Compra</span></td>
                         <td>
                             {% if p.peca %}<span class="fw-medium">{{ p.peca.nome }}</span>
                             {% elif p.descricao_livre %}<span class="fw-medium">{{ p.descricao_livre }}</span>
@@ -246,19 +258,26 @@
                         </td>
                         <td>{{ "{:g}".format(p.quantidade) }}</td>
                         <td>
-                            <span class="badge bg-secondary bg-opacity-10 text-dark border">{{ p.status|capitalize }}</span>
+                            <span class="badge bg-{{ cor_c }} bg-opacity-15 text-{{ cor_c }} border border-{{ cor_c }} border-opacity-25">{{ label_c }}</span>
                         </td>
                         <td class="text-muted small">{{ p.data_solicitacao.strftime('%d/%m %H:%M') }}</td>
                     </tr>
                     {% endfor %}
+                    {% set status_transf_map = {
+                        'pendente':   ('warning', 'Aguardando Aprovação'),
+                        'aprovada':   ('success', 'Aprovada'),
+                        'concluida':  ('success', 'Concluída'),
+                        'rejeitada':  ('danger',  'Rejeitada'),
+                    } %}
                     {% for t in transferencias_pendentes %}
+                    {% set cor_t, label_t = status_transf_map.get(t.status, ('secondary', t.status|capitalize)) %}
                     <tr>
-                        <td class="ps-3"><span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25">Transferência</span></td>
+                        <td class="ps-3"><span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25"><i class="bi bi-arrow-left-right me-1"></i>Transferência</span></td>
                         <td><span class="fw-medium">{{ t.peca.nome }}</span>
-                            <small class="text-muted d-block">De: {{ t.origem.nome }} → {{ t.destino.nome }}</small>
+                            <small class="text-muted d-block"><i class="bi bi-geo-alt me-1"></i>{{ t.origem.nome }} → {{ t.destino.nome }}</small>
                         </td>
                         <td>{{ "{:g}".format(t.quantidade) }} {{ t.peca.unidade_medida }}</td>
-                        <td><span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25">Pendente</span></td>
+                        <td><span class="badge bg-{{ cor_t }} bg-opacity-15 text-{{ cor_t }} border border-{{ cor_t }} border-opacity-25">{{ label_t }}</span></td>
                         <td class="text-muted small">{{ t.data_solicitacao.strftime('%d/%m %H:%M') }}</td>
                     </tr>
                     {% endfor %}
@@ -1036,6 +1055,12 @@
         document.getElementById('compraNomeItem').value = nome;
         document.getElementById('compraQtd').value = qtd;
 
+        // Preenche o campo de busca visível e mostra o item fixo quando vem pré-preenchido
+        if (id && nome) {
+            document.getElementById('buscaPecaCompra').value = nome;
+            document.getElementById('divItemFixo').classList.remove('d-none');
+        }
+
         const modal = new bootstrap.Modal(document.getElementById('modalSolicitarCompra'));
         modal.show();
     }
@@ -1172,6 +1197,7 @@
             unidade_destino_id: document.getElementById('transfDestinoId').value,
             quantidade: document.getElementById('transfQtd').value,
             observacao: `Necessidade para OS #{{ os.numero_os }}`,
+            os_id: {{ os.id }},
             // [Novos Campos]
             notificar_responsavel_id: document.getElementById('transfResponsavel').value,
             enviar_whats: document.getElementById('checkTransfWhats').checked
@@ -1383,6 +1409,18 @@
 </div>
 
 <script>
+    // Reset do modal de compra ao abrir pelo botão do topo (sem pré-preenchimento)
+    document.getElementById('modalSolicitarCompra').addEventListener('show.bs.modal', function (e) {
+        // Se não foi acionado por prepararSolicitacaoCompra (trigger = button direto), limpa os campos
+        if (!e.relatedTarget) return; // acionado via JS — não limpa
+        document.getElementById('compraIdItem').value = '';
+        document.getElementById('compraNomeItem').value = '';
+        document.getElementById('buscaPecaCompra').value = '';
+        document.getElementById('compraQtd').value = '';
+        document.getElementById('divItemFixo').classList.add('d-none');
+        document.getElementById('listaSugestoesCompra').innerHTML = '';
+    });
+
     // Lógica adicional para busca no modal de compra
     const buscaCompraInput = document.getElementById('buscaPecaCompra');
     const sugestoesCompraDiv = document.getElementById('listaSugestoesCompra');

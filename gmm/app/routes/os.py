@@ -99,12 +99,12 @@ def detalhes(id):
     from app.models.estoque_models import PedidoCompra, SolicitacaoTransferencia
     pedidos_pendentes = PedidoCompra.query.filter(
         PedidoCompra.os_id == id,
-        PedidoCompra.status.in_(['pendente', 'solicitado', 'aprovado', 'cotacao', 'analise_cadastro'])
+        PedidoCompra.status.notin_(['concluido', 'cancelado', 'recusado'])
     ).order_by(PedidoCompra.data_solicitacao.desc()).all()
 
     transferencias_pendentes = SolicitacaoTransferencia.query.filter(
         SolicitacaoTransferencia.os_id == id,
-        SolicitacaoTransferencia.status == 'pendente'
+        SolicitacaoTransferencia.status.notin_(['concluida', 'rejeitada'])
     ).order_by(SolicitacaoTransferencia.data_solicitacao.desc()).all()
 
     return render_template('os_detalhes.html',
@@ -292,7 +292,8 @@ def solicitar_compra_peca(id):
             data_solicitacao=datetime.now(),
             solicitante_id=current_user.id,
             aprovador_id=aprovador_id,
-            unidade_destino_id=unidade_os_id
+            unidade_destino_id=unidade_os_id,
+            os_id=id  # vincula à OS de origem
         )
         
         db.session.add(novo_pedido)

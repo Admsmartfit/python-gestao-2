@@ -40,6 +40,59 @@ MIGRATIONS = [
      'ALTER TABLE historico_notificacoes ADD COLUMN mensagem_transcrita TEXT'),
 ]
 
+
+def fix_estoque_id_nullable(conn):
+    """
+    SQLite não suporta ALTER COLUMN.
+    Recria pedidos_compra com estoque_id nullable se ainda estiver NOT NULL.
+    """
+    result = conn.execute(db.text('PRAGMA table_info(pedidos_compra)'))
+    rows = result.fetchall()
+
+    # Verifica se estoque_id ainda é NOT NULL (notnull == 1)
+    estoque_col = next((r for r in rows if r[1] == 'estoque_id'), None)
+    if estoque_col is None:
+        print('  [skip] pedidos_compra.estoque_id (coluna não existe?)')
+        return
+    if estoque_col[3] == 0:
+        print('  [skip] pedidos_compra.estoque_id já é nullable')
+        return
+
+    print('  [fix]  pedidos_compra.estoque_id — removendo NOT NULL (recriando tabela)...')
+
+    # Detectar colunas existentes para o INSERT SELECT
+    col_names = [r[1] for r in rows]
+    cols_sql = ', '.join(col_names)
+
+    conn.execute(db.text('PRAGMA foreign_keys = OFF'))
+    conn.execute(db.text(f'''
+        CREATE TABLE pedidos_compra_new (
+            id INTEGER PRIMARY KEY,
+            fornecedor_id INTEGER REFERENCES fornecedores(id),
+            estoque_id INTEGER REFERENCES estoque(id),
+            quantidade NUMERIC(10,3) NOT NULL,
+            data_solicitacao DATETIME,
+            data_chegada DATETIME,
+            status VARCHAR(20),
+            solicitante_id INTEGER REFERENCES usuarios(id),
+            aprovador_id INTEGER REFERENCES usuarios(id),
+            recebedor_id INTEGER REFERENCES usuarios(id),
+            token_aprovacao VARCHAR(64) UNIQUE,
+            token_expira_em DATETIME,
+            justificativa TEXT,
+            unidade_destino_id INTEGER REFERENCES unidades(id),
+            os_id INTEGER REFERENCES ordens_servico(id),
+            descricao_livre VARCHAR(300),
+            categoria_compra VARCHAR(50)
+        )
+    '''))
+    conn.execute(db.text(f'INSERT INTO pedidos_compra_new ({cols_sql}) SELECT {cols_sql} FROM pedidos_compra'))
+    conn.execute(db.text('DROP TABLE pedidos_compra'))
+    conn.execute(db.text('ALTER TABLE pedidos_compra_new RENAME TO pedidos_compra'))
+    conn.execute(db.text('PRAGMA foreign_keys = ON'))
+    print('  [ok]   pedidos_compra recriada com estoque_id nullable')
+
+
 def run():
     with app.app_context():
         with db.engine.connect() as conn:
@@ -58,8 +111,13 @@ def run():
                         ok += 1
                     except Exception as e:
                         print(f'  [erro] {tabela}.{coluna}: {e}')
+
+            # Migração especial: tornar estoque_id nullable em pedidos_compra
+            fix_estoque_id_nullable(conn)
+
             conn.commit()
         print(f'\nConcluído: {ok} colunas adicionadas, {skip} já existiam.')
+
 
 if __name__ == '__main__':
     run()
