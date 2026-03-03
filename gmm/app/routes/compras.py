@@ -616,10 +616,8 @@ def painel_solicitante():
 
     unidades = Unidade.query.order_by(Unidade.nome).all()
 
-    # Itens rápidos por categoria
-    itens_rapidos = Estoque.query.filter(
-        Estoque.categoria_id.isnot(None)
-    ).order_by(Estoque.nome).limit(50).all()
+    # Todos os itens do catálogo para busca
+    itens_rapidos = Estoque.query.order_by(Estoque.nome).all()
 
     # Listas padrão disponíveis para uso rápido
     listas = ListaCompra.query.filter_by(ativo=True).order_by(ListaCompra.nome).all()
