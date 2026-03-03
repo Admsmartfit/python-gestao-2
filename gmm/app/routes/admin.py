@@ -268,7 +268,8 @@ def novo_equipamento():
     novo_eq = Equipamento(
         nome=request.form.get('nome'),
         categoria=request.form.get('categoria'),
-        unidade_id=request.form.get('unidade_id')
+        unidade_id=request.form.get('unidade_id'),
+        numero_serie=request.form.get('numero_serie') or None
     )
     db.session.add(novo_eq)
     db.session.commit()

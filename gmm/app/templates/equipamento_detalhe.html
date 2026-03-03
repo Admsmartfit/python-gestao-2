@@ -185,6 +185,10 @@
         <div class="text-muted small mt-1">
             <span class="badge bg-light text-dark border me-2">{{ eq.categoria }}</span>
             <i class="bi bi-geo-alt me-1"></i> {{ eq.unidade.nome }}
+            {% if eq.numero_serie %}
+            <span class="mx-2 opacity-25">·</span>
+            <i class="bi bi-upc-scan me-1"></i> Série: <code class="small">{{ eq.numero_serie }}</code>
+            {% endif %}
         </div>
     </div>
     <div class="d-flex gap-2 flex-wrap">

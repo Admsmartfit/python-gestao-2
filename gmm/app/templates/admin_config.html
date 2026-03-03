@@ -206,11 +206,15 @@
             </div>
             <div class="card-body">
                 <form action="{{ url_for('admin.novo_equipamento') }}" method="POST" class="row g-3">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label">Nome do Equipamento</label>
                         <input type="text" name="nome" class="form-control" placeholder="Ex: Esteira T50" required>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
+                        <label class="form-label">Nº de Série</label>
+                        <input type="text" name="numero_serie" class="form-control" placeholder="Ex: SN-20240001">
+                    </div>
+                    <div class="col-md-2">
                         <label class="form-label">Categoria</label>
                         <select name="categoria" class="form-select" required>
                             <option value="cardio">Cardio</option>
@@ -238,6 +242,7 @@
                     <thead class="bg-light">
                         <tr>
                             <th class="ps-4">Nome</th>
+                            <th>Nº Série</th>
                             <th>Categoria</th>
                             <th>Unidade</th>
                         </tr>
@@ -245,13 +250,18 @@
                     <tbody>
                         {% for e in equipamentos %}
                         <tr>
-                            <td class="ps-4" data-label="Nome fw-bold">{{ e.nome }}</td>
+                            <td class="ps-4 fw-medium">
+                                <a href="{{ url_for('equipamentos.detalhes', id=e.id) }}" class="text-decoration-none">{{ e.nome }}</a>
+                            </td>
+                            <td data-label="Nº Série">
+                                {% if e.numero_serie %}<code class="small">{{ e.numero_serie }}</code>{% else %}<span class="text-muted small">—</span>{% endif %}
+                            </td>
                             <td data-label="Categoria">{{ e.categoria|capitalize }}</td>
                             <td data-label="Unidade">{{ e.unidade.nome }}</td>
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="3" class="text-center py-4 text-muted">Nenhum equipamento cadastrado.</td>
+                            <td colspan="4" class="text-center py-4 text-muted">Nenhum equipamento cadastrado.</td>
                         </tr>
                         {% endfor %}
                     </tbody>

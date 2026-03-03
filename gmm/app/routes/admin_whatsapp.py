@@ -357,7 +357,7 @@ def enviar_teste():
 @login_required
 def chat_central():
     """Central de Mensagens - Interface de Chat"""
-    if current_user.tipo != 'admin':
+    if current_user.tipo not in ['admin', 'gerente']:
         abort(403)
 
     return render_template('admin/chat_central.html')
@@ -366,7 +366,7 @@ def chat_central():
 @login_required
 def listar_conversas():
     """Lista todas as conversas com última mensagem e contagem de não lidas"""
-    if current_user.tipo != 'admin':
+    if current_user.tipo not in ['admin', 'gerente']:
         return jsonify({'error': 'Unauthorized'}), 403
 
     filtro = request.args.get('filtro', 'todas')
@@ -530,7 +530,7 @@ def listar_conversas():
 @login_required
 def listar_mensagens(telefone):
     """Lista todas as mensagens de uma conversa específica"""
-    if current_user.tipo != 'admin':
+    if current_user.tipo not in ['admin', 'gerente']:
         return jsonify({'error': 'Unauthorized'}), 403
 
     # Normalizar telefone e gerar variantes para retrocompatibilidade com registros antigos
@@ -588,7 +588,7 @@ def listar_mensagens(telefone):
 @login_required
 def enviar_mensagem_chat():
     """Envia mensagem pela central de chat"""
-    if current_user.tipo != 'admin':
+    if current_user.tipo not in ['admin', 'gerente']:
         return jsonify({'error': 'Unauthorized'}), 403
 
     data = request.json
@@ -642,7 +642,7 @@ def enviar_mensagem_chat():
 @login_required
 def marcar_como_lida(telefone):
     """Marca todas as mensagens de um contato como lidas"""
-    if current_user.tipo != 'admin':
+    if current_user.tipo not in ['admin', 'gerente']:
         return jsonify({'error': 'Unauthorized'}), 403
 
     # Atualizar status de leitura de mensagens inbound não lidas
@@ -666,7 +666,7 @@ def marcar_como_lida(telefone):
 @login_required
 def excluir_mensagem(msg_id):
     """Exclui uma mensagem do historico e tenta apagar na MegaAPI"""
-    if current_user.tipo != 'admin':
+    if current_user.tipo not in ['admin', 'gerente']:
         return jsonify({'error': 'Unauthorized'}), 403
 
     notif = HistoricoNotificacao.query.get_or_404(msg_id)

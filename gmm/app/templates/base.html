@@ -98,8 +98,14 @@
                             </a>
                             {% if current_user.tipo in ['admin', 'comprador'] %}
                             <a href="{{ url_for('admin.compras_painel') }}"
-                                class="nav-link-saas nav-link-sub {{ 'active' if 'compras' in request.endpoint }}">
+                                class="nav-link-saas nav-link-sub {{ 'active' if request.endpoint == 'compras.listar' or request.endpoint == 'compras.novo' }}">
                                 <i class="bi bi-cart3"></i> Compras
+                            </a>
+                            {% endif %}
+                            {% if current_user.tipo in ['gerente', 'tecnico'] %}
+                            <a href="{{ url_for('compras.painel_solicitante') }}"
+                                class="nav-link-saas nav-link-sub {{ 'active' if request.endpoint == 'compras.painel_solicitante' }}">
+                                <i class="bi bi-cart-plus"></i> Solicitar Compra
                             </a>
                             {% endif %}
                             {% if current_user.tipo in ['admin', 'comprador', 'gerente'] %}
@@ -124,9 +130,9 @@
                     <div id="grpTerceiros" class="accordion-collapse collapse {{ 'show' if grp_terceiros }}"
                         data-bs-parent="#sidebarAccordion">
                         <div class="accordion-body py-1 ps-3">
-                            {% if current_user.tipo != 'tecnico' %}
-                            <a href="{{ url_for('admin_whatsapp.listar_conversas') }}"
-                                class="nav-link-saas nav-link-sub {{ 'active' if 'admin_whatsapp' in request.endpoint and request.endpoint != 'admin_whatsapp.dashboard' }}">
+                            {% if current_user.tipo in ['admin', 'gerente'] %}
+                            <a href="{{ url_for('admin_whatsapp.chat_central') }}"
+                                class="nav-link-saas nav-link-sub {{ 'active' if request.endpoint == 'admin_whatsapp.chat_central' }}">
                                 <i class="bi bi-chat-dots"></i> Central de Mensagens
                             </a>
                             {% endif %}

@@ -94,13 +94,27 @@ def detalhes(id):
 
     # [Novo] Carrega usuários para o select de notificação na transferência
     usuarios = Usuario.query.filter_by(ativo=True).order_by(Usuario.nome).all()
-    
-    return render_template('os_detalhes.html', 
-                         os=os_obj, 
+
+    # Etapa 3 — solicitações pendentes vinculadas a esta OS
+    from app.models.estoque_models import PedidoCompra, SolicitacaoTransferencia
+    pedidos_pendentes = PedidoCompra.query.filter(
+        PedidoCompra.os_id == id,
+        PedidoCompra.status.in_(['pendente', 'solicitado', 'aprovado', 'cotacao', 'analise_cadastro'])
+    ).order_by(PedidoCompra.data_solicitacao.desc()).all()
+
+    transferencias_pendentes = SolicitacaoTransferencia.query.filter(
+        SolicitacaoTransferencia.os_id == id,
+        SolicitacaoTransferencia.status == 'pendente'
+    ).order_by(SolicitacaoTransferencia.data_solicitacao.desc()).all()
+
+    return render_template('os_detalhes.html',
+                         os=os_obj,
                          categorias=categorias,
                          todas_pecas=todas_pecas,
                          terceirizados=terceirizados,
-                         usuarios=usuarios)
+                         usuarios=usuarios,
+                         pedidos_pendentes=pedidos_pendentes,
+                         transferencias_pendentes=transferencias_pendentes)
 
 @bp.route('/<int:id>/iniciar', methods=['POST'])
 @login_required
@@ -550,7 +564,8 @@ def solicitar_compra():
             status=status_inicial,
             data_solicitacao=datetime.now(),
             solicitante_id=current_user.id,
-            unidade_destino_id=unidade_destino_id
+            unidade_destino_id=unidade_destino_id,
+            os_id=data.get('os_id')
         )
 
         db.session.add(pedido)
@@ -590,7 +605,8 @@ def solicitar_transferencia():
             quantidade=qtd,
             solicitante_id=current_user.id,
             observacao=data.get('observacao'),
-            aprovacao_automatica=aprovacao_automatica
+            aprovacao_automatica=aprovacao_automatica,
+            os_id=data.get('os_id')
         )
         
         # [Novo] Enviar notificação WhatsApp se solicitado
@@ -687,6 +703,14 @@ def adicionar_tarefa_externa(id):
             terceirizado = Terceirizado.query.get(int(terceirizado_id))
             
             # Montagem da mensagem detalhada
+            eq_obj = os_obj.equipamento_rel
+            equip_linha = ""
+            if eq_obj:
+                equip_linha = f"🔩 *Equipamento:* {eq_obj.nome}"
+                if eq_obj.numero_serie:
+                    equip_linha += f" (S/N: {eq_obj.numero_serie})"
+                equip_linha += "\n"
+
             msg = (
                 f"🔧 *Solicitação de Serviço - {os_obj.unidade.nome}*\n\n"
                 f"Olá {terceirizado.nome}, precisamos de um serviço:\n\n"
@@ -694,7 +718,8 @@ def adicionar_tarefa_externa(id):
                 f"🔗 *Ref. OS:* {os_obj.numero_os}\n"
                 f"📅 *Prazo:* {prazo_dt.strftime('%d/%m às %H:%M')}\n\n"
                 f"📍 *Local:* {os_obj.unidade.nome}\n"
-                f"🗺️ *Endereço:* {os_obj.unidade.endereco or 'Endereço não cadastrado'}\n\n"
+                f"🗺️ *Endereço:* {os_obj.unidade.endereco or 'Endereço não cadastrado'}\n"
+                f"{equip_linha}\n"
                 f"📝 *Descrição:* {descricao}\n\n"
                 f"👤 *Solicitante:* {current_user.nome}\n"
                 f"📞 *Contato:* {current_user.telefone or 'Não informado'}\n\n"
@@ -993,10 +1018,20 @@ def criar_chamados_multiplos():
 
             # Enviar notificação via WhatsApp se tiver telefone
             if prestador.telefone:
+                # Dados do equipamento vinculado à OS (se houver)
+                equip_linha = ""
+                if os_id:
+                    os_ref = OrdemServico.query.get(os_id)
+                    if os_ref and os_ref.equipamento_rel:
+                        eq_obj = os_ref.equipamento_rel
+                        equip_linha = f"\n🔩 Equipamento: {eq_obj.nome}"
+                        if eq_obj.numero_serie:
+                            equip_linha += f" (S/N: {eq_obj.numero_serie})"
+
                 mensagem = f"""🔧 *NOVA SOLICITAÇÃO DE SERVIÇO*
 
 Chamado: {numero}
-Título: {titulo}
+Título: {titulo}{equip_linha}
 
 Descrição:
 {descricao}

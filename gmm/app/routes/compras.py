@@ -47,6 +47,8 @@ def novo():
                 status_inicial = 'aprovado'
                 aprovador_id = 0 # Sistema
 
+            os_id_ref = request.form.get('os_id') or None
+
             pedido = PedidoCompra(
                 estoque_id=estoque_id,
                 quantidade=int(quantidade),
@@ -54,7 +56,8 @@ def novo():
                 unidade_destino_id=unidade_id if unidade_id else None,
                 solicitante_id=current_user.id,
                 status=status_inicial,
-                aprovador_id=aprovador_id
+                aprovador_id=aprovador_id,
+                os_id=int(os_id_ref) if os_id_ref else None
             )
             db.session.add(pedido)
             db.session.commit()
@@ -567,3 +570,58 @@ Solicitado por: {current_user.nome}"""
         db.session.rollback()
         logger.error(f"Erro ao solicitar orçamentos: {e}")
         return jsonify({'success': False, 'erro': str(e)}), 500
+
+
+# =============================================================================
+# ETAPA 4 — PAINEL DO SOLICITANTE
+# =============================================================================
+
+@bp.route('/painel-solicitante', methods=['GET', 'POST'])
+@login_required
+def painel_solicitante():
+    """Painel simplificado para gerentes/técnicos solicitarem compras."""
+    from app.models.models import Unidade
+
+    if request.method == 'POST':
+        descricao = request.form.get('descricao_livre', '').strip()
+        categoria = request.form.get('categoria_compra', 'outros')
+        quantidade = request.form.get('quantidade', 1)
+        justificativa = request.form.get('justificativa', '').strip()
+        estoque_id_form = request.form.get('estoque_id') or None
+        unidade_id = request.form.get('unidade_id') or None
+
+        if not descricao and not estoque_id_form:
+            flash('Informe o item ou selecione um produto do catálogo.', 'warning')
+            return redirect(url_for('compras.painel_solicitante'))
+
+        pedido = PedidoCompra(
+            estoque_id=int(estoque_id_form) if estoque_id_form else None,
+            descricao_livre=descricao if not estoque_id_form else None,
+            categoria_compra=categoria,
+            quantidade=float(quantidade),
+            justificativa=justificativa,
+            unidade_destino_id=int(unidade_id) if unidade_id else current_user.unidade_id if hasattr(current_user, 'unidade_id') else None,
+            solicitante_id=current_user.id,
+            status='analise_cadastro' if not estoque_id_form else 'solicitado',
+        )
+        db.session.add(pedido)
+        db.session.commit()
+        flash('Solicitação enviada com sucesso!', 'success')
+        return redirect(url_for('compras.painel_solicitante'))
+
+    # Últimas solicitações do usuário
+    minhas_solicitacoes = PedidoCompra.query.filter_by(
+        solicitante_id=current_user.id
+    ).order_by(PedidoCompra.data_solicitacao.desc()).limit(20).all()
+
+    unidades = Unidade.query.order_by(Unidade.nome).all()
+
+    # Itens rápidos por categoria
+    itens_rapidos = Estoque.query.filter(
+        Estoque.categoria_id.isnot(None)
+    ).order_by(Estoque.nome).limit(50).all()
+
+    return render_template('compras/painel_solicitante.html',
+                           minhas_solicitacoes=minhas_solicitacoes,
+                           unidades=unidades,
+                           itens_rapidos=itens_rapidos)

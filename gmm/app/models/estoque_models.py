@@ -35,6 +35,7 @@ class Equipamento(db.Model):
     unidade_id = db.Column(db.Integer, db.ForeignKey('unidades.id'), nullable=False)
     ativo = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    numero_serie = db.Column(db.String(100), nullable=True)
     qrcode_externo = db.Column(db.Text, nullable=True, unique=True)
     unidade = db.relationship('Unidade', backref='lista_equipamentos')
 
@@ -181,7 +182,8 @@ class SolicitacaoTransferencia(db.Model):
     unidade_destino_id = db.Column(db.Integer, db.ForeignKey('unidades.id'), nullable=False)
     solicitante_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     quantidade = db.Column(db.Numeric(10, 3), nullable=False)
-    
+    os_id = db.Column(db.Integer, db.ForeignKey('ordens_servico.id'), nullable=True)
+
     status = db.Column(db.String(20), default='pendente') # pendente, aprovada, rejeitada, concluida
     data_solicitacao = db.Column(db.DateTime, default=datetime.utcnow)
     data_conclusao = db.Column(db.DateTime, nullable=True)
@@ -191,12 +193,13 @@ class SolicitacaoTransferencia(db.Model):
     origem = db.relationship('Unidade', foreign_keys=[unidade_origem_id])
     destino = db.relationship('Unidade', foreign_keys=[unidade_destino_id])
     solicitante = db.relationship('Usuario')
+    os_origem = db.relationship('OrdemServico', foreign_keys=[os_id], backref='transferencias_vinculadas')
 
 class PedidoCompra(db.Model):
     __tablename__ = 'pedidos_compra'
     id = db.Column(db.Integer, primary_key=True)
     fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedores.id'), nullable=True)
-    estoque_id = db.Column(db.Integer, db.ForeignKey('estoque.id'), nullable=False)
+    estoque_id = db.Column(db.Integer, db.ForeignKey('estoque.id'), nullable=True)  # nullable para itens livres
     quantidade = db.Column(db.Numeric(10, 3), nullable=False)
     data_solicitacao = db.Column(db.DateTime, default=datetime.utcnow)
     data_chegada = db.Column(db.DateTime, nullable=True)
@@ -215,12 +218,20 @@ class PedidoCompra(db.Model):
     justificativa = db.Column(db.Text, nullable=True)
     unidade_destino_id = db.Column(db.Integer, db.ForeignKey('unidades.id'), nullable=True)
 
+    # Etapa 3 — vínculo com OS
+    os_id = db.Column(db.Integer, db.ForeignKey('ordens_servico.id'), nullable=True)
+
+    # Etapa 4 — compras livres (sem item cadastrado no estoque)
+    descricao_livre = db.Column(db.String(300), nullable=True)
+    categoria_compra = db.Column(db.String(50), nullable=True)  # peca, limpeza, escritorio, ti, outros
+
     fornecedor = db.relationship('Fornecedor', backref='pedidos')
     peca = db.relationship('Estoque')
     solicitante = db.relationship('Usuario', foreign_keys=[solicitante_id])
     aprovador = db.relationship('Usuario', foreign_keys=[aprovador_id])
     recebedor = db.relationship('Usuario', foreign_keys=[recebedor_id])
     unidade_destino = db.relationship('Unidade', foreign_keys=[unidade_destino_id])
+    os_origem = db.relationship('OrdemServico', foreign_keys=[os_id], backref='pedidos_vinculados')
 
 class SolicitacaoPeca(db.Model):
     """Solicitação de peça para OS via WhatsApp"""

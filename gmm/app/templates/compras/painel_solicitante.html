@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('compras.listar') }}">Compras</a></li>
+<li class="breadcrumb-item active">Painel de Solicitações</li>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4 d-flex justify-content-between align-items-center">
+    <div>
+        <h2 class="fw-bold mb-0">Solicitar Compra</h2>
+        <p class="text-muted small mb-0">Solicite itens de estoque ou produtos não cadastrados.</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Formulário principal -->
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom py-3">
+                <h5 class="fw-bold mb-0"><i class="bi bi-cart-plus me-2 text-primary"></i>Nova Solicitação</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('compras.painel_solicitante') }}">
+
+                    <!-- Seleção de categoria -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Categoria</label>
+                        <div class="row g-2" id="categoriaCards">
+                            {% set cats = [
+                                ('peca', 'bi-gear-fill', 'Peça Técnica', 'primary'),
+                                ('limpeza', 'bi-droplet-fill', 'Limpeza', 'info'),
+                                ('escritorio', 'bi-pencil-fill', 'Escritório', 'secondary'),
+                                ('ti', 'bi-laptop-fill', 'TI / Eletrônico', 'dark'),
+                                ('outros', 'bi-three-dots', 'Outros', 'warning'),
+                            ] %}
+                            {% for val, icon, label, cor in cats %}
+                            <div class="col-6 col-md-4 col-lg">
+                                <input type="radio" class="btn-check" name="categoria_compra"
+                                       id="cat_{{ val }}" value="{{ val }}"
+                                       {% if loop.first %}checked{% endif %}>
+                                <label class="btn btn-outline-{{ cor }} w-100 d-flex flex-column align-items-center py-3 gap-1"
+                                       for="cat_{{ val }}" style="font-size:.85rem;">
+                                    <i class="bi {{ icon }} fs-4"></i>
+                                    {{ label }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Item do estoque OU descrição livre -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label fw-semibold mb-0">Item</label>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="toggleItemLivre">
+                                <label class="form-check-label small text-muted" for="toggleItemLivre">Item não cadastrado</label>
+                            </div>
+                        </div>
+
+                        <div id="blocoEstoque">
+                            <select name="estoque_id" id="selectEstoque" class="form-select">
+                                <option value="">— Selecione um item do catálogo —</option>
+                                {% for item in itens_rapidos %}
+                                <option value="{{ item.id }}">{{ item.nome }} ({{ item.unidade_medida }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div id="blocoLivre" class="d-none">
+                            <input type="text" name="descricao_livre" id="inputDescricaoLivre"
+                                   class="form-control" placeholder="Descreva o item que deseja comprar...">
+                            <div class="form-text text-warning">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Itens não cadastrados passam por análise antes de serem processados.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Quantidade</label>
+                            <input type="number" name="quantidade" class="form-control"
+                                   value="1" min="1" step="0.01" required>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold">Unidade de Destino</label>
+                            <select name="unidade_id" class="form-select">
+                                <option value="">— Minha unidade padrão —</option>
+                                {% for u in unidades %}
+                                <option value="{{ u.id }}">{{ u.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Justificativa <span class="text-muted fw-normal">(opcional)</span></label>
+                        <textarea name="justificativa" class="form-control" rows="2"
+                                  placeholder="Por que este item é necessário?"></textarea>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-send-fill me-2"></i>Enviar Solicitação
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Histórico de solicitações -->
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0"><i class="bi bi-clock-history me-2 text-muted"></i>Minhas Solicitações</h5>
+                <a href="{{ url_for('compras.listar') }}" class="btn btn-sm btn-outline-secondary">Ver todas</a>
+            </div>
+            <div class="card-body p-0">
+                {% if minhas_solicitacoes %}
+                <ul class="list-group list-group-flush">
+                    {% for p in minhas_solicitacoes %}
+                    {% set status_map = {
+                        'pendente': ('secondary', 'Pendente'),
+                        'solicitado': ('primary', 'Solicitado'),
+                        'analise_cadastro': ('warning', 'Em Análise'),
+                        'aprovado': ('success', 'Aprovado'),
+                        'cotacao': ('info', 'Em Cotação'),
+                        'aguardando_entrega': ('info', 'Aguardando Entrega'),
+                        'concluido': ('success', 'Concluído'),
+                        'cancelado': ('danger', 'Cancelado'),
+                        'recusado': ('danger', 'Recusado'),
+                    } %}
+                    {% set cor, label_status = status_map.get(p.status, ('secondary', p.status|capitalize)) %}
+                    <li class="list-group-item py-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="fw-medium">
+                                    {% if p.peca %}{{ p.peca.nome }}
+                                    {% elif p.descricao_livre %}{{ p.descricao_livre }}
+                                    {% else %}Pedido #{{ p.id }}{% endif %}
+                                </div>
+                                <div class="text-muted small">
+                                    Qtd: {{ "{:g}".format(p.quantidade) }}
+                                    · {{ p.data_solicitacao.strftime('%d/%m/%Y') }}
+                                    {% if p.categoria_compra %}
+                                    · <span class="text-capitalize">{{ p.categoria_compra }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <span class="badge bg-{{ cor }} bg-opacity-15 text-{{ cor }} border border-{{ cor }} border-opacity-25 ms-2 flex-shrink-0"
+                                  style="font-size:.75rem;">
+                                {{ label_status }}
+                            </span>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-cart-x fs-2 d-block mb-2 opacity-50"></i>
+                    Nenhuma solicitação ainda.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('toggleItemLivre').addEventListener('change', function() {
+    const isLivre = this.checked;
+    document.getElementById('blocoEstoque').classList.toggle('d-none', isLivre);
+    document.getElementById('blocoLivre').classList.toggle('d-none', !isLivre);
+    document.getElementById('selectEstoque').disabled = isLivre;
+    document.getElementById('inputDescricaoLivre').disabled = !isLivre;
+});
+// Garante estado inicial correto
+document.getElementById('selectEstoque').disabled = false;
+document.getElementById('inputDescricaoLivre').disabled = true;
+</script>
+{% endblock %}

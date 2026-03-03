@@ -89,12 +89,14 @@ def criar_chamado():
             if novo_chamado.os_id:
                 os_origem = OrdemServico.query.get(novo_chamado.os_id)
                 if os_origem:
-                    equipamento = os_origem.equipamento_rel.nome if os_origem.equipamento_rel else 'Geral'
+                    eq_obj = os_origem.equipamento_rel
+                    equipamento = eq_obj.nome if eq_obj else 'Geral'
+                    serie_info = f" (S/N: {eq_obj.numero_serie})" if eq_obj and eq_obj.numero_serie else ""
                     detalhes_os = (
                         f"\n📋 *Dados da OS #{os_origem.numero_os}*\n"
                         f"Local: {os_origem.unidade.nome}\n"
                         f"Endereço: {os_origem.unidade.endereco or 'Não informado'}\n"
-                        f"Equipamento: {equipamento}\n"
+                        f"Equipamento: {equipamento}{serie_info}\n"
                     )
 
             msg = (f"🔧 *Solicitação de Serviço GMM*\n\n"

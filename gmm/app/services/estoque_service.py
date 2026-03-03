@@ -122,7 +122,7 @@ class EstoqueService:
         return item.quantidade_atual
 
     @staticmethod
-    def transferir_entre_unidades(estoque_id, unidade_origem_id, unidade_destino_id, quantidade, solicitante_id, observacao=None, aprovacao_automatica=False):
+    def transferir_entre_unidades(estoque_id, unidade_origem_id, unidade_destino_id, quantidade, solicitante_id, observacao=None, aprovacao_automatica=False, os_id=None):
         """
         Realiza a lógica de transferência de estoque entre unidades.
         """
@@ -150,7 +150,8 @@ class EstoqueService:
             solicitante_id=solicitante_id,
             quantidade=qtd_decimal,
             status='pendente',
-            observacao=observacao
+            observacao=observacao,
+            os_id=os_id
         )
         
         # Se for aprovada automaticamente (Admin/Gerente)
