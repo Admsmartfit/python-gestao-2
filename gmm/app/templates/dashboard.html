@@ -57,17 +57,23 @@
                 </form>
                 {% else %}
                 <span class="badge bg-secondary align-self-center mb-3">Não Iniciado</span>
+                <p class="text-muted small mb-2">Opcional — registre sua presença.</p>
                 <form action="{{ url_for('ponto.checkin') }}" method="POST" id="formCheckin">
                     <input type="hidden" name="latitude" id="lat">
                     <input type="hidden" name="longitude" id="lon">
-                    <select name="unidade_id" class="form-select mb-3" required>
-                        <option value="" selected disabled>Selecionar Local</option>
+                    {% if unidades %}
+                    <select name="unidade_id" class="form-select form-select-sm mb-3">
+                        <option value="" selected>— Local (opcional) —</option>
                         {% for u in unidades %}
-                        <option value="{{ u.id }}">{{ u.nome }}</option>
+                        <option value="{{ u.id }}"
+                            {% if current_user.unidade_padrao_id == u.id %}selected{% endif %}>
+                            {{ u.nome }}
+                        </option>
                         {% endfor %}
                     </select>
+                    {% endif %}
                     <button type="button" onclick="getLocationAndSubmit()" class="btn btn-primary w-100">
-                        <i class="bi bi-geo-alt me-2"></i> Check-in
+                        <i class="bi bi-geo-alt me-2"></i> Registrar Ponto
                     </button>
                 </form>
                 {% endif %}
@@ -269,27 +275,31 @@
     function getLocationAndSubmit() {
         const btn = document.querySelector('#formCheckin button');
         const form = document.getElementById('formCheckin');
-
-        // Loading state button
         const originalText = btn.innerHTML;
+
         btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Localizando...';
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Registrando...';
+
+        function submeterSemGps() {
+            // Submete sem coordenadas — ponto opcional, GPS não é obrigatório
+            form.submit();
+        }
 
         if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(function (position) {
-                document.getElementById('lat').value = position.coords.latitude;
-                document.getElementById('lon').value = position.coords.longitude;
-                form.submit();
-            }, function (error) {
-                // Tratamento de erro com Toast Nativo
-                ToastModule.show("Erro ao obter localização. Verifique as permissões.", "danger");
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-            }, { timeout: 10000 });
+            navigator.geolocation.getCurrentPosition(
+                function (position) {
+                    document.getElementById('lat').value = position.coords.latitude;
+                    document.getElementById('lon').value = position.coords.longitude;
+                    form.submit();
+                },
+                function () {
+                    // GPS negado ou falhou — registra ponto sem localização
+                    submeterSemGps();
+                },
+                { timeout: 6000, enableHighAccuracy: true }
+            );
         } else {
-            ToastModule.show("Geolocalização não suportada.", "danger");
-            btn.disabled = false;
-            btn.innerHTML = originalText;
+            submeterSemGps();
         }
     }
 

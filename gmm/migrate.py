@@ -93,6 +93,48 @@ def create_new_tables(conn):
     print('  [ok]   listas_compra, lista_compra_itens, ordens_compra_lista (CREATE IF NOT EXISTS)')
 
 
+def fix_registros_ponto_unidade_nullable(conn):
+    """
+    Torna unidade_id nullable em registros_ponto (ponto agora é opcional).
+    SQLite não suporta ALTER COLUMN — recria a tabela.
+    """
+    result = conn.execute(db.text('PRAGMA table_info(registros_ponto)'))
+    rows = result.fetchall()
+
+    unidade_col = next((r for r in rows if r[1] == 'unidade_id'), None)
+    if unidade_col is None:
+        print('  [skip] registros_ponto.unidade_id (coluna não encontrada)')
+        return
+    if unidade_col[3] == 0:
+        print('  [skip] registros_ponto.unidade_id já é nullable')
+        return
+
+    print('  [fix]  registros_ponto.unidade_id — removendo NOT NULL...')
+    col_names = [r[1] for r in rows]
+    cols_sql = ', '.join(col_names)
+
+    conn.execute(db.text('PRAGMA foreign_keys = OFF'))
+    conn.execute(db.text(f'''
+        CREATE TABLE registros_ponto_new (
+            id INTEGER PRIMARY KEY,
+            usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
+            unidade_id INTEGER REFERENCES unidades(id),
+            data_hora_entrada DATETIME NOT NULL,
+            data_hora_saida DATETIME,
+            ip_origem_entrada VARCHAR(45),
+            ip_origem_saida VARCHAR(45),
+            latitude NUMERIC(10,8),
+            longitude NUMERIC(11,8),
+            observacoes TEXT
+        )
+    '''))
+    conn.execute(db.text(f'INSERT INTO registros_ponto_new ({cols_sql}) SELECT {cols_sql} FROM registros_ponto'))
+    conn.execute(db.text('DROP TABLE registros_ponto'))
+    conn.execute(db.text('ALTER TABLE registros_ponto_new RENAME TO registros_ponto'))
+    conn.execute(db.text('PRAGMA foreign_keys = ON'))
+    print('  [ok]   registros_ponto recriada com unidade_id nullable')
+
+
 def fix_estoque_id_nullable(conn):
     """
     SQLite não suporta ALTER COLUMN.
@@ -166,6 +208,9 @@ def run():
 
             # Migração especial: tornar estoque_id nullable em pedidos_compra
             fix_estoque_id_nullable(conn)
+
+            # Migração especial: tornar unidade_id nullable em registros_ponto
+            fix_registros_ponto_unidade_nullable(conn)
 
             # Criar novas tabelas (listas de compra padrão)
             create_new_tables(conn)

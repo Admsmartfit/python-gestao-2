@@ -3,7 +3,6 @@ from flask_login import login_required, current_user
 from app.extensions import db
 from app.models.models import Unidade, RegistroPonto
 from app.models.estoque_models import OrdemServico, Estoque
-from app.utils.decorators import require_unit_ip
 from datetime import datetime, timedelta
 
 bp = Blueprint('ponto', __name__, url_prefix='/dashboard')
@@ -77,14 +76,13 @@ def index():
 
 @bp.route('/checkin', methods=['POST'])
 @login_required
-@require_unit_ip
 def checkin():
-    unidade_id = request.form.get('unidade_id')
-    lat = request.form.get('latitude')
-    lon = request.form.get('longitude')
-    
+    unidade_id = request.form.get('unidade_id') or None
+    lat = request.form.get('latitude') or None
+    lon = request.form.get('longitude') or None
+
     ponto_existente = RegistroPonto.query.filter_by(
-        usuario_id=current_user.id, 
+        usuario_id=current_user.id,
         data_hora_saida=None
     ).first()
 
@@ -92,19 +90,24 @@ def checkin():
         flash('Você já possui um registro de entrada aberto.', 'warning')
         return redirect(url_for('ponto.index'))
 
+    # unidade_id: usa a selecionada, ou a unidade padrão do usuário
+    if not unidade_id and current_user.unidade_padrao_id:
+        unidade_id = current_user.unidade_padrao_id
+
     novo_ponto = RegistroPonto(
         usuario_id=current_user.id,
         unidade_id=unidade_id,
         ip_origem_entrada=request.remote_addr,
         data_hora_entrada=datetime.utcnow(),
-        latitude=lat, # [Novo] Captura Geo
-        longitude=lon # [Novo] Captura Geo
+        latitude=lat,
+        longitude=lon
     )
-    
+
     db.session.add(novo_ponto)
     db.session.commit()
-    
-    flash('Entrada registrada com sucesso!', 'success')
+
+    obs_geo = " (sem localização GPS)" if not lat else ""
+    flash(f'Entrada registrada com sucesso{obs_geo}!', 'success')
     return redirect(url_for('ponto.index'))
 
 @bp.route('/checkout', methods=['POST'])
