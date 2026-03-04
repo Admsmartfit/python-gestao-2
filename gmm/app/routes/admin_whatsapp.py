@@ -198,7 +198,26 @@ def seed_default_rules():
             )
             db.session.add(regra_ajuda)
 
-        # 3. Regra Não Cadastrado (Catch-all)
+        # 3. Saudações → exibir menu
+        saudacoes = [
+            ('OI', 95), ('OLÁ', 95), ('OLA', 95),
+            ('BOM DIA', 85), ('BOA TARDE', 85), ('BOA NOITE', 85),
+        ]
+        for palavra, prio in saudacoes:
+            if not RegrasAutomacao.query.filter_by(palavra_chave=palavra).first():
+                db.session.add(RegrasAutomacao(
+                    palavra_chave=palavra,
+                    tipo_correspondencia='exato',
+                    acao='executar_funcao',
+                    funcao_sistema='exibir_menu_principal',
+                    prioridade=prio,
+                    ativo=True,
+                    para_desconhecidos=False,
+                    para_terceirizados=True,
+                    para_usuarios=True
+                ))
+
+        # 4. Regra Não Cadastrado (Catch-all)
         if not RegrasAutomacao.query.filter_by(palavra_chave='.*').first():
             config = ConfiguracaoWhatsApp.query.filter_by(ativo=True).first()
             msg_padrao = config.resposta_nao_cadastrado_texto if config else "⚠️ *Telefone não cadastrado*\n\nSeu número não está registrado no sistema GMM."

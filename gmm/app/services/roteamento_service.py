@@ -157,6 +157,8 @@ class RoteamentoService:
         comando = ComandoParser.parse(texto)
         if comando:
             cmd_key = comando['comando']
+            if cmd_key == 'MENU':
+                return RoteamentoService._executar_funcao_sistema('exibir_menu_principal', terceirizado)
             # Estes comandos agora devem ser regras, mas mantemos fallback por segurança para comandos técnicos
             if cmd_key in ['COMPRA', 'STATUS', 'STATUS_UPDATE', 'CONFIRMAR_SEPARACAO']:
                 if cmd_key == 'COMPRA':
@@ -200,8 +202,8 @@ class RoteamentoService:
         except Exception as e:
             logger.warning(f"NLP analysis failed: {e}")
 
-        # 7. Fallback - Menu interativo para terceirizados
-        return RoteamentoService._exibir_menu_terceirizado(terceirizado)
+        # 7. Fallback - silencioso (sem menu automático)
+        return {'acao': 'ignorar'}
 
     @staticmethod
     def _processar_usuario(usuario, texto: str, remetente: str) -> dict:
@@ -234,6 +236,11 @@ class RoteamentoService:
             if texto_up.startswith('#ADMIN'):
                 return RoteamentoService._processar_comando_admin(usuario, texto)
 
+        # Comando explícito #MENU
+        cmd = ComandoParser.parse(texto)
+        if cmd and cmd['comando'] == 'MENU':
+            return RoteamentoService._executar_funcao_sistema('exibir_menu_principal', usuario, is_usuario=True)
+
         # 2. Automation Rules (Priority)
         regras = RegrasAutomacao.query.filter_by(ativo=True, para_usuarios=True).order_by(
             RegrasAutomacao.prioridade.desc()
@@ -251,8 +258,8 @@ class RoteamentoService:
                     'funcao': r.funcao_sistema
                 }
 
-        # 5. Fallback - Menu por tipo de usuário
-        return RoteamentoService._exibir_menu_usuario(usuario)
+        # 5. Fallback - silencioso (sem menu automático)
+        return {'acao': 'ignorar'}
 
     # ==================== MENUS POR TIPO DE USUÁRIO ====================
 
