@@ -407,37 +407,48 @@
     </div>
 </div>
 
-<div class="modal fade" id="modalSolicitarCompra" tabindex="-1">
+<div class="modal fade" id="modalSolicitarCompra" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header border-0 pb-0">
                 <h5 class="modal-title fw-bold">Solicitar Compra de Peça</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" id="btnFecharCompraModal" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body pt-4">
-                <div class="mb-3">
-                    <label class="form-label">Peça / Item de Estoque</label>
-                    <div class="position-relative">
-                        <input type="text" class="form-control" id="buscaPecaCompra" placeholder="Digite para buscar..."
-                            autocomplete="off">
-                        <div id="listaSugestoesCompra" class="list-group position-absolute w-100 shadow"
-                            style="z-index: 1060; top: 100%;"></div>
+                <!-- Formulário principal -->
+                <div id="compraFormBody">
+                    <div class="mb-3">
+                        <label class="form-label">Peça / Item de Estoque</label>
+                        <div class="position-relative">
+                            <input type="text" class="form-control" id="buscaPecaCompra" placeholder="Digite para buscar..."
+                                autocomplete="off">
+                            <div id="listaSugestoesCompra" class="list-group position-absolute w-100 shadow"
+                                style="z-index: 1060; top: 100%;"></div>
+                        </div>
+                        <input type="hidden" id="compraIdItem">
                     </div>
-                    <input type="hidden" id="compraIdItem">
+                    <div id="divItemFixo" class="mb-3 d-none">
+                        <label class="form-label text-muted">Item Selecionado</label>
+                        <input type="text" class="form-control bg-light" id="compraNomeItem" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Quantidade Necessária</label>
+                        <input type="number" step="0.01" class="form-control form-control-lg" id="compraQtd" required>
+                    </div>
+                    <div class="d-grid mt-4">
+                        <button type="button" onclick="confirmarSolicitacaoCompra()" class="btn btn-danger btn-lg"
+                            id="btnConfirmarCompra">
+                            <i class="bi bi-cart-plus me-2"></i>Enviar Solicitação
+                        </button>
+                    </div>
                 </div>
-                <div id="divItemFixo" class="mb-3 d-none">
-                    <label class="form-label text-muted">Item Selecionado</label>
-                    <input type="text" class="form-control bg-light" id="compraNomeItem" readonly>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Quantidade Necessária</label>
-                    <input type="number" step="0.01" class="form-control form-control-lg" id="compraQtd" required>
-                </div>
-                <div class="d-grid mt-4">
-                    <button type="button" onclick="confirmarSolicitacaoCompra()" class="btn btn-danger"
-                        id="btnConfirmarCompra">
-                        Confirmar Solicitação
-                    </button>
+
+                <!-- Tela de aguardo (oculta por padrão) -->
+                <div id="compraAguardando" class="d-none text-center py-4">
+                    <div class="spinner-border text-danger mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+                    <h5 class="fw-bold text-dark mb-2">Enviando Solicitação...</h5>
+                    <p class="text-muted mb-3">Estamos processando seu pedido e notificando o setor de compras por <strong>e-mail</strong> e <strong>WhatsApp</strong>.</p>
+                    <p class="text-muted small">Por favor, <strong>não feche esta janela</strong> até a confirmação.</p>
                 </div>
             </div>
         </div>
@@ -1051,6 +1062,11 @@
     }
 
     function prepararSolicitacaoCompra(id, nome, qtd = 1) {
+        // Reseta estado da tela de aguardo
+        document.getElementById('compraFormBody').classList.remove('d-none');
+        document.getElementById('compraAguardando').classList.add('d-none');
+        document.getElementById('btnFecharCompraModal').style.display = '';
+
         document.getElementById('compraIdItem').value = id;
         document.getElementById('compraNomeItem').value = nome;
         document.getElementById('compraQtd').value = qtd;
@@ -1068,16 +1084,20 @@
     async function confirmarSolicitacaoCompra() {
         const id = document.getElementById('compraIdItem').value;
         const qtd = document.getElementById('compraQtd').value;
-        const btn = document.getElementById('btnConfirmarCompra');
 
-        if (!qtd || qtd <= 0) {
+        if (!id) {
+            ToastModule.show("Selecione uma peça.", "warning");
+            return;
+        }
+        if (!qtd || parseFloat(qtd) <= 0) {
             ToastModule.show("Informe uma quantidade válida.", "warning");
             return;
         }
 
-        const originalText = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Solicitando...';
+        // Exibe tela de aguardo
+        document.getElementById('compraFormBody').classList.add('d-none');
+        document.getElementById('compraAguardando').classList.remove('d-none');
+        document.getElementById('btnFecharCompraModal').style.display = 'none';
 
         try {
             const res = await fetch(`/os/{{ os.id }}/solicitar-compra-peca`, {
@@ -1088,19 +1108,20 @@
             const data = await res.json();
 
             if (data.success) {
-                ToastModule.show(data.mensagem, "success");
+                ToastModule.show('✅ ' + data.mensagem + ' — aguardando aprovação do comprador.', "success");
                 bootstrap.Modal.getInstance(document.getElementById('modalSolicitarCompra')).hide();
-                // Opcional: fechar também o modal de recursos se estiver aberto
-                const modalRecursos = bootstrap.Modal.getInstance(document.getElementById('modalRecursos'));
-                if (modalRecursos) modalRecursos.hide();
             } else {
                 ToastModule.show("Erro: " + data.erro, "danger");
+                // Volta ao formulário em caso de erro
+                document.getElementById('compraFormBody').classList.remove('d-none');
+                document.getElementById('compraAguardando').classList.add('d-none');
+                document.getElementById('btnFecharCompraModal').style.display = '';
             }
         } catch (e) {
-            ToastModule.show("Erro de conexão.", "danger");
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = originalText;
+            ToastModule.show("Erro de conexão. Tente novamente.", "danger");
+            document.getElementById('compraFormBody').classList.remove('d-none');
+            document.getElementById('compraAguardando').classList.add('d-none');
+            document.getElementById('btnFecharCompraModal').style.display = '';
         }
     }
 

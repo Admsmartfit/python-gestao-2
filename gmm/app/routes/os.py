@@ -269,18 +269,7 @@ def solicitar_compra_peca(id):
                 return jsonify({'success': False, 'erro': 'Nenhum fornecedor cadastrado no sistema.'}), 400
             fornecedor_id = f.id
 
-        # US-006: Cálculo de valor e Aprovação Automática
-        valor_unitario = float(item.valor_unitario or 0)
-        valor_total = valor_unitario * float(quantidade)
-        
-        status_inicial = 'pendente'
-        aprovador_id = None
-
-        if valor_total <= 500:
-            status_inicial = 'aprovado'
-            aprovador_id = 0 # ID 0 ou ID do sistema para aprovacao automatica
-
-        # Buscar unidade da OS para vincular ao pedido
+        # Sempre cria como pendente — comprador revisa antes de aprovar
         os_obj = OrdemServico.query.get(id)
         unidade_os_id = os_obj.unidade_id if os_obj else None
 
@@ -288,10 +277,9 @@ def solicitar_compra_peca(id):
             fornecedor_id=fornecedor_id,
             estoque_id=estoque_id,
             quantidade=int(quantidade),
-            status=status_inicial,
+            status='pendente',
             data_solicitacao=datetime.now(),
             solicitante_id=current_user.id,
-            aprovador_id=aprovador_id,
             unidade_destino_id=unidade_os_id,
             os_id=id  # vincula à OS de origem
         )
