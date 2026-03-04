@@ -165,8 +165,10 @@
                                     {{ pedido.justificativa or '—' }}
                                 </td>
                                 <td class="text-end pe-4">
-                                    <button class="btn btn-sm btn-primary me-1"
-                                        onclick="abrirModalCadastrarItem({{ pedido.id }}, {{ pedido.descricao_livre|tojson }}, {{ pedido.categoria_compra|tojson if pedido.categoria_compra else 'null' }})">
+                                    <button class="btn btn-sm btn-primary me-1" type="button"
+                                        data-pedido-id="{{ pedido.id }}"
+                                        data-descricao="{{ pedido.descricao_livre or '' }}"
+                                        onclick="abrirModalCadastrarItem(this.dataset.pedidoId, this.dataset.descricao)">
                                         <i class="bi bi-plus-circle me-1"></i> Cadastrar Item
                                     </button>
                                     <button class="btn btn-sm btn-outline-danger"

@@ -8,24 +8,22 @@ from flask import current_app
 class RegrasAutomacao(db.Model):
     __tablename__ = 'whatsapp_regras_automacao'
     id = db.Column(db.Integer, primary_key=True)
-    palavra_chave = db.Column(db.String(50), nullable=False, index=True)
-    tipo_correspondencia = db.Column(db.String(20), default='exata') # exata, contem
-    acao = db.Column(db.String(50), nullable=False) # responder, criar_os, transbordar
+    palavra_chave = db.Column(db.String(200), nullable=False, index=True)  # aceita frases com espaços
+    tipo_correspondencia = db.Column(db.String(20), default='contem')  # exata, contem, regex
+    acao = db.Column(db.String(50), nullable=False)  # responder, encaminhar, executar_funcao
     resposta_texto = db.Column(db.Text)
-    encaminhar_para_perfil = db.Column(db.String(50), nullable=True) # admin, comprador, gerente
-    funcao_sistema = db.Column(db.String(50), nullable=True) # Nome da função a executar
+    encaminhar_para_perfil = db.Column(db.String(50), nullable=True)  # admin, comprador, gerente
+    funcao_sistema = db.Column(db.String(50), nullable=True)
     prioridade = db.Column(db.Integer, default=0)
     ativo = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    # Usuário específico que deve receber notificação quando esta regra disparar
+    notificar_usuario_id = db.Column(db.Integer, nullable=True)  # FK lógica para usuarios.id
+    # Se True, a regra também dispara para remetentes não cadastrados no sistema
+    para_desconhecidos = db.Column(db.Boolean, default=True)
 
     def __repr__(self):
         return f'<RegraAutomacao {self.palavra_chave}>'
-
-    @db.validates('palavra_chave')
-    def validate_palavra_chave(self, key, value):
-        if ' ' in value:
-            raise ValueError("A palavra-chave não pode conter espaços.")
-        return value
 
 class TokenAcesso(db.Model):
     __tablename__ = 'whatsapp_tokens_acesso'

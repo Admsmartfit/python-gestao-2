@@ -16,18 +16,23 @@
                     <thead class="bg-light">
                         <tr>
                             <th class="ps-4">Prioridade</th>
-                            <th>Gatilho (Palavra-chave)</th>
-                            <th>Correspondência</th>
+                            <th>Gatilho</th>
+                            <th>Match</th>
                             <th>Ação</th>
+                            <th>Notificar</th>
                             <th>Status</th>
                             <th class="text-end pe-4">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for regra in regras %}
+                        {% set notif_usuario = usuarios | selectattr('id', 'equalto', regra.notificar_usuario_id) | first if regra.notificar_usuario_id else None %}
                         <tr>
                             <td class="ps-4">{{ regra.prioridade }}</td>
-                            <td><code class="px-2 py-1 bg-light rounded">{{ regra.palavra_chave }}</code></td>
+                            <td>
+                                <code class="px-2 py-1 bg-light rounded">{{ regra.palavra_chave }}</code>
+                                {% if regra.para_desconhecidos %}<span class="badge bg-secondary bg-opacity-10 text-secondary ms-1" title="Aplica para não-cadastrados">público</span>{% endif %}
+                            </td>
                             <td>
                                 <span class="badge bg-secondary bg-opacity-10 text-secondary">
                                     {{ regra.tipo_correspondencia }}
@@ -37,13 +42,20 @@
                                 {% if regra.acao == 'responder' %}
                                 <span class="text-primary"><i class="bi bi-chat-dots me-1"></i> Responder</span>
                                 {% elif regra.acao == 'encaminhar' %}
-                                <span class="text-warning"><i class="bi bi-box-arrow-in-right me-1"></i> Encaminhar ({{
-                                    regra.encaminhar_para_perfil }})</span>
+                                <span class="text-warning"><i class="bi bi-box-arrow-in-right me-1"></i> Encaminhar ({{ regra.encaminhar_para_perfil }})</span>
                                 {% elif regra.acao == 'executar_funcao' %}
-                                <span class="text-info"><i class="bi bi-gear me-1"></i> Executar ({{
-                                    regra.funcao_sistema }})</span>
+                                <span class="text-info"><i class="bi bi-gear me-1"></i> {{ regra.funcao_sistema }}</span>
                                 {% else %}
                                 {{ regra.acao }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if notif_usuario %}
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25">
+                                    <i class="bi bi-bell me-1"></i>{{ notif_usuario.nome }}
+                                </span>
+                                {% else %}
+                                <span class="text-muted small">—</span>
                                 {% endif %}
                             </td>
                             <td>
@@ -171,6 +183,29 @@
                             <strong>Dica:</strong> A função será executada automaticamente quando a palavra-chave for detectada.
                         </div>
                     </div>
+
+                    <!-- Seção: Quem recebe a notificação -->
+                    <hr class="my-3">
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold text-uppercase text-muted">
+                            <i class="bi bi-bell me-1"></i>Notificar Usuário Interno (opcional)
+                        </label>
+                        <select class="form-select" id="notificarUsuarioId">
+                            <option value="">— Nenhum —</option>
+                            {% for u in usuarios %}
+                            <option value="{{ u.id }}">{{ u.nome }} ({{ u.tipo }}) — {{ u.telefone }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Quando esta regra disparar, o usuário selecionado receberá uma notificação no WhatsApp com a mensagem original.</div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="paraDesconhecidos" checked>
+                            <label class="form-check-label small" for="paraDesconhecidos">
+                                Aplicar também para números <strong>não cadastrados</strong> no sistema
+                            </label>
+                        </div>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer border-0 pt-0">
@@ -207,6 +242,8 @@
         document.getElementById('encaminharPara').value = 'admin';
         document.getElementById('funcaoSistema').value = '';
         document.getElementById('prioridade').value = '0';
+        document.getElementById('notificarUsuarioId').value = '';
+        document.getElementById('paraDesconhecidos').checked = true;
         document.getElementById('tituloModal').textContent = 'Nova Regra de Automação';
         toggleCampos();
     }
@@ -230,6 +267,8 @@
             document.getElementById('encaminharPara').value = regra.encaminhar_para_perfil || 'admin';
             document.getElementById('funcaoSistema').value = regra.funcao_sistema || '';
             document.getElementById('prioridade').value = regra.prioridade;
+            document.getElementById('notificarUsuarioId').value = regra.notificar_usuario_id || '';
+            document.getElementById('paraDesconhecidos').checked = regra.para_desconhecidos !== false;
 
             document.getElementById('tituloModal').textContent = 'Editar Regra de Automação';
 
@@ -246,6 +285,7 @@
 
     async function salvarRegra() {
         const regraId = document.getElementById('regraId').value;
+        const notifUserId = document.getElementById('notificarUsuarioId').value;
         const dados = {
             palavra_chave: document.getElementById('palavraChave').value,
             tipo_correspondencia: document.getElementById('tipoMatch').value,
@@ -253,7 +293,9 @@
             resposta_texto: document.getElementById('respostaTexto').value,
             encaminhar_para_perfil: document.getElementById('encaminharPara').value,
             funcao_sistema: document.getElementById('funcaoSistema').value,
-            prioridade: parseInt(document.getElementById('prioridade').value)
+            prioridade: parseInt(document.getElementById('prioridade').value),
+            notificar_usuario_id: notifUserId ? parseInt(notifUserId) : null,
+            para_desconhecidos: document.getElementById('paraDesconhecidos').checked,
         };
 
         if (!dados.palavra_chave) {

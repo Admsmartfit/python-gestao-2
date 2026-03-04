@@ -27,11 +27,15 @@ def listar_regras():
     if current_user.tipo != 'admin':
         abort(403)
     
+    from app.models.models import Usuario
     regras = RegrasAutomacao.query.order_by(
         RegrasAutomacao.prioridade.desc()
     ).all()
-    
-    return render_template('admin/whatsapp_regras.html', regras=regras)
+    usuarios = Usuario.query.filter_by(ativo=True).filter(
+        Usuario.telefone.isnot(None)
+    ).order_by(Usuario.nome).all()
+
+    return render_template('admin/whatsapp_regras.html', regras=regras, usuarios=usuarios)
 
 @bp.route('/admin/whatsapp/regras', methods=['POST'])
 @login_required
@@ -53,7 +57,9 @@ def criar_regra():
         resposta_texto=data.get('resposta_texto'),
         encaminhar_para_perfil=data.get('encaminhar_para_perfil'),
         funcao_sistema=data.get('funcao_sistema'),
-        prioridade=data.get('prioridade', 0)
+        prioridade=data.get('prioridade', 0),
+        notificar_usuario_id=data.get('notificar_usuario_id') or None,
+        para_desconhecidos=data.get('para_desconhecidos', True),
     )
 
     db.session.add(regra)
@@ -82,7 +88,9 @@ def obter_regra(regra_id):
         'encaminhar_para_perfil': regra.encaminhar_para_perfil,
         'funcao_sistema': regra.funcao_sistema,
         'prioridade': regra.prioridade,
-        'ativo': regra.ativo
+        'ativo': regra.ativo,
+        'notificar_usuario_id': regra.notificar_usuario_id,
+        'para_desconhecidos': regra.para_desconhecidos,
     })
 
 @bp.route('/admin/whatsapp/regras/<int:regra_id>', methods=['PUT'])
@@ -107,6 +115,8 @@ def atualizar_regra(regra_id):
     regra.encaminhar_para_perfil = data.get('encaminhar_para_perfil')
     regra.funcao_sistema = data.get('funcao_sistema')
     regra.prioridade = data.get('prioridade', 0)
+    regra.notificar_usuario_id = data.get('notificar_usuario_id') or None
+    regra.para_desconhecidos = data.get('para_desconhecidos', True)
 
     if 'ativo' in data:
         regra.ativo = data['ativo']

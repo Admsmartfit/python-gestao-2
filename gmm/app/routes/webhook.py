@@ -135,6 +135,36 @@ def vincular_whatsapp_fornecedor(remetente, texto):
         logger.error(f"Erro ao vincular WhatsApp ao fornecedor: {e}", exc_info=True)
 
 
+def _encaminhar_para_perfil(perfil: str, remetente: str, texto: str):
+    """
+    Encaminha mensagem recebida para todos os usuários internos do perfil especificado.
+    perfil: 'admin', 'gerente', 'comprador', etc.
+    """
+    try:
+        from app.models.models import Usuario
+        from app.services.whatsapp_service import WhatsAppService
+
+        usuarios = Usuario.query.filter_by(tipo=perfil, ativo=True).filter(
+            Usuario.telefone.isnot(None)
+        ).all()
+
+        if not usuarios:
+            logger.warning(f"Nenhum usuário do perfil '{perfil}' com telefone cadastrado")
+            return
+
+        msg = (
+            f"📨 *Mensagem Encaminhada*\n\n"
+            f"De: {remetente}\n"
+            f"Mensagem:\n_{texto[:500]}_\n\n"
+            f"_Esta mensagem foi encaminhada automaticamente pelo sistema._"
+        )
+        for u in usuarios:
+            WhatsAppService.enviar_mensagem(telefone=u.telefone, texto=msg, prioridade=1)
+            logger.info(f"Mensagem encaminhada para {u.nome} ({u.telefone}) — perfil={perfil}")
+    except Exception as e:
+        logger.error(f"Erro ao encaminhar para perfil '{perfil}': {e}")
+
+
 def validar_webhook(req):
     """
     Valida origem do webhook.
@@ -476,6 +506,9 @@ def webhook_whatsapp():
                                 telefone=resultado.get('telefone', remetente),
                                 texto=resultado['mensagem']
                             )
+                        # Encaminha para usuários do perfil configurado na regra
+                        if resultado.get('encaminhar_para'):
+                            _encaminhar_para_perfil(resultado['encaminhar_para'], remetente, texto)
                 except Exception as e2:
                     logger.error(f"Erro no roteamento sincrono: {e2}", exc_info=True)
 
@@ -526,13 +559,42 @@ def webhook_whatsapp():
             db.session.add(notif)
             db.session.commit()
 
-            # Baixar midia
+            # Vincular ao chamado ativo (para Central de Mensagens)
+            vincular_notificacao_chamado(notif, remetente)
+
+            # Baixar mídia: tenta Celery, cai para síncrono se indisponível
             if dados['url_midia']:
+                celery_ok = False
                 try:
                     from app.tasks.whatsapp_tasks import baixar_midia_task
                     baixar_midia_task.delay(notif.id, dados['url_midia'], tipo)
+                    celery_ok = True
                 except Exception as e:
                     logger.warning(f"Celery indisponivel para download de midia: {e}")
+
+                if not celery_ok:
+                    # Fallback síncrono — baixa direto no request
+                    try:
+                        from app.services.media_downloader_service import MediaDownloaderService
+                        bearer_token = current_app.config.get('MEGA_API_TOKEN')
+                        if bearer_token:
+                            filepath = MediaDownloaderService.download(dados['url_midia'], tipo, bearer_token)
+                            notif.url_midia_local = filepath
+                            db.session.commit()
+                            logger.info(f"Mídia baixada de forma síncrona: {filepath}")
+                            # Transcrição síncrona de áudio
+                            if tipo == 'audio':
+                                try:
+                                    from app.tasks.whatsapp_tasks import transcrever_audio_task
+                                    transcrever_audio_task.delay(notif.id)
+                                except Exception:
+                                    pass
+                        else:
+                            logger.error("MEGA_API_TOKEN não configurado — não é possível baixar mídia")
+                    except Exception as e2:
+                        logger.error(f"Erro no download síncrono de mídia: {e2}", exc_info=True)
+            else:
+                logger.warning(f"Mensagem de mídia sem URL — tipo={tipo}, msg_id={dados['msg_id']}")
 
         else:
             logger.warning(f"Tipo de mensagem desconhecido: {tipo}")

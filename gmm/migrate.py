@@ -46,6 +46,12 @@ MIGRATIONS = [
     # Etapa 5 — Vínculo de pedido individual com OrdemCompraLista
     ('pedidos_compra', 'ordem_lista_id',
      'ALTER TABLE pedidos_compra ADD COLUMN ordem_lista_id INTEGER REFERENCES ordens_compra_lista(id)'),
+
+    # Etapa 6 — Regras de automação WhatsApp: notificação e para_desconhecidos
+    ('whatsapp_regras_automacao', 'notificar_usuario_id',
+     'ALTER TABLE whatsapp_regras_automacao ADD COLUMN notificar_usuario_id INTEGER'),
+    ('whatsapp_regras_automacao', 'para_desconhecidos',
+     'ALTER TABLE whatsapp_regras_automacao ADD COLUMN para_desconhecidos BOOLEAN DEFAULT 1'),
 ]
 
 

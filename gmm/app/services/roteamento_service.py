@@ -47,8 +47,19 @@ class RoteamentoService:
             ).first()
 
         if not terceirizado and not usuario:
-            # Telefone não cadastrado - envia mensagem de orientação
-            logger.info(f"Telefone não cadastrado: {remetente}")
+            # Telefone não cadastrado — verifica regras de automação antes de rejeitar
+            logger.info(f"Telefone não cadastrado: {remetente} — verificando regras de automação")
+            regras_desc = RegrasAutomacao.query.filter_by(ativo=True, para_desconhecidos=True).order_by(
+                RegrasAutomacao.prioridade.desc()
+            ).all()
+            for r in regras_desc:
+                if RoteamentoService._match_regra(r, texto):
+                    logger.info(f"Regra '{r.palavra_chave}' disparada para não-cadastrado {remetente}")
+                    RoteamentoService._notificar_usuario_regra(r, remetente, texto)
+                    if r.resposta_texto:
+                        return {'acao': 'enviar_mensagem', 'telefone': remetente, 'mensagem': r.resposta_texto}
+                    return {'acao': 'ignorar'}
+
             return {
                 'acao': 'enviar_mensagem',
                 'telefone': remetente,
@@ -151,6 +162,8 @@ class RoteamentoService:
 
         for r in regra:
             if RoteamentoService._match_regra(r, texto):
+                # Notifica usuário específico se configurado
+                RoteamentoService._notificar_usuario_regra(r, remetente, texto, entidade=terceirizado)
                 # PRD: Se ação é executar_funcao, executa a função
                 if r.acao == 'executar_funcao' and r.funcao_sistema:
                     return RoteamentoService._executar_funcao_sistema(r.funcao_sistema, terceirizado)
@@ -236,6 +249,7 @@ class RoteamentoService:
 
         for r in regra:
             if RoteamentoService._match_regra(r, texto):
+                RoteamentoService._notificar_usuario_regra(r, remetente, texto, entidade=usuario)
                 if r.acao == 'executar_funcao' and r.funcao_sistema:
                     return RoteamentoService._executar_funcao_sistema(r.funcao_sistema, usuario, is_usuario=True)
                 return {
@@ -1397,6 +1411,40 @@ Você receberá um lembrete 1 dia antes.
                 return False
 
         return False
+
+    @staticmethod
+    def _notificar_usuario_regra(regra, remetente: str, texto: str, entidade=None):
+        """
+        Se a regra tem notificar_usuario_id configurado, envia notificação para
+        o usuário interno especificado informando que a regra disparou.
+        """
+        if not regra.notificar_usuario_id:
+            return
+        try:
+            from app.models.models import Usuario
+            from app.services.whatsapp_service import WhatsAppService
+
+            usuario_notif = Usuario.query.get(regra.notificar_usuario_id)
+            if not usuario_notif or not usuario_notif.telefone:
+                logger.warning(f"Usuário {regra.notificar_usuario_id} não tem telefone — não notificado")
+                return
+
+            nome_remetente = getattr(entidade, 'nome', remetente) if entidade else remetente
+
+            msg = (
+                f"🔔 *Alerta de Automação WhatsApp*\n\n"
+                f"Gatilho: *{regra.palavra_chave}*\n"
+                f"Remetente: {nome_remetente} ({remetente})\n\n"
+                f"Mensagem recebida:\n_{texto[:300]}_"
+            )
+            WhatsAppService.enviar_mensagem(
+                telefone=usuario_notif.telefone,
+                texto=msg,
+                prioridade=1
+            )
+            logger.info(f"Notificação de regra enviada para {usuario_notif.nome} ({usuario_notif.telefone})")
+        except Exception as e:
+            logger.warning(f"Erro ao notificar usuário da regra: {e}")
 
     @staticmethod
     def _executar_funcao_sistema(funcao_nome: str, entidade, is_usuario=False) -> dict:
