@@ -168,7 +168,9 @@
                                     <div>{{ f.email or '-' }}</div>
                                     <div>{{ f.telefone or '' }}</div>
                                 </td>
-                                <td data-label="Unidade">{{ f.unidade_padrao_id or 'Global' }}</td>
+                                <td data-label="Unidade">
+                                    {% if f.unidade_padrao %}{{ f.unidade_padrao.nome }}{% else %}Global{% endif %}
+                                </td>
                                 <td data-label="Status">
                                     {% if f.ativo %}
                                     <span class="badge bg-success">Ativo</span>
@@ -177,6 +179,17 @@
                                     {% endif %}
                                 </td>
                                 <td class="text-end pe-4" data-label="Ações">
+                                    <button class="btn btn-sm btn-outline-primary me-1 btn-editar-usuario"
+                                        title="Editar usuário"
+                                        data-id="{{ f.id }}"
+                                        data-nome="{{ f.nome }}"
+                                        data-username="{{ f.username }}"
+                                        data-email="{{ f.email or '' }}"
+                                        data-telefone="{{ f.telefone or '' }}"
+                                        data-tipo="{{ f.tipo }}"
+                                        data-unidade="{{ f.unidade_padrao_id or '' }}">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
                                     <a href="{{ url_for('admin.toggle_usuario_status', id=f.id) }}"
                                         class="btn btn-sm btn-outline-{% if f.ativo %}warning{% else %}success{% endif %} me-1"
                                         title="{% if f.ativo %}Desativar{% else %}Ativar{% endif %} usuário">
@@ -1131,6 +1144,84 @@
                 editarFornecedor(d.id, d.nome, d.email, d.telefone, d.endereco, d.prazo);
             });
         });
+
+        // Listener para Editar Usuário
+        document.querySelectorAll('.btn-editar-usuario').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const d = this.dataset;
+                document.getElementById('editUserId').value = d.id;
+                document.getElementById('editUserNome').value = d.nome;
+                document.getElementById('editUserUsername').value = d.username;
+                document.getElementById('editUserEmail').value = d.email;
+                document.getElementById('editUserTelefone').value = d.telefone;
+                document.getElementById('editUserTipo').value = d.tipo;
+                document.getElementById('editUserSenha').value = '';
+                const sel = document.getElementById('editUserUnidade');
+                sel.value = d.unidade || '';
+                new bootstrap.Modal(document.getElementById('modalEditarUsuario')).show();
+            });
+        });
     });
 </script>
+
+<!-- Modal Editar Usuário -->
+<div class="modal fade" id="modalEditarUsuario" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-person-gear me-2"></i>Editar Usuário</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('admin.editar_tecnico') }}" method="POST">
+                <div class="modal-body">
+                    <input type="hidden" name="user_id" id="editUserId">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Nome Completo</label>
+                            <input type="text" name="nome" id="editUserNome" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Login (username)</label>
+                            <input type="text" name="username" id="editUserUsername" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Email</label>
+                            <input type="email" name="email" id="editUserEmail" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Telefone / WhatsApp</label>
+                            <input type="text" name="telefone" id="editUserTelefone" class="form-control" placeholder="(xx) xxxxx-xxxx">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Cargo / Função</label>
+                            <select name="tipo" id="editUserTipo" class="form-select" required>
+                                <option value="tecnico">Técnico</option>
+                                <option value="prestador">Prestador de Serviço</option>
+                                <option value="gerente">Gerente de Unidade</option>
+                                <option value="comprador">Comprador / Suprimentos</option>
+                                <option value="admin">Administrador</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Unidade Padrão</label>
+                            <select name="unidade_id" id="editUserUnidade" class="form-select">
+                                <option value="">Global / Todas</option>
+                                {% for u in unidades %}<option value="{{ u.id }}">{{ u.nome }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Nova Senha <span class="text-muted fw-normal">(deixe vazio para manter)</span></label>
+                            <input type="password" name="senha" id="editUserSenha" class="form-control" placeholder="Nova senha (opcional)">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 {% endblock %}

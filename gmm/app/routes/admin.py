@@ -153,17 +153,29 @@ def editar_tecnico(): # Mantive o nome da função para compatibilidade, mas ser
     
     if user:
         user.nome = request.form.get('nome')
-        user.email = request.form.get('email')
+        user.email = request.form.get('email') or None
         user.unidade_padrao_id = request.form.get('unidade_id') or None
         tel = request.form.get('telefone')
         if tel is not None:
             user.telefone = _norm_tel(tel)
 
+        novo_username = request.form.get('username', '').strip()
+        if novo_username and novo_username != user.username:
+            conflito = Usuario.query.filter_by(username=novo_username).first()
+            if conflito:
+                flash(f'Login "{novo_username}" já está em uso por outro usuário.', 'danger')
+                return redirect(url_for('admin.dashboard', tab='tecnicos'))
+            user.username = novo_username
+
+        novo_tipo = request.form.get('tipo')
+        if novo_tipo:
+            user.tipo = novo_tipo
+
         # Só altera a senha se o campo foi preenchido
         nova_senha = request.form.get('senha')
         if nova_senha:
             user.set_senha(nova_senha)
-            
+
         db.session.commit()
         flash('Dados do usuário atualizados.', 'success')
     return redirect(url_for('admin.dashboard', tab='tecnicos'))

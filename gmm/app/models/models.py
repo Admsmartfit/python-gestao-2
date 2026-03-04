@@ -28,6 +28,7 @@ class Usuario(UserMixin, db.Model):
     tipo = db.Column(db.String(20), nullable=False)
     foto_perfil = db.Column(db.String(255), nullable=True) # [Novo PRD 3.1.1]
     unidade_padrao_id = db.Column(db.Integer, db.ForeignKey('unidades.id'), nullable=True)
+    unidade_padrao = db.relationship('Unidade', foreign_keys=[unidade_padrao_id])
     ativo = db.Column(db.Boolean, default=True)
     ultimo_acesso = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
