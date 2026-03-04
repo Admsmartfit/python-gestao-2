@@ -49,9 +49,15 @@ class RoteamentoService:
         if not terceirizado and not usuario:
             # Telefone não cadastrado — verifica regras de automação antes de rejeitar
             logger.info(f"Telefone não cadastrado: {remetente} — verificando regras de automação")
-            regras_desc = RegrasAutomacao.query.filter_by(ativo=True, para_desconhecidos=True).order_by(
-                RegrasAutomacao.prioridade.desc()
-            ).all()
+            try:
+                regras_desc = RegrasAutomacao.query.filter_by(ativo=True, para_desconhecidos=True).order_by(
+                    RegrasAutomacao.prioridade.desc()
+                ).all()
+            except Exception:
+                # Coluna para_desconhecidos pode não existir se migração não foi executada
+                regras_desc = RegrasAutomacao.query.filter_by(ativo=True).order_by(
+                    RegrasAutomacao.prioridade.desc()
+                ).all()
             for r in regras_desc:
                 if RoteamentoService._match_regra(r, texto):
                     logger.info(f"Regra '{r.palavra_chave}' disparada para não-cadastrado {remetente}")

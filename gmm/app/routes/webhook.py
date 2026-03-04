@@ -484,33 +484,35 @@ def webhook_whatsapp():
             # Vincular ao historico de comunicacoes de compras (se for fornecedor)
             vincular_whatsapp_fornecedor(remetente, texto)
 
-            # Processar assincronamente (chamar direto se Celery nao estiver rodando)
+            # Processar de forma síncrona (garantia de entrega independente do Celery)
             try:
-                from app.tasks.whatsapp_tasks import processar_mensagem_inbound
-                processar_mensagem_inbound.delay(remetente, texto, dados['timestamp'])
+                from app.services.roteamento_service import RoteamentoService
+                from app.services.whatsapp_service import WhatsAppService
+                resultado = RoteamentoService.processar(remetente, texto)
+                if resultado:
+                    acao = resultado.get('acao')
+                    if acao == 'responder' and resultado.get('resposta'):
+                        WhatsAppService.enviar_mensagem(
+                            telefone=remetente,
+                            texto=resultado['resposta']
+                        )
+                    elif acao == 'enviar_mensagem' and resultado.get('mensagem'):
+                        WhatsAppService.enviar_mensagem(
+                            telefone=resultado.get('telefone', remetente),
+                            texto=resultado['mensagem']
+                        )
+                    elif acao == 'encaminhar':
+                        WhatsAppService.enviar_mensagem(
+                            telefone=remetente,
+                            texto="✅ Mensagem recebida. Em breve um atendente responderá."
+                        )
+                    # Encaminha para usuários do perfil configurado na regra
+                    if resultado.get('encaminhar_para'):
+                        _encaminhar_para_perfil(resultado['encaminhar_para'], remetente, texto)
+                    logger.info(f"Roteamento sincrono concluido: acao={acao} para {remetente}")
             except Exception as e:
-                logger.warning(f"Celery indisponivel, processando sincrono: {e}")
-                try:
-                    from app.services.roteamento_service import RoteamentoService
-                    from app.services.whatsapp_service import WhatsAppService
-                    resultado = RoteamentoService.processar(remetente, texto)
-                    if resultado:
-                        acao = resultado.get('acao')
-                        if acao == 'responder' and resultado.get('resposta'):
-                            WhatsAppService.enviar_mensagem(
-                                telefone=remetente,
-                                texto=resultado['resposta']
-                            )
-                        elif acao == 'enviar_mensagem' and resultado.get('mensagem'):
-                            WhatsAppService.enviar_mensagem(
-                                telefone=resultado.get('telefone', remetente),
-                                texto=resultado['mensagem']
-                            )
-                        # Encaminha para usuários do perfil configurado na regra
-                        if resultado.get('encaminhar_para'):
-                            _encaminhar_para_perfil(resultado['encaminhar_para'], remetente, texto)
-                except Exception as e2:
-                    logger.error(f"Erro no roteamento sincrono: {e2}", exc_info=True)
+                logger.error(f"Erro no roteamento sincrono: {e}", exc_info=True)
+
 
         elif tipo == 'interactive':
             interactive_id = dados['interactive_id']
