@@ -20,6 +20,7 @@
                             <th>Match</th>
                             <th>Ação</th>
                             <th>Notificar</th>
+                            <th>Público</th>
                             <th>Status</th>
                             <th class="text-end pe-4">Ações</th>
                         </tr>
@@ -32,10 +33,6 @@
                             <td class="ps-4">{{ regra.prioridade }}</td>
                             <td>
                                 <code class="px-2 py-1 bg-light rounded">{{ regra.palavra_chave }}</code>
-                                {% if regra.para_desconhecidos %}<span
-                                    class="badge bg-info bg-opacity-10 text-info ms-1"
-                                    title="Aplica para não-cadastrados"><i
-                                        class="bi bi-person-plus-fill me-1"></i>Público</span>{% endif %}
                             </td>
                             <td>
                                 <span class="badge bg-secondary bg-opacity-10 text-secondary">
@@ -64,6 +61,19 @@
                                 {% else %}
                                 <span class="text-muted small">—</span>
                                 {% endif %}
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    {% if regra.para_desconhecidos %}<span class="badge bg-info bg-opacity-10 text-info"
+                                        title="Público (Desconhecidos)"><i class="bi bi-person-plus"></i></span>{% endif
+                                    %}
+                                    {% if regra.para_terceirizados %}<span
+                                        class="badge bg-warning bg-opacity-10 text-warning" title="Terceirizados"><i
+                                            class="bi bi-briefcase"></i></span>{% endif %}
+                                    {% if regra.para_usuarios %}<span
+                                        class="badge bg-primary bg-opacity-10 text-primary" title="Usuários Internos"><i
+                                            class="bi bi-person-badge"></i></span>{% endif %}
+                                </div>
                             </td>
                             <td>
                                 <span class="badge bg-{{ 'success' if regra.ativo else 'secondary' }}">
@@ -206,12 +216,24 @@
                         <div class="form-text">Quando esta regra disparar, o usuário selecionado receberá uma
                             notificação no WhatsApp com a mensagem original.</div>
                     </div>
-                    <div class="mb-3">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="paraDesconhecidos" checked>
-                            <label class="form-check-label small" for="paraDesconhecidos">
-                                Aplicar também para números <strong>não cadastrados</strong> no sistema
-                            </label>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="paraDesconhecidos" checked>
+                                <label class="form-check-label small" for="paraDesconhecidos">Público</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="paraTerceirizados" checked>
+                                <label class="form-check-label small" for="paraTerceirizados">Terceiros</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="paraUsuarios" checked>
+                                <label class="form-check-label small" for="paraUsuarios">Usuários</label>
+                            </div>
                         </div>
                     </div>
                 </form>
@@ -252,6 +274,8 @@
         document.getElementById('prioridade').value = '0';
         document.getElementById('notificarUsuarioId').value = '';
         document.getElementById('paraDesconhecidos').checked = true;
+        document.getElementById('paraTerceirizados').checked = true;
+        document.getElementById('paraUsuarios').checked = true;
         document.getElementById('tituloModal').textContent = 'Nova Regra de Automação';
         toggleCampos();
     }
@@ -277,6 +301,8 @@
             document.getElementById('prioridade').value = regra.prioridade;
             document.getElementById('notificarUsuarioId').value = regra.notificar_usuario_id || '';
             document.getElementById('paraDesconhecidos').checked = regra.para_desconhecidos !== false;
+            document.getElementById('paraTerceirizados').checked = regra.para_terceirizados !== false;
+            document.getElementById('paraUsuarios').checked = regra.para_usuarios !== false;
 
             document.getElementById('tituloModal').textContent = 'Editar Regra de Automação';
 
@@ -307,6 +333,8 @@
             prioridade: parseInt(document.getElementById('prioridade').value),
             notificar_usuario_id: notifUserId ? parseInt(notifUserId) : null,
             para_desconhecidos: document.getElementById('paraDesconhecidos').checked,
+            para_terceirizados: document.getElementById('paraTerceirizados').checked,
+            para_usuarios: document.getElementById('paraUsuarios').checked,
         };
 
         if (!dados.palavra_chave) {

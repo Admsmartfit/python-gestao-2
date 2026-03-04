@@ -15,12 +15,14 @@ class RegrasAutomacao(db.Model):
     encaminhar_para_perfil = db.Column(db.String(50), nullable=True)  # admin, comprador, gerente
     funcao_sistema = db.Column(db.String(50), nullable=True)
     prioridade = db.Column(db.Integer, default=0)
+    # Usuário específico que deve receber notificação quando esta regra disparar
+    notificar_usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    # Se True, a regra também dispara para remetentes não cadastrados no sistema
+    para_desconhecidos = db.Column(db.Boolean, default=True) # Se aplica a números não cadastrados
+    para_terceirizados = db.Column(db.Boolean, default=True) # Se aplica a terceirizados cadastrados
+    para_usuarios = db.Column(db.Boolean, default=True)      # Se aplica a usuários internos cadastrados
     ativo = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    # Usuário específico que deve receber notificação quando esta regra disparar
-    notificar_usuario_id = db.Column(db.Integer, nullable=True)  # FK lógica para usuarios.id
-    # Se True, a regra também dispara para remetentes não cadastrados no sistema
-    para_desconhecidos = db.Column(db.Boolean, default=True)
 
     def __repr__(self):
         return f'<RegraAutomacao {self.palavra_chave}>'

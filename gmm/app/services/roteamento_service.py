@@ -128,43 +128,49 @@ class RoteamentoService:
             if resultado_estado['sucesso']:
                 return {'acao': 'responder', 'resposta': resultado_estado['resposta']}
 
-        # 2. Parse comandos estruturados
-        comando = ComandoParser.parse(texto)
-        if comando:
-            cmd_key = comando['comando']
-            if cmd_key == 'COMPRA':
-                res = ComandoExecutores.executar_compra(comando['params'], terceirizado)
-            elif cmd_key == 'STATUS':
-                res = ComandoExecutores.executar_status(terceirizado)
-            elif cmd_key == 'STATUS_UPDATE':
-                res = ComandoExecutores.executar_status_update(comando['params'], terceirizado)
-            elif cmd_key == 'AJUDA':
-                res = ComandoExecutores.executar_ajuda()
-            elif cmd_key == 'CONFIRMAR_SEPARACAO':
-                res = ComandoExecutores.executar_confirmar_separacao(comando['params'], terceirizado)
-            else:
-                res = {'sucesso': False, 'resposta': 'Comando desconhecido.'}
-
-            return {'acao': 'responder', 'resposta': res['resposta']}
-
-        # 5. Automation Rules
-        regra = RegrasAutomacao.query.filter(
-            RegrasAutomacao.ativo == True
-        ).order_by(RegrasAutomacao.prioridade.desc()).all()
-
-        for r in regra:
+        # 2. Automation Rules (Priority)
+        regras = RegrasAutomacao.query.filter(
+            RegrasAutomacao.ativo == True,
+            RegrasAutomacao.para_terceirizados == True # Adicionado filtro para terceirizados
+        ).order_by(
+            RegrasAutomacao.prioridade.desc()
+        ).all()
+        
+        for r in regras:
             if RoteamentoService._match_regra(r, texto):
                 # Notifica usuário específico se configurado
                 RoteamentoService._notificar_usuario_regra(r, remetente, texto, entidade=terceirizado)
-                # PRD: Se ação é executar_funcao, executa a função
+                
+                # Executa a função do sistema se configurado
                 if r.acao == 'executar_funcao' and r.funcao_sistema:
                     return RoteamentoService._executar_funcao_sistema(r.funcao_sistema, terceirizado)
-                return {
-                    'acao': r.acao,
-                    'resposta': r.resposta_texto,
-                    'encaminhar_para': r.encaminhar_para_perfil,
-                    'funcao': r.funcao_sistema
-                }
+                
+                if r.resposta_texto:
+                    return {
+                        'acao': r.acao,
+                        'resposta': r.resposta_texto,
+                        'encaminhar_para': r.encaminhar_para_perfil,
+                        'funcao': r.funcao_sistema
+                    }
+        
+        # 3. Parse comandos estruturados legados (apenas se nenhuma regra disparou)
+        comando = ComandoParser.parse(texto)
+        if comando:
+            cmd_key = comando['comando']
+            # Estes comandos agora devem ser regras, mas mantemos fallback por segurança para comandos técnicos
+            if cmd_key in ['COMPRA', 'STATUS', 'STATUS_UPDATE', 'CONFIRMAR_SEPARACAO']:
+                if cmd_key == 'COMPRA':
+                    res = ComandoExecutores.executar_compra(comando['params'], terceirizado)
+                elif cmd_key == 'STATUS':
+                    res = ComandoExecutores.executar_status(terceirizado)
+                elif cmd_key == 'STATUS_UPDATE':
+                    res = ComandoExecutores.executar_status_update(comando['params'], terceirizado)
+                elif cmd_key == 'CONFIRMAR_SEPARACAO':
+                    res = ComandoExecutores.executar_confirmar_separacao(comando['params'], terceirizado)
+                
+                return {'acao': 'responder', 'resposta': res['resposta']}
+
+        # Logic moved to rules above
 
         # 6. NLP Analysis (Advanced Extraction)
         try:
@@ -228,12 +234,12 @@ class RoteamentoService:
             if texto_up.startswith('#ADMIN'):
                 return RoteamentoService._processar_comando_admin(usuario, texto)
 
-        # 4. Automation Rules
-        regra = RegrasAutomacao.query.filter(
-            RegrasAutomacao.ativo == True
-        ).order_by(RegrasAutomacao.prioridade.desc()).all()
-
-        for r in regra:
+        # 2. Automation Rules (Priority)
+        regras = RegrasAutomacao.query.filter_by(ativo=True, para_usuarios=True).order_by(
+            RegrasAutomacao.prioridade.desc()
+        ).all()
+        
+        for r in regras:
             if RoteamentoService._match_regra(r, texto):
                 RoteamentoService._notificar_usuario_regra(r, remetente, texto, entidade=usuario)
                 if r.acao == 'executar_funcao' and r.funcao_sistema:
