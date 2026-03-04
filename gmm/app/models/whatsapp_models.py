@@ -84,6 +84,8 @@ class ConfiguracaoWhatsApp(db.Model):
     ativar_saudacao_nativa = db.Column(db.Boolean, default=True)
     acao_fallback_padrao = db.Column(db.String(50), default='ignorar')  # 'ignorar', 'enviar_menu', 'enviar_mensagem'
     mensagem_fallback_padrao = db.Column(db.Text, nullable=True)
+    # Palavras que disparam o menu principal (separadas por vírgula)
+    palavras_saudacao = db.Column(db.Text, nullable=True, default='OI,OLA,OLÁ,MENU,#MENU,BOM DIA,BOA TARDE,BOA NOITE')
 
     def decrypt_key(self, fernet_key):
         f = Fernet(fernet_key)

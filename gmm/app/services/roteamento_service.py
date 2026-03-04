@@ -208,7 +208,8 @@ class RoteamentoService:
         texto_limpo = texto.strip().upper()
 
         if not config or config.ativar_saudacao_nativa:
-            if texto_limpo in ['MENU', '#MENU', 'OI', 'OLÁ', 'OLA', 'BOM DIA', 'BOA TARDE']:
+            palavras = RoteamentoService._get_palavras_saudacao(config)
+            if texto_limpo in palavras:
                 return RoteamentoService._executar_funcao_sistema('exibir_menu_principal', terceirizado)
 
         acao_fb = config.acao_fallback_padrao if config else 'ignorar'
@@ -279,7 +280,8 @@ class RoteamentoService:
             return RoteamentoService._executar_funcao_sistema('exibir_menu_principal', usuario, is_usuario=True)
 
         if not config or config.ativar_saudacao_nativa:
-            if texto_limpo in ['MENU', '#MENU', 'OI', 'OLÁ', 'OLA', 'BOM DIA', 'BOA TARDE']:
+            palavras = RoteamentoService._get_palavras_saudacao(config)
+            if texto_limpo in palavras:
                 return RoteamentoService._executar_funcao_sistema('exibir_menu_principal', usuario, is_usuario=True)
 
         acao_fb = config.acao_fallback_padrao if config else 'ignorar'
@@ -1420,6 +1422,15 @@ Você receberá um lembrete 1 dia antes.
         )
 
     # ==================== FUNÇÕES AUXILIARES ====================
+
+    _PALAVRAS_SAUDACAO_PADRAO = ['OI', 'OLA', 'OLÁ', 'MENU', '#MENU', 'BOM DIA', 'BOA TARDE', 'BOA NOITE']
+
+    @staticmethod
+    def _get_palavras_saudacao(config) -> list:
+        """Retorna lista de palavras de saudação a partir da config ou usa o padrão."""
+        if config and config.palavras_saudacao:
+            return [p.strip().upper() for p in config.palavras_saudacao.split(',') if p.strip()]
+        return RoteamentoService._PALAVRAS_SAUDACAO_PADRAO
 
     @staticmethod
     def _match_regra(regra: RegrasAutomacao, texto: str) -> bool:

@@ -392,6 +392,8 @@ def configuracao():
         config.acao_fallback_padrao = request.form.get('acao_fallback_padrao', 'ignorar')
         msg_fallback = request.form.get('mensagem_fallback_padrao', '').strip()
         config.mensagem_fallback_padrao = msg_fallback or None
+        palavras = request.form.get('palavras_saudacao', '').strip()
+        config.palavras_saudacao = palavras or None
 
         db.session.commit()
         return render_template('admin/whatsapp_config.html', config=config, success=True)

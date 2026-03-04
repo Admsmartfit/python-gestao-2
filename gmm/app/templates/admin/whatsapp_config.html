@@ -88,6 +88,15 @@
                                 Comportamento Padrão (Fallback)
                             </h6>
 
+                            <!-- Palavras de saudação configuráveis -->
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-muted">Palavras de Saudação</label>
+                                <input type="text" name="palavras_saudacao" class="form-control"
+                                    value="{{ config.palavras_saudacao or 'OI,OLA,OLÁ,MENU,#MENU,BOM DIA,BOA TARDE,BOA NOITE' }}"
+                                    placeholder="OI,OLA,MENU,BOM DIA,...">
+                                <div class="form-text small">Palavras separadas por vírgula que exibem o Menu Principal. Insensível a maiúsculas/minúsculas.</div>
+                            </div>
+
                             <!-- Saudações nativas -->
                             <div class="mb-3">
                                 <div class="form-check form-switch">
