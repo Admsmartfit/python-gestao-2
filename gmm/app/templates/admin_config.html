@@ -364,6 +364,49 @@
     </div>
 
     <div class="tab-pane fade {% if active_tab == 'catalogo' %}show active{% endif %}" id="catalogo">
+
+        {# ── Gerenciar Categorias ── #}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold text-primary">Categorias</h5>
+                <button class="btn btn-sm btn-outline-primary" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#collapseCategoria">
+                    <i class="bi bi-tags me-1"></i>Gerenciar
+                </button>
+            </div>
+            <div class="collapse" id="collapseCategoria">
+                <div class="card-body border-bottom">
+                    <form action="{{ url_for('admin.nova_categoria_estoque') }}" method="POST"
+                          class="row g-2 align-items-end mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small">Nova Categoria</label>
+                            <input type="text" name="nome" class="form-control form-control-sm"
+                                   placeholder="Ex: Cardio, Limpeza, Predial…" required>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-primary btn-sm w-100">Adicionar</button>
+                        </div>
+                    </form>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for cat in categorias_estoque %}
+                        <span class="badge bg-secondary d-flex align-items-center gap-1 fs-6 fw-normal px-3 py-2">
+                            {{ cat.nome }}
+                            <form action="{{ url_for('admin.excluir_categoria_estoque', id=cat.id) }}"
+                                  method="POST" class="d-inline m-0 p-0"
+                                  onsubmit="return confirm('Excluir categoria {{ cat.nome }}?')">
+                                <button type="submit" class="btn-close btn-close-white"
+                                        style="font-size:0.6rem;" title="Excluir"></button>
+                            </form>
+                        </span>
+                        {% else %}
+                        <span class="text-muted small">Nenhuma categoria cadastrada.</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# ── Nova Peça ── #}
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-white border-bottom py-3">
                 <h5 class="mb-0 fw-bold text-primary">Nova Peça no Estoque</h5>
@@ -374,9 +417,18 @@
                         <label class="form-label">Código</label>
                         <input type="text" name="codigo" class="form-control" placeholder="ABC-123" required>
                     </div>
-                    <div class="col-md-5">
+                    <div class="col-md-4">
                         <label class="form-label">Nome da Peça</label>
                         <input type="text" name="nome" class="form-control" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Categoria</label>
+                        <select name="categoria_id" class="form-select">
+                            <option value="">— Sem categoria —</option>
+                            {% for cat in categorias_estoque %}
+                            <option value="{{ cat.id }}">{{ cat.nome }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">Unidade</label>
@@ -387,43 +439,71 @@
                             <option value="L">L</option>
                         </select>
                     </div>
-                    <div class="col-md-3 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary w-100">Adicionar ao Catálogo</button>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">Adicionar</button>
                     </div>
                 </form>
             </div>
         </div>
 
+        {# ── Lista de Itens ── #}
         <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom py-2 d-flex gap-2 flex-wrap">
+                <select id="filtroCategoriaCatalogo" class="form-select form-select-sm w-auto"
+                        onchange="filtrarCatalogo()">
+                    <option value="">Todas as categorias</option>
+                    {% for cat in categorias_estoque %}
+                    <option value="{{ cat.id }}">{{ cat.nome }}</option>
+                    {% endfor %}
+                    <option value="0">Sem categoria</option>
+                </select>
+            </div>
             <div class="table-responsive">
-                <table class="table table-hover table-responsive-stack mb-0">
+                <table class="table table-hover mb-0" id="tabelaCatalogo">
                     <thead class="bg-light">
                         <tr>
                             <th class="ps-4">Código</th>
                             <th>Nome</th>
+                            <th>Categoria</th>
                             <th>Unidade</th>
-                            <th>Saldo Atual</th>
+                            <th>Saldo</th>
                             <th>Mínimo</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for item in estoque_itens %}
-                        <tr>
+                        <tr data-cat="{{ item.categoria_id or 0 }}">
                             <td class="ps-4 fw-bold" data-label="Código">{{ item.codigo }}</td>
                             <td data-label="Nome">{{ item.nome }}</td>
+                            <td data-label="Categoria">
+                                {% if item.categoria %}
+                                <span class="badge bg-primary-subtle text-primary-emphasis">{{ item.categoria.nome }}</span>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
                             <td data-label="Unidade">{{ item.unidade_medida }}</td>
                             <td data-label="Saldo">{{ "{:g}".format(item.quantidade_atual) }}</td>
                             <td data-label="Mínimo">{{ "{:g}".format(item.quantidade_minima) }}</td>
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="5" class="text-center py-4 text-muted">Nenhum item no catálogo.</td>
+                            <td colspan="6" class="text-center py-4 text-muted">Nenhum item no catálogo.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
+
+        <script>
+        function filtrarCatalogo() {
+            const val = document.getElementById('filtroCategoriaCatalogo').value;
+            document.querySelectorAll('#tabelaCatalogo tbody tr[data-cat]').forEach(tr => {
+                tr.style.display = (!val || tr.dataset.cat === val) ? '' : 'none';
+            });
+        }
+        </script>
     </div>
 
     <div class="tab-pane fade {% if active_tab == 'fornecedores' %}show active{% endif %}" id="fornecedores">

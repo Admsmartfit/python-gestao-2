@@ -1,8 +1,22 @@
+import re
 from datetime import datetime
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required
 from app.models.models import Usuario
 from app.extensions import db
+
+
+def _norm_tel(telefone):
+    if not telefone:
+        return None
+    phone = re.sub(r'[^0-9]', '', str(telefone))
+    if not phone:
+        return None
+    if phone.startswith('55') and len(phone) in (12, 13):
+        return phone
+    if len(phone) in (10, 11):
+        return '55' + phone
+    return phone
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -72,7 +86,7 @@ def registrar():
             nome=nome,
             username=username,
             email=email if email else None,
-            telefone=telefone if telefone else None,
+            telefone=_norm_tel(telefone),
             tipo='comum',  # Tipo padrão para novos registros
             ativo=True
         )

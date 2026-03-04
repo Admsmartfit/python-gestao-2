@@ -1,8 +1,26 @@
 import csv
 import io
+import re
 from flask import Blueprint, render_template, request, flash, redirect, url_for, abort, jsonify, Response
 from flask_login import login_required, current_user
 from werkzeug.security import generate_password_hash
+
+
+def _norm_tel(telefone):
+    """Normaliza telefone para formato 55XXXXXXXXXXX antes de salvar no banco.
+    Aceita qualquer formato: (11) 9xxxx-xxxx, 11999999999, +55 11 9xxxx-xxxx, etc.
+    Retorna None se vazio. Mantém o valor se não conseguir normalizar.
+    """
+    if not telefone:
+        return None
+    phone = re.sub(r'[^0-9]', '', str(telefone))
+    if not phone:
+        return None
+    if phone.startswith('55') and len(phone) in (12, 13):
+        return phone   # já no formato correto
+    if len(phone) in (10, 11):
+        return '55' + phone
+    return phone       # número curto ou incomum — salva como veio
 from app.models.models import Unidade, Usuario, RegistroPonto
 from app.models.estoque_models import Equipamento, Fornecedor, CatalogoFornecedor, Estoque, OrdemServico, PedidoCompra, EstoqueSaldo, MovimentacaoEstoque, SolicitacaoTransferencia, CategoriaEstoque, OrdemCompraLista
 from datetime import datetime
@@ -64,7 +82,8 @@ def dashboard():
     funcionarios = Usuario.query.order_by(Usuario.nome).all()
     equipamentos = Equipamento.query.all()
     fornecedores = Fornecedor.query.all()
-    estoque_itens = Estoque.query.all()
+    estoque_itens = Estoque.query.order_by(Estoque.nome).all()
+    categorias_estoque = CategoriaEstoque.query.order_by(CategoriaEstoque.nome).all()
     # [Novo] Carrega prestadores de serviço
     terceirizados = Terceirizado.query.order_by(Terceirizado.nome).all()
 
@@ -89,6 +108,7 @@ def dashboard():
                          equipamentos=equipamentos,
                          fornecedores=fornecedores,
                          estoque_itens=estoque_itens,
+                         categorias_estoque=categorias_estoque,
                          terceirizados=terceirizados,
                          kpi_mttr=mttr,
                          kpi_os_concluidas=qtd_os,
@@ -110,10 +130,10 @@ def novo_usuario():
         return redirect(url_for('admin.dashboard', tab='tecnicos'))
         
     novo_user = Usuario(
-        nome=request.form.get('nome'), 
+        nome=request.form.get('nome'),
         username=username,
         email=email,
-        telefone=request.form.get('telefone'),
+        telefone=_norm_tel(request.form.get('telefone')),
         # Gera o hash seguro da senha
         senha_hash=generate_password_hash(request.form.get('senha')),
         tipo=request.form.get('tipo'), # tecnico, prestador, gerente, admin
@@ -135,7 +155,10 @@ def editar_tecnico(): # Mantive o nome da função para compatibilidade, mas ser
         user.nome = request.form.get('nome')
         user.email = request.form.get('email')
         user.unidade_padrao_id = request.form.get('unidade_id') or None
-        
+        tel = request.form.get('telefone')
+        if tel is not None:
+            user.telefone = _norm_tel(tel)
+
         # Só altera a senha se o campo foi preenchido
         nova_senha = request.form.get('senha')
         if nova_senha:
@@ -355,7 +378,7 @@ def novo_fornecedor():
     novo_forn = Fornecedor(
         nome=request.form.get('nome'),
         email=request.form.get('email'),
-        telefone=request.form.get('telefone'),
+        telefone=_norm_tel(request.form.get('telefone')),
         endereco=request.form.get('endereco'),
         prazo_medio_entrega_dias=prazo
     )
@@ -378,7 +401,7 @@ def editar_fornecedor():
 
     fornecedor.nome = request.form.get('nome')
     fornecedor.email = request.form.get('email')
-    fornecedor.telefone = request.form.get('telefone')
+    fornecedor.telefone = _norm_tel(request.form.get('telefone'))
     fornecedor.endereco = request.form.get('endereco')
     fornecedor.prazo_medio_entrega_dias = prazo
     
@@ -428,11 +451,13 @@ def novo_item_estoque():
         flash(f'Erro: O código {codigo} já existe.', 'danger')
         return redirect(url_for('admin.dashboard', tab='fornecedores'))
 
+    categoria_id = request.form.get('categoria_id') or None
     nova_peca = Estoque(
         codigo=codigo,
         nome=request.form.get('nome'),
         unidade_medida=request.form.get('unidade_medida'),
-        quantidade_atual=0, 
+        categoria_id=int(categoria_id) if categoria_id else None,
+        quantidade_atual=0,
         quantidade_minima=5
     )
     
@@ -440,6 +465,37 @@ def novo_item_estoque():
     db.session.commit()
     flash('Nova peça cadastrada no sistema!', 'success')
     return redirect(url_for('admin.dashboard', tab='fornecedores'))
+
+@bp.route('/categoria-estoque/nova', methods=['POST'])
+@login_required
+def nova_categoria_estoque():
+    nome = (request.form.get('nome') or '').strip()
+    if not nome:
+        flash('Informe o nome da categoria.', 'danger')
+        return redirect(url_for('admin.dashboard', tab='catalogo'))
+    if CategoriaEstoque.query.filter_by(nome=nome).first():
+        flash(f'Categoria "{nome}" já existe.', 'warning')
+        return redirect(url_for('admin.dashboard', tab='catalogo'))
+    db.session.add(CategoriaEstoque(nome=nome))
+    db.session.commit()
+    flash(f'Categoria "{nome}" criada!', 'success')
+    return redirect(url_for('admin.dashboard', tab='catalogo'))
+
+
+@bp.route('/categoria-estoque/excluir/<int:id>', methods=['POST'])
+@login_required
+def excluir_categoria_estoque(id):
+    cat = CategoriaEstoque.query.get_or_404(id)
+    # Verifica se há itens usando esta categoria
+    em_uso = Estoque.query.filter_by(categoria_id=id).count()
+    if em_uso:
+        flash(f'Não é possível excluir "{cat.nome}": {em_uso} item(ns) vinculado(s).', 'danger')
+        return redirect(url_for('admin.dashboard', tab='catalogo'))
+    db.session.delete(cat)
+    db.session.commit()
+    flash(f'Categoria "{cat.nome}" removida.', 'success')
+    return redirect(url_for('admin.dashboard', tab='catalogo'))
+
 
 @bp.route('/fornecedor/vincular-peca', methods=['POST'])
 @login_required
@@ -500,7 +556,7 @@ def novo_terceirizado():
         nome=request.form.get('nome'),
         nome_empresa=request.form.get('nome_empresa'),
         cnpj=request.form.get('cnpj'),
-        telefone=request.form.get('telefone'),
+        telefone=_norm_tel(request.form.get('telefone')),
         email=request.form.get('email'),
         especialidades=request.form.get('especialidades'),
         ativo=True
@@ -534,7 +590,7 @@ def editar_terceirizado():
     prestador.nome = request.form.get('nome')
     prestador.nome_empresa = request.form.get('nome_empresa')
     prestador.cnpj = request.form.get('cnpj')
-    prestador.telefone = request.form.get('telefone')
+    prestador.telefone = _norm_tel(request.form.get('telefone'))
     prestador.email = request.form.get('email')
     prestador.especialidades = request.form.get('especialidades')
     
