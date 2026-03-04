@@ -3,7 +3,7 @@ import json
 import logging
 from datetime import datetime, timedelta
 from app.models.terceirizados_models import Terceirizado, ChamadoExterno
-from app.models.whatsapp_models import EstadoConversa, RegrasAutomacao
+from app.models.whatsapp_models import EstadoConversa, RegrasAutomacao, ConfiguracaoWhatsApp
 from app.services.comando_parser import ComandoParser
 from app.services.comando_executores import ComandoExecutores
 from app.services.estado_service import EstadoService
@@ -66,10 +66,18 @@ class RoteamentoService:
                         return {'acao': 'enviar_mensagem', 'telefone': remetente, 'mensagem': r.resposta_texto}
                     return {'acao': 'ignorar'}
 
+            config = ConfiguracaoWhatsApp.query.filter_by(ativo=True).first()
+            if config and not config.resposta_nao_cadastrado_ativa:
+                return {'acao': 'ignorar'}
+            texto_resp = (
+                config.resposta_nao_cadastrado_texto
+                if config and config.resposta_nao_cadastrado_texto
+                else "⚠️ *Telefone não cadastrado*\n\nSeu número não está registrado no sistema GMM.\n\nEntre em contato com o administrador para solicitar cadastro."
+            )
             return {
                 'acao': 'enviar_mensagem',
                 'telefone': remetente,
-                'mensagem': "⚠️ *Telefone não cadastrado*\n\nSeu número não está registrado no sistema GMM.\n\nEntre em contato com o administrador para solicitar cadastro."
+                'mensagem': texto_resp
             }
 
         # 2. Determina tipo de usuário e delega para handler específico

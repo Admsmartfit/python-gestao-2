@@ -296,16 +296,16 @@ def configuracao():
         db.session.commit()
     
     if request.method == 'POST':
-        # Atualizar configurações
-        from cryptography.fernet import Fernet
-        
         # Rate Limit & Circuit Breaker
         config.rate_limit = int(request.form.get('rate_limit', 60))
         config.circuit_breaker_threshold = int(request.form.get('cb_threshold', 5))
-        
-        # O campo api_key foi removido do form conforme pedido do usuário
-        # pois agora é configurado via .env
-        
+
+        # Resposta automática para não-cadastrados
+        config.resposta_nao_cadastrado_ativa = 'resposta_nao_cadastrado_ativa' in request.form
+        texto = request.form.get('resposta_nao_cadastrado_texto', '').strip()
+        if texto:
+            config.resposta_nao_cadastrado_texto = texto
+
         db.session.commit()
         return render_template('admin/whatsapp_config.html', config=config, success=True)
         

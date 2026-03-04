@@ -75,6 +75,9 @@ class ConfiguracaoWhatsApp(db.Model):
     status_saude = db.Column(db.String(20), default='ok') # ok, degradado, offline
     ultima_verificacao = db.Column(db.DateTime, nullable=True)
     ativo = db.Column(db.Boolean, default=True)
+    # Resposta automática para números não cadastrados
+    resposta_nao_cadastrado_ativa = db.Column(db.Boolean, default=True)
+    resposta_nao_cadastrado_texto = db.Column(db.Text, default="⚠️ *Telefone não cadastrado*\n\nSeu número não está registrado no sistema GMM.\n\nEntre em contato com o administrador para solicitar cadastro.")
 
     def decrypt_key(self, fernet_key):
         f = Fernet(fernet_key)

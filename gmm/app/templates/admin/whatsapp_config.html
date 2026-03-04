@@ -57,6 +57,31 @@
                             </div>
                         </div>
 
+                        <!-- Resposta Automática para Não-Cadastrados -->
+                        <div class="mb-4">
+                            <h6 class="text-uppercase text-muted small fw-bold mb-3 border-bottom pb-2">
+                                Resposta para Números Não Cadastrados
+                            </h6>
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" role="switch"
+                                        name="resposta_nao_cadastrado_ativa" id="switchRespostaNaoCadastrado"
+                                        {% if config.resposta_nao_cadastrado_ativa is none or config.resposta_nao_cadastrado_ativa %}checked{% endif %}
+                                        onchange="document.getElementById('areaRespostaNaoCadastrado').style.display = this.checked ? '' : 'none'">
+                                    <label class="form-check-label small fw-bold text-muted" for="switchRespostaNaoCadastrado">
+                                        Ativar resposta automática
+                                    </label>
+                                </div>
+                                <div class="form-text small">Quando ativo, o sistema envia uma mensagem para números que não estão cadastrados.</div>
+                            </div>
+                            <div id="areaRespostaNaoCadastrado">
+                                <label class="form-label small fw-bold text-muted">Texto da Mensagem</label>
+                                <textarea name="resposta_nao_cadastrado_texto" class="form-control" rows="4"
+                                    placeholder="Mensagem enviada para números não cadastrados...">{{ config.resposta_nao_cadastrado_texto or '⚠️ *Telefone não cadastrado*\n\nSeu número não está registrado no sistema GMM.\n\nEntre em contato com o administrador para solicitar cadastro.' }}</textarea>
+                                <div class="form-text small">Suporta formatação WhatsApp: *negrito*, _itálico_, ~tachado~.</div>
+                            </div>
+                        </div>
+
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-primary">
                                 <i class="bi bi-save me-2"></i> Salvar Configurações
@@ -68,4 +93,11 @@
         </div>
     </div>
 </div>
+<script>
+    (function () {
+        var sw = document.getElementById('switchRespostaNaoCadastrado');
+        var area = document.getElementById('areaRespostaNaoCadastrado');
+        if (!sw.checked) area.style.display = 'none';
+    })();
+</script>
 {% endblock %}
