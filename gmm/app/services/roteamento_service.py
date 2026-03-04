@@ -149,10 +149,11 @@ class RoteamentoService:
                     return {
                         'acao': r.acao,
                         'resposta': r.resposta_texto,
+                        'mensagem': r.resposta_texto,
                         'encaminhar_para': r.encaminhar_para_perfil,
                         'funcao': r.funcao_sistema
                     }
-        
+
         # 3. Parse comandos estruturados legados (apenas se nenhuma regra disparou)
         comando = ComandoParser.parse(texto)
         if comando:
@@ -202,7 +203,12 @@ class RoteamentoService:
         except Exception as e:
             logger.warning(f"NLP analysis failed: {e}")
 
-        # 7. Fallback - silencioso (sem menu automático)
+        # 7. Safety net — saudações (só alcançado se nenhuma regra correspondeu)
+        texto_limpo = texto.strip().upper()
+        if texto_limpo in ['MENU', '#MENU', 'OI', 'OLÁ', 'OLA', 'BOM DIA', 'BOA TARDE']:
+            return RoteamentoService._executar_funcao_sistema('exibir_menu_principal', terceirizado)
+
+        # 8. Fallback silencioso
         return {'acao': 'ignorar'}
 
     @staticmethod
@@ -236,29 +242,35 @@ class RoteamentoService:
             if texto_up.startswith('#ADMIN'):
                 return RoteamentoService._processar_comando_admin(usuario, texto)
 
-        # Comando explícito #MENU
-        cmd = ComandoParser.parse(texto)
-        if cmd and cmd['comando'] == 'MENU':
-            return RoteamentoService._executar_funcao_sistema('exibir_menu_principal', usuario, is_usuario=True)
-
-        # 2. Automation Rules (Priority)
+        # 2. Automation Rules — base de dados tem prioridade absoluta
         regras = RegrasAutomacao.query.filter_by(ativo=True, para_usuarios=True).order_by(
             RegrasAutomacao.prioridade.desc()
         ).all()
-        
+
         for r in regras:
             if RoteamentoService._match_regra(r, texto):
                 RoteamentoService._notificar_usuario_regra(r, remetente, texto, entidade=usuario)
                 if r.acao == 'executar_funcao' and r.funcao_sistema:
                     return RoteamentoService._executar_funcao_sistema(r.funcao_sistema, usuario, is_usuario=True)
-                return {
-                    'acao': r.acao,
-                    'resposta': r.resposta_texto,
-                    'encaminhar_para': r.encaminhar_para_perfil,
-                    'funcao': r.funcao_sistema
-                }
+                if r.resposta_texto:
+                    return {
+                        'acao': r.acao,
+                        'resposta': r.resposta_texto,
+                        'mensagem': r.resposta_texto,
+                        'encaminhar_para': r.encaminhar_para_perfil,
+                        'funcao': r.funcao_sistema
+                    }
 
-        # 5. Fallback - silencioso (sem menu automático)
+        # 3. Safety net — comandos explícitos e saudações (só alcançado se nenhuma regra correspondeu)
+        cmd = ComandoParser.parse(texto)
+        if cmd and cmd['comando'] == 'MENU':
+            return RoteamentoService._executar_funcao_sistema('exibir_menu_principal', usuario, is_usuario=True)
+
+        texto_limpo = texto.strip().upper()
+        if texto_limpo in ['MENU', '#MENU', 'OI', 'OLÁ', 'OLA', 'BOM DIA', 'BOA TARDE']:
+            return RoteamentoService._executar_funcao_sistema('exibir_menu_principal', usuario, is_usuario=True)
+
+        # 4. Fallback silencioso
         return {'acao': 'ignorar'}
 
     # ==================== MENUS POR TIPO DE USUÁRIO ====================
