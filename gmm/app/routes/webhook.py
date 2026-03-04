@@ -506,8 +506,8 @@ def webhook_whatsapp():
                             telefone=remetente,
                             texto="✅ Mensagem recebida. Em breve um atendente responderá."
                         )
-                    # Encaminha para usuários do perfil configurado na regra
-                    if resultado.get('encaminhar_para'):
+                    # Encaminha para usuários do perfil — só quando ação é 'encaminhar'
+                    if acao == 'encaminhar' and resultado.get('encaminhar_para'):
                         _encaminhar_para_perfil(resultado['encaminhar_para'], remetente, texto)
                     logger.info(f"Roteamento sincrono concluido: acao={acao} para {remetente}")
             except Exception as e:

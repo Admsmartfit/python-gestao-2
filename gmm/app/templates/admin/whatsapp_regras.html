@@ -286,13 +286,16 @@
     async function salvarRegra() {
         const regraId = document.getElementById('regraId').value;
         const notifUserId = document.getElementById('notificarUsuarioId').value;
+        const acao = document.getElementById('acao').value;
+
+        // Só envia campos relevantes à ação selecionada — evita sobrescrever com valores antigos
         const dados = {
             palavra_chave: document.getElementById('palavraChave').value,
             tipo_correspondencia: document.getElementById('tipoMatch').value,
-            acao: document.getElementById('acao').value,
-            resposta_texto: document.getElementById('respostaTexto').value,
-            encaminhar_para_perfil: document.getElementById('encaminharPara').value,
-            funcao_sistema: document.getElementById('funcaoSistema').value,
+            acao: acao,
+            resposta_texto: acao === 'responder' ? document.getElementById('respostaTexto').value : null,
+            encaminhar_para_perfil: acao === 'encaminhar' ? document.getElementById('encaminharPara').value : null,
+            funcao_sistema: acao === 'executar_funcao' ? document.getElementById('funcaoSistema').value : null,
             prioridade: parseInt(document.getElementById('prioridade').value),
             notificar_usuario_id: notifUserId ? parseInt(notifUserId) : null,
             para_desconhecidos: document.getElementById('paraDesconhecidos').checked,

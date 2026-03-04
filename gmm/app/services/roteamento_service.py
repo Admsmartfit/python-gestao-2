@@ -1404,7 +1404,7 @@ Você receberá um lembrete 1 dia antes.
         if not regra.palavra_chave:
             return False
 
-        if regra.tipo_correspondencia == 'exata':
+        if regra.tipo_correspondencia in ('exata', 'exato'):   # aceita ambas as grafias
             return texto.strip().upper() == regra.palavra_chave.upper()
 
         elif regra.tipo_correspondencia == 'contem':
