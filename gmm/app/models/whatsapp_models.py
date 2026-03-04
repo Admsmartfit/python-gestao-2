@@ -80,6 +80,10 @@ class ConfiguracaoWhatsApp(db.Model):
     # Resposta automática para números não cadastrados
     resposta_nao_cadastrado_ativa = db.Column(db.Boolean, default=True)
     resposta_nao_cadastrado_texto = db.Column(db.Text, default="⚠️ *Telefone não cadastrado*\n\nSeu número não está registrado no sistema GMM.\n\nEntre em contato com o administrador para solicitar cadastro.")
+    # Comportamento de fallback e saudações
+    ativar_saudacao_nativa = db.Column(db.Boolean, default=True)
+    acao_fallback_padrao = db.Column(db.String(50), default='ignorar')  # 'ignorar', 'enviar_menu', 'enviar_mensagem'
+    mensagem_fallback_padrao = db.Column(db.Text, nullable=True)
 
     def decrypt_key(self, fernet_key):
         f = Fernet(fernet_key)

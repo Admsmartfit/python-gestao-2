@@ -203,12 +203,21 @@ class RoteamentoService:
         except Exception as e:
             logger.warning(f"NLP analysis failed: {e}")
 
-        # 7. Safety net — saudações (só alcançado se nenhuma regra correspondeu)
+        # 7. Comportamento dinâmico lido da configuração
+        config = ConfiguracaoWhatsApp.query.filter_by(ativo=True).first()
         texto_limpo = texto.strip().upper()
-        if texto_limpo in ['MENU', '#MENU', 'OI', 'OLÁ', 'OLA', 'BOM DIA', 'BOA TARDE']:
-            return RoteamentoService._executar_funcao_sistema('exibir_menu_principal', terceirizado)
 
-        # 8. Fallback silencioso
+        if not config or config.ativar_saudacao_nativa:
+            if texto_limpo in ['MENU', '#MENU', 'OI', 'OLÁ', 'OLA', 'BOM DIA', 'BOA TARDE']:
+                return RoteamentoService._executar_funcao_sistema('exibir_menu_principal', terceirizado)
+
+        acao_fb = config.acao_fallback_padrao if config else 'ignorar'
+        if acao_fb == 'enviar_menu':
+            return RoteamentoService._executar_funcao_sistema('exibir_menu_principal', terceirizado)
+        if acao_fb == 'enviar_mensagem' and config and config.mensagem_fallback_padrao:
+            return {'acao': 'responder', 'resposta': config.mensagem_fallback_padrao,
+                    'mensagem': config.mensagem_fallback_padrao}
+
         return {'acao': 'ignorar'}
 
     @staticmethod
@@ -261,16 +270,25 @@ class RoteamentoService:
                         'funcao': r.funcao_sistema
                     }
 
-        # 3. Safety net — comandos explícitos e saudações (só alcançado se nenhuma regra correspondeu)
+        # 3. Comportamento dinâmico lido da configuração
+        config = ConfiguracaoWhatsApp.query.filter_by(ativo=True).first()
+        texto_limpo = texto.strip().upper()
+
         cmd = ComandoParser.parse(texto)
         if cmd and cmd['comando'] == 'MENU':
             return RoteamentoService._executar_funcao_sistema('exibir_menu_principal', usuario, is_usuario=True)
 
-        texto_limpo = texto.strip().upper()
-        if texto_limpo in ['MENU', '#MENU', 'OI', 'OLÁ', 'OLA', 'BOM DIA', 'BOA TARDE']:
-            return RoteamentoService._executar_funcao_sistema('exibir_menu_principal', usuario, is_usuario=True)
+        if not config or config.ativar_saudacao_nativa:
+            if texto_limpo in ['MENU', '#MENU', 'OI', 'OLÁ', 'OLA', 'BOM DIA', 'BOA TARDE']:
+                return RoteamentoService._executar_funcao_sistema('exibir_menu_principal', usuario, is_usuario=True)
 
-        # 4. Fallback silencioso
+        acao_fb = config.acao_fallback_padrao if config else 'ignorar'
+        if acao_fb == 'enviar_menu':
+            return RoteamentoService._executar_funcao_sistema('exibir_menu_principal', usuario, is_usuario=True)
+        if acao_fb == 'enviar_mensagem' and config and config.mensagem_fallback_padrao:
+            return {'acao': 'responder', 'resposta': config.mensagem_fallback_padrao,
+                    'mensagem': config.mensagem_fallback_padrao}
+
         return {'acao': 'ignorar'}
 
     # ==================== MENUS POR TIPO DE USUÁRIO ====================

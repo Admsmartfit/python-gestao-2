@@ -82,6 +82,52 @@
                             </div>
                         </div>
 
+                        <!-- Comportamento Padrão (Fallback) -->
+                        <div class="mb-4">
+                            <h6 class="text-uppercase text-muted small fw-bold mb-3 border-bottom pb-2">
+                                Comportamento Padrão (Fallback)
+                            </h6>
+
+                            <!-- Saudações nativas -->
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" role="switch"
+                                        name="ativar_saudacao_nativa" id="switchSaudacaoNativa"
+                                        {% if config.ativar_saudacao_nativa is none or config.ativar_saudacao_nativa %}checked{% endif %}>
+                                    <label class="form-check-label small fw-bold text-muted" for="switchSaudacaoNativa">
+                                        Reconhecimento de Saudações (Oi, Olá, Bom Dia, Menu…)
+                                    </label>
+                                </div>
+                                <div class="form-text small">Quando ativo, saudações exibem o Menu Principal mesmo sem regra cadastrada.</div>
+                            </div>
+
+                            <!-- Ação de fallback -->
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-muted">Ação para Mensagens Não Reconhecidas</label>
+                                <select name="acao_fallback_padrao" id="selFallback" class="form-select form-select-sm"
+                                    onchange="document.getElementById('areaFallbackMsg').style.display = this.value === 'enviar_mensagem' ? '' : 'none'">
+                                    <option value="ignorar" {% if not config.acao_fallback_padrao or config.acao_fallback_padrao == 'ignorar' %}selected{% endif %}>
+                                        🔇 Silencioso (Ignorar)
+                                    </option>
+                                    <option value="enviar_menu" {% if config.acao_fallback_padrao == 'enviar_menu' %}selected{% endif %}>
+                                        📋 Enviar Menu Principal
+                                    </option>
+                                    <option value="enviar_mensagem" {% if config.acao_fallback_padrao == 'enviar_mensagem' %}selected{% endif %}>
+                                        💬 Enviar Mensagem Personalizada
+                                    </option>
+                                </select>
+                                <div class="form-text small">O que o bot faz quando nenhuma regra ou saudação corresponder à mensagem recebida.</div>
+                            </div>
+
+                            <!-- Mensagem personalizada (visível só quando acao = enviar_mensagem) -->
+                            <div id="areaFallbackMsg">
+                                <label class="form-label small fw-bold text-muted">Mensagem de Fallback</label>
+                                <textarea name="mensagem_fallback_padrao" class="form-control" rows="3"
+                                    placeholder="Ex: Desculpe, não entendi. Digite MENU para ver as opções.">{{ config.mensagem_fallback_padrao or '' }}</textarea>
+                                <div class="form-text small">Suporta formatação WhatsApp: *negrito*, _itálico_, ~tachado~.</div>
+                            </div>
+                        </div>
+
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-primary">
                                 <i class="bi bi-save me-2"></i> Salvar Configurações
@@ -98,6 +144,10 @@
         var sw = document.getElementById('switchRespostaNaoCadastrado');
         var area = document.getElementById('areaRespostaNaoCadastrado');
         if (!sw.checked) area.style.display = 'none';
+
+        var sel = document.getElementById('selFallback');
+        var areaMsg = document.getElementById('areaFallbackMsg');
+        if (sel.value !== 'enviar_mensagem') areaMsg.style.display = 'none';
     })();
 </script>
 {% endblock %}
