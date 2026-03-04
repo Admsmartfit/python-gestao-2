@@ -1237,7 +1237,19 @@
         const id = idPecaField.value;
         const nome = nomePeca.innerText;
         const qtd = qtdField.value;
-        prepararSolicitacaoCompra(id, nome, qtd);
+
+        // Fecha modalRecursos antes de abrir modalSolicitarCompra
+        const modalRecursosEl = document.getElementById('modalRecursos');
+        const modalRecursosInst = bootstrap.Modal.getInstance(modalRecursosEl);
+        if (modalRecursosInst) {
+            modalRecursosEl.addEventListener('hidden.bs.modal', function handler() {
+                modalRecursosEl.removeEventListener('hidden.bs.modal', handler);
+                prepararSolicitacaoCompra(id, nome, qtd);
+            });
+            modalRecursosInst.hide();
+        } else {
+            prepararSolicitacaoCompra(id, nome, qtd);
+        }
     }
 
     // Fecha a lista se clicar fora
