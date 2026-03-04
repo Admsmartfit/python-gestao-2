@@ -28,6 +28,10 @@ def listar_regras():
         abort(403)
     
     from app.models.models import Usuario
+    
+    # Garantir que as regras padrão existam
+    seed_default_rules()
+
     regras = RegrasAutomacao.query.order_by(
         RegrasAutomacao.prioridade.desc()
     ).all()
@@ -158,6 +162,59 @@ def toggle_regra(regra_id):
         'success': True,
         'ativo': regra.ativo
     })
+
+def seed_default_rules():
+    """Garante que as regras de sistema (Menu, Ajuda, Não Cadastrado) existam no banco."""
+    try:
+        from app.models.whatsapp_models import ConfiguracaoWhatsApp
+        
+        # 1. Regra MENU
+        if not RegrasAutomacao.query.filter_by(palavra_chave='MENU').first():
+            regra_menu = RegrasAutomacao(
+                palavra_chave='MENU',
+                tipo_correspondencia='exato',
+                acao='executar_funcao',
+                funcao_sistema='exibir_menu_principal',
+                prioridade=100,
+                ativo=True,
+                para_desconhecidos=True
+            )
+            db.session.add(regra_menu)
+
+        # 2. Regra AJUDA
+        if not RegrasAutomacao.query.filter_by(palavra_chave='AJUDA').first():
+            regra_ajuda = RegrasAutomacao(
+                palavra_chave='AJUDA',
+                tipo_correspondencia='exato',
+                acao='executar_funcao',
+                funcao_sistema='exibir_ajuda',
+                prioridade=90,
+                ativo=True,
+                para_desconhecidos=True
+            )
+            db.session.add(regra_ajuda)
+
+        # 3. Regra Não Cadastrado (Catch-all)
+        # Busca se já tem uma regra de catch-all (ex: .*)
+        if not RegrasAutomacao.query.filter_by(palavra_chave='.*').first():
+            config = ConfiguracaoWhatsApp.query.filter_by(ativo=True).first()
+            msg_padrao = config.resposta_nao_cadastrado_texto if config else "⚠️ *Telefone não cadastrado*\n\nSeu número não está registrado no sistema GMM."
+            
+            regra_catchall = RegrasAutomacao(
+                palavra_chave='.*',
+                tipo_correspondencia='regex',
+                acao='responder',
+                resposta_texto=msg_padrao,
+                prioridade=-100,
+                ativo=config.resposta_nao_cadastrado_ativa if config else True,
+                para_desconhecidos=True
+            )
+            db.session.add(regra_catchall)
+
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao gearer regras padrão: {e}")
 
 # --- Dashboard & Métricas ---
 

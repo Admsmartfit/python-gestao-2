@@ -47,38 +47,28 @@ class RoteamentoService:
             ).first()
 
         if not terceirizado and not usuario:
-            # Telefone não cadastrado — verifica regras de automação antes de rejeitar
-            logger.info(f"Telefone não cadastrado: {remetente} — verificando regras de automação")
-            try:
-                regras_desc = RegrasAutomacao.query.filter_by(ativo=True, para_desconhecidos=True).order_by(
-                    RegrasAutomacao.prioridade.desc()
-                ).all()
-            except Exception:
-                # Coluna para_desconhecidos pode não existir se migração não foi executada
-                regras_desc = RegrasAutomacao.query.filter_by(ativo=True).order_by(
-                    RegrasAutomacao.prioridade.desc()
-                ).all()
-            for r in regras_desc:
+            # Telefone não cadastrado — verificando regras de automação
+            logger.info(f"Telefone não cadastrado: {remetente} — percorrendo regras")
+            
+            # Busca regras ativas que se aplicam a desconhecidos
+            regras = RegrasAutomacao.query.filter_by(ativo=True, para_desconhecidos=True).order_by(
+                RegrasAutomacao.prioridade.desc()
+            ).all()
+
+            for r in regras:
                 if RoteamentoService._match_regra(r, texto):
                     logger.info(f"Regra '{r.palavra_chave}' disparada para não-cadastrado {remetente}")
                     RoteamentoService._notificar_usuario_regra(r, remetente, texto)
+                    
+                    if r.acao == 'executar_funcao' and r.funcao_sistema:
+                        return RoteamentoService._executar_funcao_sistema(r.funcao_sistema, None, remetente=remetente)
+                    
                     if r.resposta_texto:
                         return {'acao': 'enviar_mensagem', 'telefone': remetente, 'mensagem': r.resposta_texto}
+                    
                     return {'acao': 'ignorar'}
 
-            config = ConfiguracaoWhatsApp.query.filter_by(ativo=True).first()
-            if config and not config.resposta_nao_cadastrado_ativa:
-                return {'acao': 'ignorar'}
-            texto_resp = (
-                config.resposta_nao_cadastrado_texto
-                if config and config.resposta_nao_cadastrado_texto
-                else "⚠️ *Telefone não cadastrado*\n\nSeu número não está registrado no sistema GMM.\n\nEntre em contato com o administrador para solicitar cadastro."
-            )
-            return {
-                'acao': 'enviar_mensagem',
-                'telefone': remetente,
-                'mensagem': texto_resp
-            }
+            return {'acao': 'ignorar'}
 
         # 2. Determina tipo de usuário e delega para handler específico
         if terceirizado:
@@ -138,19 +128,7 @@ class RoteamentoService:
             if resultado_estado['sucesso']:
                 return {'acao': 'responder', 'resposta': resultado_estado['resposta']}
 
-        # 2. Parse Command - EQUIP:
-        if texto.upper().startswith('EQUIP:'):
-            return RoteamentoService._processar_comando_equip(terceirizado, texto)
-
-        # 3. US-012: Gatilhos informais
-        texto_up = texto.upper()
-        if "ESTOQUE POSITIVO" in texto_up or "ABUNDANTE" in texto_up:
-            return RoteamentoService._consultar_estoque(terceirizado)
-
-        if "PRECISO DE" in texto_up or "SOLICITAR" in texto_up:
-            return RoteamentoService._iniciar_fluxo_solicitacao_peca(terceirizado)
-
-        # 4. Parse comandos estruturados
+        # 2. Parse comandos estruturados
         comando = ComandoParser.parse(texto)
         if comando:
             cmd_key = comando['comando']
@@ -244,12 +222,6 @@ class RoteamentoService:
 
         # 2. Parse comandos administrativos
         texto_up = texto.upper().strip()
-
-        if texto_up == 'MENU':
-            return RoteamentoService._exibir_menu_usuario(usuario)
-
-        if texto_up == 'AJUDA' or texto_up == '#AJUDA':
-            return RoteamentoService._exibir_ajuda_usuario(usuario)
 
         # 3. Comandos específicos por tipo
         if usuario.tipo == 'admin':
@@ -1461,14 +1433,20 @@ Você receberá um lembrete 1 dia antes.
             logger.warning(f"Erro ao notificar usuário da regra: {e}")
 
     @staticmethod
-    def _executar_funcao_sistema(funcao_nome: str, entidade, is_usuario=False) -> dict:
+    def _executar_funcao_sistema(funcao_nome: str, entidade, is_usuario=False, remetente=None) -> dict:
         """Executa função do sistema por nome."""
+        # Se não há entidade (usuário/terceirizado desconhecido), algumas funções não podem ser executadas
+        if not entidade and funcao_nome not in ['exibir_menu_principal', 'exibir_ajuda', 'falar_com_suporte']:
+            return {'acao': 'responder', 'resposta': "⚠️ Para acessar esta função, seu número precisa estar cadastrado no sistema."}
+
         # Menu Principal
         if funcao_nome == 'exibir_menu_principal':
             if is_usuario:
                 return RoteamentoService._exibir_menu_usuario(entidade)
-            else:
+            elif entidade: # Terceirizado
                 return RoteamentoService._exibir_menu_terceirizado(entidade)
+            else: # Desconhecido
+                return {'acao': 'responder', 'resposta': "👋 Olá! Bem-vindo ao GMM.\n\nSeu número não está cadastrado, por isso não posso exibir o menu completo.\n\nEntre em contato com o suporte se precisar de ajuda."}
 
         # Funções Administrativas
         elif funcao_nome == 'status_sistema':

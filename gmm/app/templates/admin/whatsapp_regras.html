@@ -26,12 +26,16 @@
                     </thead>
                     <tbody>
                         {% for regra in regras %}
-                        {% set notif_usuario = usuarios | selectattr('id', 'equalto', regra.notificar_usuario_id) | first if regra.notificar_usuario_id else None %}
+                        {% set notif_usuario = usuarios | selectattr('id', 'equalto', regra.notificar_usuario_id) |
+                        first if regra.notificar_usuario_id else None %}
                         <tr>
                             <td class="ps-4">{{ regra.prioridade }}</td>
                             <td>
                                 <code class="px-2 py-1 bg-light rounded">{{ regra.palavra_chave }}</code>
-                                {% if regra.para_desconhecidos %}<span class="badge bg-secondary bg-opacity-10 text-secondary ms-1" title="Aplica para não-cadastrados">público</span>{% endif %}
+                                {% if regra.para_desconhecidos %}<span
+                                    class="badge bg-info bg-opacity-10 text-info ms-1"
+                                    title="Aplica para não-cadastrados"><i
+                                        class="bi bi-person-plus-fill me-1"></i>Público</span>{% endif %}
                             </td>
                             <td>
                                 <span class="badge bg-secondary bg-opacity-10 text-secondary">
@@ -42,16 +46,19 @@
                                 {% if regra.acao == 'responder' %}
                                 <span class="text-primary"><i class="bi bi-chat-dots me-1"></i> Responder</span>
                                 {% elif regra.acao == 'encaminhar' %}
-                                <span class="text-warning"><i class="bi bi-box-arrow-in-right me-1"></i> Encaminhar ({{ regra.encaminhar_para_perfil }})</span>
+                                <span class="text-warning"><i class="bi bi-box-arrow-in-right me-1"></i> Encaminhar ({{
+                                    regra.encaminhar_para_perfil }})</span>
                                 {% elif regra.acao == 'executar_funcao' %}
-                                <span class="text-info"><i class="bi bi-gear me-1"></i> {{ regra.funcao_sistema }}</span>
+                                <span class="text-info"><i class="bi bi-gear me-1"></i> {{ regra.funcao_sistema
+                                    }}</span>
                                 {% else %}
                                 {{ regra.acao }}
                                 {% endif %}
                             </td>
                             <td>
                                 {% if notif_usuario %}
-                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25">
+                                <span
+                                    class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25">
                                     <i class="bi bi-bell me-1"></i>{{ notif_usuario.nome }}
                                 </span>
                                 {% else %}
@@ -65,18 +72,17 @@
                             </td>
                             <td class="text-end pe-4">
                                 <button class="btn btn-sm btn-link text-primary p-0 me-2"
-                                    onclick="editarRegra({{ regra.id }})"
-                                    title="Editar regra">
+                                    onclick="editarRegra({{ regra.id }})" title="Editar regra">
                                     <i class="bi bi-pencil"></i>
                                 </button>
-                                <button class="btn btn-sm btn-link text-{{ 'success' if regra.ativo else 'secondary' }} p-0 me-2"
+                                <button
+                                    class="btn btn-sm btn-link text-{{ 'success' if regra.ativo else 'secondary' }} p-0 me-2"
                                     onclick="toggleRegra({{ regra.id }})"
                                     title="{{ 'Desativar' if regra.ativo else 'Ativar' }}">
                                     <i class="bi bi-toggle-{{ 'on' if regra.ativo else 'off' }}"></i>
                                 </button>
                                 <button class="btn btn-sm btn-link text-danger p-0"
-                                    onclick="excluirRegra({{ regra.id }})"
-                                    title="Excluir regra">
+                                    onclick="excluirRegra({{ regra.id }})" title="Excluir regra">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </td>
@@ -180,7 +186,8 @@
                             </optgroup>
                         </select>
                         <div class="form-text small mt-2">
-                            <strong>Dica:</strong> A função será executada automaticamente quando a palavra-chave for detectada.
+                            <strong>Dica:</strong> A função será executada automaticamente quando a palavra-chave for
+                            detectada.
                         </div>
                     </div>
 
@@ -196,7 +203,8 @@
                             <option value="{{ u.id }}">{{ u.nome }} ({{ u.tipo }}) — {{ u.telefone }}</option>
                             {% endfor %}
                         </select>
-                        <div class="form-text">Quando esta regra disparar, o usuário selecionado receberá uma notificação no WhatsApp com a mensagem original.</div>
+                        <div class="form-text">Quando esta regra disparar, o usuário selecionado receberá uma
+                            notificação no WhatsApp com a mensagem original.</div>
                     </div>
                     <div class="mb-3">
                         <div class="form-check form-switch">
