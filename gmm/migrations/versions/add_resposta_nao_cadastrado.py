@@ -9,7 +9,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision = 'add_resposta_nao_cadastrado'
-down_revision = 'add_whatsapp_respostas'
+down_revision = '510095ed5e12'
 branch_labels = None
 depends_on = None
 
