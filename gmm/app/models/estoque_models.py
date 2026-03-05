@@ -228,6 +228,14 @@ class PedidoCompra(db.Model):
     # Vínculo com OrdemCompraLista (lista padrão enviada como uma única ordem)
     ordem_lista_id = db.Column(db.Integer, db.ForeignKey('ordens_compra_lista.id'), nullable=True)
 
+    # v4.0 - Compras Enterprise
+    valor_unitario_estimado = db.Column(db.Numeric(12, 2), nullable=True)
+    valor_total_estimado = db.Column(db.Numeric(12, 2), nullable=True)
+    tier_aprovacao = db.Column(db.Integer, nullable=True)  # 1, 2 ou 3
+    data_entrega_prevista = db.Column(db.DateTime, nullable=True)
+    data_recebimento = db.Column(db.DateTime, nullable=True)
+    rating_fornecedor = db.Column(db.Integer, nullable=True)  # 1-5 estrelas
+
     fornecedor = db.relationship('Fornecedor', backref='pedidos')
     peca = db.relationship('Estoque')
     solicitante = db.relationship('Usuario', foreign_keys=[solicitante_id])
@@ -235,6 +243,15 @@ class PedidoCompra(db.Model):
     recebedor = db.relationship('Usuario', foreign_keys=[recebedor_id])
     unidade_destino = db.relationship('Unidade', foreign_keys=[unidade_destino_id])
     os_origem = db.relationship('OrdemServico', foreign_keys=[os_id], backref='pedidos_vinculados')
+
+    @property
+    def valor_display(self):
+        v = self.valor_total_estimado or 0
+        return f"R$ {float(v):,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+
+    @property
+    def tier_label(self):
+        return {1: 'Auto (≤ R$500)', 2: 'Gerente (≤ R$5k)', 3: 'Diretoria (> R$5k)'}.get(self.tier_aprovacao, '—')
 
 class ListaCompra(db.Model):
     """Lista de compra padrão / recorrente."""
@@ -336,6 +353,59 @@ class MovimentacaoEstoque(db.Model):
     estoque = db.relationship('Estoque', backref='historico')
     usuario = db.relationship('Usuario')
     unidade = db.relationship('Unidade')
+
+# ── v4.0 Compras Enterprise ────────────────────────────────────────────────
+
+class AprovacaoPedido(db.Model):
+    """Registro individual de aprovação/rejeição de pedido (permite dual-approval Tier 3)."""
+    __tablename__ = 'aprovacoes_pedido'
+    id = db.Column(db.Integer, primary_key=True)
+    pedido_id = db.Column(db.Integer, db.ForeignKey('pedidos_compra.id'), nullable=False)
+    aprovador_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    acao = db.Column(db.String(20), nullable=False)  # 'aprovado' | 'rejeitado'
+    observacao = db.Column(db.Text, nullable=True)
+    via = db.Column(db.String(20), default='web')  # 'web' | 'whatsapp'
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    pedido = db.relationship('PedidoCompra', backref='aprovacoes')
+    aprovador = db.relationship('Usuario', foreign_keys=[aprovador_id])
+
+
+class FaturamentoCompra(db.Model):
+    """Nota Fiscal e boleto vinculados a um pedido aprovado."""
+    __tablename__ = 'faturamentos_compra'
+    id = db.Column(db.Integer, primary_key=True)
+    pedido_id = db.Column(db.Integer, db.ForeignKey('pedidos_compra.id'), nullable=False, unique=True)
+    numero_nf = db.Column(db.String(50), nullable=True)
+    valor_faturado = db.Column(db.Numeric(12, 2), nullable=True)
+    data_vencimento_boleto = db.Column(db.Date, nullable=True)
+    linha_digitavel = db.Column(db.String(100), nullable=True)
+    arquivo_nf = db.Column(db.String(300), nullable=True)    # caminho local
+    arquivo_boleto = db.Column(db.String(300), nullable=True)
+    registrado_por_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    pedido = db.relationship('PedidoCompra', backref=db.backref('faturamento', uselist=False))
+    registrado_por = db.relationship('Usuario', foreign_keys=[registrado_por_id])
+
+
+class OrcamentoUnidade(db.Model):
+    """Orçamento mensal por unidade (Budget Tracking)."""
+    __tablename__ = 'orcamentos_unidade'
+    id = db.Column(db.Integer, primary_key=True)
+    unidade_id = db.Column(db.Integer, db.ForeignKey('unidades.id'), nullable=False)
+    ano = db.Column(db.Integer, nullable=False)
+    mes = db.Column(db.Integer, nullable=False)   # 1-12
+    categoria = db.Column(db.String(50), nullable=True)  # peca, limpeza, ti, outros
+    valor_orcado = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    criado_por_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    unidade = db.relationship('Unidade', backref='orcamentos')
+    criado_por = db.relationship('Usuario', foreign_keys=[criado_por_id])
+
+# ──────────────────────────────────────────────────────────────────────────────
 
 @event.listens_for(MovimentacaoEstoque, 'after_insert')
 def atualizar_saldo_estoque(mapper, connection, target):

@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="h4 fw-bold mb-0">Inteligência de Compras</h2>
+            <p class="text-muted small mb-0">Budget, Lead Time, SLA de Fornecedores</p>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            <select class="form-select form-select-sm" id="selAno" style="width:90px">
+                {% set ano_atual = now().year if now is defined else 2026 %}
+                {% for a in range(ano_atual - 1, ano_atual + 2) %}
+                <option value="{{ a }}" {{ 'selected' if a == ano_atual }}>{{ a }}</option>
+                {% endfor %}
+            </select>
+            <select class="form-select form-select-sm" id="selMes" style="width:120px">
+                {% set meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'] %}
+                {% for i in range(1, 13) %}
+                <option value="{{ i }}">{{ meses[i-1] }}</option>
+                {% endfor %}
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="carregarTudo()">
+                <i class="bi bi-arrow-clockwise me-1"></i>Atualizar
+            </button>
+        </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm text-center p-3">
+                <div class="text-muted small mb-1">Lead Time Médio de Aprovação</div>
+                <div class="h3 fw-bold text-primary mb-0" id="ltAprovacao">—</div>
+                <small class="text-muted">horas</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm text-center p-3">
+                <div class="text-muted small mb-1">Lead Time Médio (Solicitação→Entrega)</div>
+                <div class="h3 fw-bold text-success mb-0" id="ltRecebimento">—</div>
+                <small class="text-muted">horas</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm text-center p-3">
+                <div class="text-muted small mb-1">Pedidos no Período</div>
+                <div class="h3 fw-bold text-info mb-0" id="totalPedidos">—</div>
+                <small class="text-muted">pedidos analisados</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm text-center p-3">
+                <div class="text-muted small mb-1">Melhor Fornecedor</div>
+                <div class="h5 fw-bold text-warning mb-0" id="melhorFornecedor">—</div>
+                <small class="text-muted">maior rating médio</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Budget + Ranking -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header border-0 bg-white pb-0">
+                    <h6 class="fw-bold mb-0"><i class="bi bi-bar-chart-fill me-2 text-primary"></i>Budget por Unidade</h6>
+                    <small class="text-muted">Orçado vs Empenhado no mês selecionado</small>
+                </div>
+                <div class="card-body">
+                    <canvas id="chartBudget" height="200"></canvas>
+                    <div id="semBudget" class="text-center py-3 text-muted d-none">
+                        <i class="bi bi-bar-chart display-6 opacity-25 d-block mb-2"></i>
+                        Nenhum dado de orçamento para o período.<br>
+                        <small>Configure orçamentos clicando em "Definir Orçamento" abaixo.</small>
+                    </div>
+                </div>
+                <div class="card-footer border-0 bg-white">
+                    <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalOrcamento">
+                        <i class="bi bi-pencil me-1"></i>Definir Orçamento
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header border-0 bg-white pb-0">
+                    <h6 class="fw-bold mb-0"><i class="bi bi-trophy me-2 text-warning"></i>Ranking de Fornecedores</h6>
+                    <small class="text-muted">Por rating médio (avaliações ao receber)</small>
+                </div>
+                <div class="card-body p-0">
+                    <div id="rankingFornecedores" class="p-3">
+                        <div class="text-center text-muted py-3">Carregando...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Piores -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header border-0 bg-white pb-0">
+            <h6 class="fw-bold mb-0 text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Atenção — Piores Fornecedores</h6>
+        </div>
+        <div class="card-body p-0" id="pioresFornecedores">
+            <div class="text-center text-muted py-3">Carregando...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Orçamento -->
+<div class="modal fade" id="modalOrcamento">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light border-0">
+                <h6 class="modal-title fw-bold">Definir Orçamento</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Unidade</label>
+                    <select class="form-select form-select-sm" id="orcUnidade">
+                        {% for u in unidades %}
+                        <option value="{{ u.id }}">{{ u.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="row g-2 mb-2">
+                    <div class="col-6">
+                        <label class="form-label small fw-bold">Ano</label>
+                        <input type="number" class="form-control form-control-sm" id="orcAno" value="{{ now().year if now is defined else 2026 }}">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small fw-bold">Mês</label>
+                        <input type="number" class="form-control form-control-sm" id="orcMes" min="1" max="12" value="{{ now().month if now is defined else 3 }}">
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Valor Orçado (R$)</label>
+                    <input type="text" class="form-control form-control-sm" id="orcValor" placeholder="Ex: 15000,00">
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-sm btn-link text-muted" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-sm btn-primary" onclick="salvarOrcamento()">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+let chartBudget = null;
+
+function getMes() { return parseInt(document.getElementById('selMes').value); }
+function getAno() { return parseInt(document.getElementById('selAno').value); }
+
+// Inicializar mês atual
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('selMes').value = new Date().getMonth() + 1;
+    carregarTudo();
+});
+
+async function carregarTudo() {
+    await Promise.all([carregarBudget(), carregarLeadTime(), carregarRanking()]);
+}
+
+async function carregarBudget() {
+    const res = await fetch(`/analytics/api/compras/budget?ano=${getAno()}&mes=${getMes()}`);
+    const dados = await res.json();
+
+    document.getElementById('semBudget').classList.toggle('d-none', dados.length > 0);
+    if (!dados.length) { if (chartBudget) chartBudget.destroy(); return; }
+
+    const labels = dados.map(d => d.unidade);
+    const orcado = dados.map(d => d.orcado);
+    const empenhado = dados.map(d => d.empenhado);
+
+    const ctx = document.getElementById('chartBudget').getContext('2d');
+    if (chartBudget) chartBudget.destroy();
+    chartBudget = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [
+                { label: 'Orçado', data: orcado, backgroundColor: 'rgba(99,102,241,0.2)', borderColor: '#6366f1', borderWidth: 2 },
+                { label: 'Empenhado', data: empenhado, backgroundColor: 'rgba(249,115,22,0.6)', borderColor: '#f97316', borderWidth: 2 }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'top' } },
+            scales: { y: { beginAtZero: true, ticks: { callback: v => 'R$' + v.toLocaleString('pt-BR') } } }
+        }
+    });
+}
+
+async function carregarLeadTime() {
+    const res = await fetch('/analytics/api/compras/leadtime?dias=90');
+    const d = await res.json();
+    document.getElementById('ltAprovacao').textContent = d.media_horas_aprovacao + 'h';
+    document.getElementById('ltRecebimento').textContent = d.media_horas_recebimento + 'h';
+    document.getElementById('totalPedidos').textContent = d.total_pedidos;
+}
+
+async function carregarRanking() {
+    const res = await fetch('/analytics/api/compras/fornecedores-ranking');
+    const d = await res.json();
+
+    if (d.top && d.top.length) {
+        document.getElementById('melhorFornecedor').textContent = d.top[0].nome;
+        document.getElementById('rankingFornecedores').innerHTML = renderRanking(d.top, true);
+        document.getElementById('pioresFornecedores').innerHTML = d.bottom.length
+            ? '<table class="table table-sm mb-0">' + d.bottom.map(f => renderRow(f, false)).join('') + '</table>'
+            : '<div class="text-center text-muted py-3">Dados insuficientes.</div>';
+    } else {
+        document.getElementById('melhorFornecedor').textContent = '—';
+        document.getElementById('rankingFornecedores').innerHTML = '<div class="text-center text-muted py-3">Nenhuma avaliação registrada ainda.</div>';
+        document.getElementById('pioresFornecedores').innerHTML = '<div class="text-center text-muted py-3">Nenhum dado disponível.</div>';
+    }
+}
+
+function estrelas(r) {
+    let s = '';
+    for (let i = 1; i <= 5; i++) s += `<i class="bi bi-star${i <= r ? '-fill text-warning' : ' text-muted'}"></i>`;
+    return s;
+}
+
+function renderRow(f, top) {
+    const cor = top ? 'success' : 'danger';
+    return `<tr>
+        <td class="ps-3"><span class="fw-bold text-${cor}">${f.nome}</span></td>
+        <td>${estrelas(f.rating_medio)} <small class="text-muted">${f.rating_medio}</small></td>
+        <td class="text-muted small">${f.total_pedidos} pedidos</td>
+        <td><span class="badge bg-${f.pct_pontualidade >= 80 ? 'success' : 'warning'} bg-opacity-10 text-${f.pct_pontualidade >= 80 ? 'success' : 'warning'}">${f.pct_pontualidade}% pontual</span></td>
+    </tr>`;
+}
+
+function renderRanking(top, isTop) {
+    return '<table class="table table-sm mb-0">' + top.map(f => renderRow(f, isTop)).join('') + '</table>';
+}
+
+async function salvarOrcamento() {
+    const payload = {
+        unidade_id: parseInt(document.getElementById('orcUnidade').value),
+        ano: parseInt(document.getElementById('orcAno').value),
+        mes: parseInt(document.getElementById('orcMes').value),
+        valor_orcado: parseFloat(document.getElementById('orcValor').value.replace(',', '.')) || 0
+    };
+    const res = await fetch('/analytics/api/compras/orcamento/salvar', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    });
+    const d = await res.json();
+    if (d.success) {
+        bootstrap.Modal.getInstance(document.getElementById('modalOrcamento')).hide();
+        carregarBudget();
+    }
+}
+</script>
+{% endblock %}

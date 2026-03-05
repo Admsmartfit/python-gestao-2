@@ -19,12 +19,78 @@ def verificar_saude_whatsapp():
     """Verifica saúde do sistema e dispara alertas."""
     AlertaService.verificar_saude()
 
+def _processar_onetap_compra(remetente: str, texto: str) -> bool:
+    """Detecta e processa One-Tap de aprovação/rejeição via WhatsApp. Retorna True se tratado."""
+    import re
+    from app.models.models import Usuario
+    from app.models.estoque_models import PedidoCompra, AprovacaoPedido
+
+    m_apr = re.match(r'^aprovar_pedido_(\d+)$', texto.strip(), re.IGNORECASE)
+    m_rej = re.match(r'^rejeitar_pedido_(\d+)$', texto.strip(), re.IGNORECASE)
+    if not (m_apr or m_rej):
+        return False
+
+    pedido_id = int((m_apr or m_rej).group(1))
+    pedido = PedidoCompra.query.get(pedido_id)
+    if not pedido:
+        WhatsAppService.enviar_mensagem(remetente, f"❌ Pedido #{pedido_id} não encontrado.")
+        return True
+
+    tel_norm = WhatsAppService.normalizar_telefone(remetente)
+    usuario = Usuario.query.filter(
+        db.or_(Usuario.telefone == tel_norm, Usuario.telefone == remetente)
+    ).first()
+    if not usuario or usuario.tipo not in ('admin', 'gerente', 'diretor'):
+        WhatsAppService.enviar_mensagem(remetente, "❌ Sem permissão para aprovar pedidos.")
+        return True
+
+    item = pedido.peca.nome if pedido.peca else (pedido.descricao_livre or f'Pedido #{pedido_id}')
+
+    if m_apr:
+        if pedido.status not in ('solicitado', 'aguardando_diretoria'):
+            WhatsAppService.enviar_mensagem(remetente, f"ℹ️ Pedido #{pedido_id} já está '{pedido.status}'.")
+            return True
+        if AprovacaoPedido.query.filter_by(pedido_id=pedido_id, aprovador_id=usuario.id, acao='aprovado').first():
+            WhatsAppService.enviar_mensagem(remetente, f"ℹ️ Você já aprovou o Pedido #{pedido_id}.")
+            return True
+        db.session.add(AprovacaoPedido(pedido_id=pedido_id, aprovador_id=usuario.id, acao='aprovado', via='whatsapp'))
+        total = AprovacaoPedido.query.filter_by(pedido_id=pedido_id, acao='aprovado').count() + 1
+        if (pedido.tier_aprovacao or 2) <= 2 or total >= 2:
+            pedido.status = 'aprovado'
+            pedido.aprovador_id = usuario.id
+            db.session.commit()
+            enviar_pedido_fornecedor.delay(pedido_id)
+            WhatsAppService.enviar_mensagem(remetente, f"✅ Pedido *#{pedido_id}* aprovado!\nItem: {item}")
+            if pedido.solicitante and pedido.solicitante.telefone:
+                WhatsAppService.enviar_mensagem(pedido.solicitante.telefone,
+                    f"✅ Pedido *#{pedido_id}* ({item}) aprovado por {usuario.nome}.")
+        else:
+            db.session.commit()
+            WhatsAppService.enviar_mensagem(remetente, f"✅ Aprovação registrada ({total}/2). Aguardando segundo diretor.")
+    else:
+        if pedido.status in ('recebido', 'cancelado', 'recusado'):
+            WhatsAppService.enviar_mensagem(remetente, f"ℹ️ Pedido #{pedido_id} já está '{pedido.status}'.")
+            return True
+        db.session.add(AprovacaoPedido(pedido_id=pedido_id, aprovador_id=usuario.id, acao='rejeitado', via='whatsapp'))
+        pedido.status = 'recusado'
+        db.session.commit()
+        WhatsAppService.enviar_mensagem(remetente, f"❌ Pedido *#{pedido_id}* rejeitado.")
+        if pedido.solicitante and pedido.solicitante.telefone:
+            WhatsAppService.enviar_mensagem(pedido.solicitante.telefone,
+                f"❌ Pedido *#{pedido_id}* ({item}) recusado por {usuario.nome}.")
+    return True
+
+
 @shared_task
 def processar_mensagem_inbound(remetente: str, texto: str, timestamp: float):
     """
     Processa mensagem recebida (Inbound) assincronamente.
     """
     try:
+        # One-Tap de aprovação de compras (deve ser verificado antes do roteamento)
+        if _processar_onetap_compra(remetente, texto):
+            return {'status': 'onetap_compra'}
+
         # Rotear
         resultado = RoteamentoService.processar(remetente, texto)
         

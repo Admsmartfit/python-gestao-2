@@ -1,9 +1,14 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
-from app.models.estoque_models import PedidoCompra, Fornecedor, Estoque, CatalogoFornecedor, ComunicacaoFornecedor, ListaCompra, ListaCompraItem, OrdemCompraLista
+from app.models.estoque_models import (
+    PedidoCompra, Fornecedor, Estoque, CatalogoFornecedor, ComunicacaoFornecedor,
+    ListaCompra, ListaCompraItem, OrdemCompraLista,
+    AprovacaoPedido, FaturamentoCompra, OrcamentoUnidade
+)
 from app.extensions import db
 from datetime import datetime
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +54,26 @@ def novo():
 
             os_id_ref = request.form.get('os_id') or None
 
+            # Calcular tier de aprovação
+            valor_unitario_est = float(request.form.get('valor_unitario', 0) or 0)
+            valor_total_est = valor_unitario_est * quantidade if valor_unitario_est else valor_total
+
+            if valor_total_est <= 500:
+                tier = 1
+                status_inicial = 'aprovado'
+                aprovador_id = 0
+            elif valor_total_est <= 5000:
+                tier = 2
+                status_inicial = 'solicitado'
+                aprovador_id = None
+            else:
+                tier = 3
+                status_inicial = 'aguardando_diretoria'
+                aprovador_id = None
+
+            data_entrega_str = request.form.get('data_entrega_prevista', '').strip()
+            data_entrega = datetime.strptime(data_entrega_str, '%Y-%m-%d') if data_entrega_str else None
+
             pedido = PedidoCompra(
                 estoque_id=estoque_id,
                 quantidade=int(quantidade),
@@ -57,20 +82,26 @@ def novo():
                 solicitante_id=current_user.id,
                 status=status_inicial,
                 aprovador_id=aprovador_id,
-                os_id=int(os_id_ref) if os_id_ref else None
+                os_id=int(os_id_ref) if os_id_ref else None,
+                valor_unitario_estimado=valor_unitario_est or None,
+                valor_total_estimado=valor_total_est or None,
+                tier_aprovacao=tier,
+                data_entrega_prevista=data_entrega,
             )
             db.session.add(pedido)
             db.session.commit()
-            
-            # Se aprovado automaticamente, já pode disparar o envio
-            if pedido.status == 'aprovado':
+
+            if tier == 1:
                 from app.tasks.whatsapp_tasks import enviar_pedido_fornecedor
                 enviar_pedido_fornecedor.delay(pedido.id)
-                msg_adic = " (Aprovado automaticamente)"
+                msg_adic = " — Aprovado automaticamente (Tier 1)"
+            elif tier == 2:
+                msg_adic = " — Aguardando aprovação do Gerente (Tier 2)"
             else:
-                msg_adic = ""
+                msg_adic = " — Aguardando consenso da Diretoria (Tier 3)"
+                _notificar_diretores_tier3(pedido)
 
-            flash(f"Pedido #{pedido.id} criado com sucesso!{msg_adic}", "success")
+            flash(f"Pedido #{pedido.id} criado!{msg_adic}", "success")
             return redirect(url_for('compras.listar'))
         except Exception as e:
             db.session.rollback()
@@ -115,30 +146,114 @@ def alterar_unidade(id):
     db.session.commit()
     return jsonify({'success': True, 'mensagem': 'Unidade solicitante atualizada'})
 
+def _notificar_diretores_tier3(pedido):
+    """Envia mensagem com botões One-Tap para todos os diretores/admins via WhatsApp."""
+    try:
+        from app.models.models import Usuario
+        from app.services.whatsapp_service import WhatsAppService
+        diretores = Usuario.query.filter(
+            Usuario.tipo.in_(['admin', 'diretor']),
+            Usuario.ativo == True,
+            Usuario.telefone.isnot(None)
+        ).all()
+        item_nome = pedido.peca.nome if pedido.peca else (pedido.descricao_livre or f'Pedido #{pedido.id}')
+        solicitante_nome = pedido.solicitante.nome if pedido.solicitante else 'Sistema'
+        valor_str = pedido.valor_display if hasattr(pedido, 'valor_display') else '—'
+        body = (
+            f"⚡ *Aprovação Necessária — Tier 3*\n\n"
+            f"📦 Pedido *#{pedido.id}*\n"
+            f"💰 Valor estimado: *{valor_str}*\n"
+            f"📝 Item: {item_nome}\n"
+            f"👤 Solicitante: {solicitante_nome}\n\n"
+            f"Sua aprovação é necessária. Por favor, avalie:"
+        )
+        buttons = [
+            {"buttonId": f"aprovar_pedido_{pedido.id}", "buttonText": {"displayText": "✅ Aprovar"}, "type": 1},
+            {"buttonId": f"rejeitar_pedido_{pedido.id}", "buttonText": {"displayText": "❌ Rejeitar"}, "type": 1},
+        ]
+        for diretor in diretores:
+            WhatsAppService.send_buttons_message(phone=diretor.telefone, body=body, buttons=buttons)
+    except Exception as e:
+        logger.warning(f"Erro ao notificar diretores Tier 3: {e}")
+
+
+@bp.route('/aprovacoes')
+@login_required
+def aprovacoes():
+    """Painel de aprovações pendentes (Tier 2 = Gerente, Tier 3 = Diretoria)."""
+    if current_user.tipo not in ['admin', 'gerente', 'diretor']:
+        flash("Permissão negada.", "danger")
+        return redirect(url_for('compras.listar'))
+
+    tier2 = PedidoCompra.query.filter_by(status='solicitado', tier_aprovacao=2).order_by(
+        PedidoCompra.data_solicitacao.desc()).all()
+    tier3 = PedidoCompra.query.filter_by(status='aguardando_diretoria', tier_aprovacao=3).order_by(
+        PedidoCompra.data_solicitacao.desc()).all()
+
+    # Enriquece tier3 com contagem de aprovações já registradas
+    tier3_info = []
+    for p in tier3:
+        aprovs = AprovacaoPedido.query.filter_by(pedido_id=p.id, acao='aprovado').count()
+        tier3_info.append({'pedido': p, 'aprovacoes_count': aprovs})
+
+    return render_template('compras/aprovacoes.html', tier2=tier2, tier3_info=tier3_info)
+
+
 @bp.route('/<int:id>/aprovar', methods=['POST'])
 @login_required
 def aprovar(id):
-    """Manager approval of the request"""
-    if current_user.tipo not in ['admin', 'gerente']:
+    """Aprovação de pedido — suporta Tier 2 (gerente) e Tier 3 (consenso diretoria)."""
+    if current_user.tipo not in ['admin', 'gerente', 'diretor']:
         flash("Permissão negada.", "danger")
         return redirect(url_for('compras.detalhes', id=id))
-        
+
     pedido = PedidoCompra.query.get_or_404(id)
-    if pedido.status != 'solicitado':
+    observacao = request.form.get('observacao', '').strip()
+
+    if pedido.status not in ('solicitado', 'aguardando_diretoria'):
         flash("Este pedido já foi processado.", "info")
         return redirect(url_for('compras.detalhes', id=id))
 
-    pedido.status = 'aprovado'
-    pedido.aprovador_id = current_user.id
-    db.session.commit()
-    
-    # Trigger PDF generation and sending via Celery
-    from app.tasks.whatsapp_tasks import enviar_pedido_fornecedor
-    enviar_pedido_fornecedor.delay(pedido.id)
-    
-    flash(f"Pedido #{id} aprovado. O processamento do PDF e envio foi iniciado.", "success")
-         
-    return redirect(url_for('compras.detalhes', id=id))
+    # Registrar aprovação individual
+    ja_aprovou = AprovacaoPedido.query.filter_by(pedido_id=id, aprovador_id=current_user.id, acao='aprovado').first()
+    if ja_aprovou:
+        flash("Você já aprovou este pedido.", "info")
+        return redirect(url_for('compras.detalhes', id=id))
+
+    registro = AprovacaoPedido(
+        pedido_id=id,
+        aprovador_id=current_user.id,
+        acao='aprovado',
+        observacao=observacao,
+        via='web'
+    )
+    db.session.add(registro)
+
+    tier = pedido.tier_aprovacao or 2
+    if tier <= 2:
+        # Tier 1 ou 2: aprovação simples
+        pedido.status = 'aprovado'
+        pedido.aprovador_id = current_user.id
+        db.session.commit()
+        from app.tasks.whatsapp_tasks import enviar_pedido_fornecedor
+        enviar_pedido_fornecedor.delay(pedido.id)
+        flash(f"Pedido #{id} aprovado com sucesso!", "success")
+    else:
+        # Tier 3: precisa de 2 aprovações
+        db.session.commit()  # salva o registro acima
+        total_aprovacoes = AprovacaoPedido.query.filter_by(pedido_id=id, acao='aprovado').count()
+        if total_aprovacoes >= 2:
+            pedido.status = 'aprovado'
+            pedido.aprovador_id = current_user.id
+            db.session.commit()
+            from app.tasks.whatsapp_tasks import enviar_pedido_fornecedor
+            enviar_pedido_fornecedor.delay(pedido.id)
+            _notificar_solicitante(pedido, aprovado=True)
+            flash(f"Pedido #{id} aprovado! Consenso de diretoria atingido ({total_aprovacoes}/2).", "success")
+        else:
+            flash(f"Sua aprovação foi registrada ({total_aprovacoes}/2). Aguardando segundo diretor.", "info")
+
+    return redirect(url_for('compras.aprovacoes'))
 
 @bp.route('/<int:id>/receber', methods=['POST'])
 @login_required
@@ -179,6 +294,111 @@ def receber(id):
     return redirect(url_for('compras.detalhes', id=id))
 
 # [NOVO] Buscar Fornecedores por Item de Estoque
+def _notificar_solicitante(pedido, aprovado: bool):
+    """Notifica o solicitante via WhatsApp sobre resultado da aprovação."""
+    try:
+        from app.services.whatsapp_service import WhatsAppService
+        if pedido.solicitante and pedido.solicitante.telefone:
+            item = pedido.peca.nome if pedido.peca else (pedido.descricao_livre or f'Pedido #{pedido.id}')
+            if aprovado:
+                msg = f"✅ Seu pedido *#{pedido.id}* ({item}) foi *aprovado* pela diretoria e será processado."
+            else:
+                msg = f"❌ Seu pedido *#{pedido.id}* ({item}) foi *recusado* pela diretoria."
+            WhatsAppService.enviar_mensagem(pedido.solicitante.telefone, msg)
+    except Exception as e:
+        logger.warning(f"Erro ao notificar solicitante: {e}")
+
+
+@bp.route('/<int:id>/rejeitar', methods=['POST'])
+@login_required
+def rejeitar(id):
+    """Rejeitar pedido (qualquer tier)."""
+    if current_user.tipo not in ['admin', 'gerente', 'diretor']:
+        return jsonify({'error': 'Permissão negada'}), 403
+
+    pedido = PedidoCompra.query.get_or_404(id)
+    if pedido.status in ('recebido', 'cancelado', 'recusado'):
+        flash("Pedido não pode ser rejeitado no status atual.", "warning")
+        return redirect(url_for('compras.aprovacoes'))
+
+    observacao = request.form.get('observacao', '').strip()
+    registro = AprovacaoPedido(
+        pedido_id=id,
+        aprovador_id=current_user.id,
+        acao='rejeitado',
+        observacao=observacao,
+        via='web'
+    )
+    db.session.add(registro)
+    pedido.status = 'recusado'
+    db.session.commit()
+    _notificar_solicitante(pedido, aprovado=False)
+    flash(f"Pedido #{id} recusado.", "warning")
+    return redirect(url_for('compras.aprovacoes'))
+
+
+@bp.route('/<int:id>/faturamento', methods=['POST'])
+@login_required
+def registrar_faturamento(id):
+    """Registra NF e boleto de um pedido aprovado."""
+    if current_user.tipo not in ['admin', 'comprador', 'gerente']:
+        return jsonify({'error': 'Permissão negada'}), 403
+
+    pedido = PedidoCompra.query.get_or_404(id)
+    fat = pedido.faturamento or FaturamentoCompra(pedido_id=id)
+
+    fat.numero_nf = request.form.get('numero_nf', '').strip() or None
+    val = request.form.get('valor_faturado', '').replace(',', '.').strip()
+    fat.valor_faturado = float(val) if val else None
+    venc = request.form.get('data_vencimento_boleto', '').strip()
+    fat.data_vencimento_boleto = datetime.strptime(venc, '%Y-%m-%d').date() if venc else None
+    fat.linha_digitavel = request.form.get('linha_digitavel', '').strip() or None
+    fat.registrado_por_id = current_user.id
+
+    if not pedido.faturamento:
+        db.session.add(fat)
+
+    pedido.status = 'faturado'
+    db.session.commit()
+
+    # Notificar financeiro
+    try:
+        from app.models.models import Usuario
+        from app.services.whatsapp_service import WhatsAppService
+        financeiros = Usuario.query.filter(Usuario.tipo == 'financeiro', Usuario.ativo == True).all()
+        item = pedido.peca.nome if pedido.peca else (pedido.descricao_livre or f'Pedido #{pedido.id}')
+        venc_str = fat.data_vencimento_boleto.strftime('%d/%m/%Y') if fat.data_vencimento_boleto else 'N/D'
+        msg = (f"💰 *Novo Boleto para Pagamento*\n\n"
+               f"Pedido #{pedido.id} — {item}\n"
+               f"NF: {fat.numero_nf or 'N/D'}\n"
+               f"Valor: R$ {float(fat.valor_faturado or 0):,.2f}\n"
+               f"Vencimento: {venc_str}")
+        for fin in financeiros:
+            if fin.telefone:
+                WhatsAppService.enviar_mensagem(fin.telefone, msg)
+    except Exception as e:
+        logger.warning(f"Erro ao notificar financeiro: {e}")
+
+    flash(f"Faturamento do Pedido #{id} registrado com sucesso!", "success")
+    return redirect(url_for('compras.detalhes', id=id))
+
+
+@bp.route('/<int:id>/rating', methods=['POST'])
+@login_required
+def registrar_rating(id):
+    """Registra avaliação do fornecedor (1-5 estrelas) ao receber o pedido."""
+    pedido = PedidoCompra.query.get_or_404(id)
+    try:
+        rating = int(request.form.get('rating', 0))
+        if 1 <= rating <= 5:
+            pedido.rating_fornecedor = rating
+            db.session.commit()
+            flash(f"Avaliação ({rating}★) registrada!", "success")
+    except (ValueError, TypeError):
+        flash("Rating inválido.", "warning")
+    return redirect(url_for('compras.detalhes', id=id))
+
+
 @bp.route('/buscar_fornecedores', methods=['POST'])
 @login_required
 def buscar_fornecedores():

@@ -41,7 +41,8 @@
             {% set grp_operacao  = request.endpoint in ['os.nova_os'] or 'equipamentos' in request.endpoint %}
             {% set grp_estoque   = 'estoque' in request.endpoint or 'compras' in request.endpoint or 'transferencias' in request.endpoint %}
             {% set grp_terceiros = 'terceirizados' in request.endpoint or 'admin_whatsapp' in request.endpoint %}
-            {% set grp_gestao    = 'manutencao' in request.endpoint or 'analytics' in request.endpoint or request.endpoint in ['admin.dashboard', 'admin_whatsapp.dashboard'] %}
+            {% set grp_gestao    = 'manutencao' in request.endpoint or ('analytics' in request.endpoint and 'compras' not in request.endpoint) or request.endpoint in ['admin.dashboard', 'admin_whatsapp.dashboard'] %}
+            {% set grp_compras_bi = request.endpoint == 'analytics.compras_bi' %}
             {% endif %}
 
             <div class="sidebar-nav accordion" id="sidebarAccordion">
@@ -52,6 +53,32 @@
                     class="nav-link-saas mb-1 {{ 'active' if request.endpoint == 'ponto.index' }}">
                     <i class="bi bi-speedometer2"></i> Dashboard
                 </a>
+
+                <!-- Analytics & BI (NOVO v4.0) -->
+                {% if current_user.tipo in ['admin', 'gerente', 'diretor', 'comprador'] %}
+                <div class="accordion-item bg-transparent border-0">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button nav-link-saas {{ '' if grp_compras_bi else 'collapsed' }}"
+                            type="button" data-bs-toggle="collapse" data-bs-target="#grpAnalytics"
+                            aria-expanded="{{ 'true' if grp_compras_bi else 'false' }}">
+                            <i class="bi bi-graph-up-arrow me-2 text-primary"></i> Analytics & BI
+                        </button>
+                    </h2>
+                    <div id="grpAnalytics" class="accordion-collapse collapse {{ 'show' if grp_compras_bi }}"
+                        data-bs-parent="#sidebarAccordion">
+                        <div class="accordion-body py-1 ps-3">
+                            <a href="{{ url_for('analytics.compras_bi') }}"
+                                class="nav-link-saas nav-link-sub {{ 'active' if request.endpoint == 'analytics.compras_bi' }}">
+                                <i class="bi bi-cart-check"></i> Inteligência de Compras
+                            </a>
+                            <a href="{{ url_for('analytics.dashboard') }}"
+                                class="nav-link-saas nav-link-sub {{ 'active' if request.endpoint == 'analytics.dashboard' }}">
+                                <i class="bi bi-pie-chart-fill"></i> Operacional
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
 
                 <!-- Operação -->
                 <div class="accordion-item bg-transparent border-0">
@@ -112,6 +139,12 @@
                             <a href="{{ url_for('compras.listas_compra') }}"
                                 class="nav-link-saas nav-link-sub {{ 'active' if request.endpoint == 'compras.listas_compra' }}">
                                 <i class="bi bi-list-stars"></i> Listas Padrão
+                            </a>
+                            {% endif %}
+                            {% if current_user.tipo in ['admin', 'gerente', 'diretor'] %}
+                            <a href="{{ url_for('compras.aprovacoes') }}"
+                                class="nav-link-saas nav-link-sub {{ 'active' if request.endpoint == 'compras.aprovacoes' }}">
+                                <i class="bi bi-shield-check"></i> Aprovações
                             </a>
                             {% endif %}
                             {% if current_user.tipo in ['admin', 'comprador', 'gerente'] %}

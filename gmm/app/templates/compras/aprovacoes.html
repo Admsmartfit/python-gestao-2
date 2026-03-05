@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="h4 fw-bold mb-0">Aprovações Pendentes</h2>
+            <p class="text-muted small mb-0">Pedidos aguardando autorização de compra</p>
+        </div>
+        <a href="{{ url_for('compras.listar') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Voltar
+        </a>
+    </div>
+
+    <!-- Tier 2: Gerente -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-warning bg-opacity-10 border-0 py-3">
+            <h6 class="fw-bold mb-0 text-warning-emphasis">
+                <i class="bi bi-person-check me-2"></i>Tier 2 — Aguardando Gerente
+                <span class="badge bg-warning text-dark ms-2">{{ tier2|length }}</span>
+            </h6>
+            <small class="text-muted">Pedidos entre R$ 501 e R$ 5.000 — 1 aprovação necessária</small>
+        </div>
+        <div class="card-body p-0">
+            {% if tier2 %}
+            <table class="table align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-4">Pedido</th>
+                        <th>Item</th>
+                        <th>Valor</th>
+                        <th>Solicitante</th>
+                        <th>Data</th>
+                        <th class="text-end pe-4">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for p in tier2 %}
+                <tr>
+                    <td class="ps-4"><code>#{{ p.id }}</code></td>
+                    <td>{{ p.peca.nome if p.peca else p.descricao_livre or '—' }}</td>
+                    <td>
+                        <span class="fw-bold text-warning">{{ p.valor_display }}</span>
+                    </td>
+                    <td>{{ p.solicitante.nome if p.solicitante else '—' }}</td>
+                    <td class="text-muted small">{{ p.data_solicitacao.strftime('%d/%m %H:%M') }}</td>
+                    <td class="text-end pe-4">
+                        <button class="btn btn-sm btn-success me-1" onclick="confirmarAprovar({{ p.id }}, 'Tier 2')">
+                            <i class="bi bi-check-lg"></i> Aprovar
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="confirmarRejeitar({{ p.id }})">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="text-center py-4 text-muted">
+                <i class="bi bi-check-circle display-6 d-block mb-2 opacity-25"></i>
+                Nenhum pedido aguardando aprovação de gerente.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Tier 3: Diretoria -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-danger bg-opacity-10 border-0 py-3">
+            <h6 class="fw-bold mb-0 text-danger-emphasis">
+                <i class="bi bi-people me-2"></i>Tier 3 — Consenso de Diretoria
+                <span class="badge bg-danger ms-2">{{ tier3_info|length }}</span>
+            </h6>
+            <small class="text-muted">Pedidos acima de R$ 5.000 — 2 aprovações necessárias</small>
+        </div>
+        <div class="card-body p-0">
+            {% if tier3_info %}
+            <table class="table align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-4">Pedido</th>
+                        <th>Item</th>
+                        <th>Valor</th>
+                        <th>Solicitante</th>
+                        <th>Aprovações</th>
+                        <th class="text-end pe-4">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for info in tier3_info %}
+                {% set p = info.pedido %}
+                <tr>
+                    <td class="ps-4"><code>#{{ p.id }}</code></td>
+                    <td>{{ p.peca.nome if p.peca else p.descricao_livre or '—' }}</td>
+                    <td><span class="fw-bold text-danger">{{ p.valor_display }}</span></td>
+                    <td>{{ p.solicitante.nome if p.solicitante else '—' }}</td>
+                    <td>
+                        <div class="d-flex gap-1 align-items-center">
+                            {% for i in range(2) %}
+                            <i class="bi bi-{{ 'check-circle-fill text-success' if i < info.aprovacoes_count else 'circle text-muted' }}"></i>
+                            {% endfor %}
+                            <small class="text-muted ms-1">{{ info.aprovacoes_count }}/2</small>
+                        </div>
+                    </td>
+                    <td class="text-end pe-4">
+                        <button class="btn btn-sm btn-success me-1" onclick="confirmarAprovar({{ p.id }}, 'Tier 3')">
+                            <i class="bi bi-check-lg"></i> Aprovar
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="confirmarRejeitar({{ p.id }})">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="text-center py-4 text-muted">
+                <i class="bi bi-check-circle display-6 d-block mb-2 opacity-25"></i>
+                Nenhum pedido aguardando consenso de diretoria.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal Aprovar -->
+<div class="modal fade" id="modalAprovar">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success bg-opacity-10 border-0">
+                <h6 class="modal-title fw-bold text-success"><i class="bi bi-check-circle me-2"></i>Confirmar Aprovação</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formAprovar" method="POST">
+                <div class="modal-body">
+                    <p class="small text-muted mb-2" id="labelAprovarTier"></p>
+                    <textarea name="observacao" class="form-control form-control-sm" rows="2" placeholder="Observação (opcional)"></textarea>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-sm btn-link text-muted" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-sm btn-success px-4">Aprovar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Rejeitar -->
+<div class="modal fade" id="modalRejeitar">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger bg-opacity-10 border-0">
+                <h6 class="modal-title fw-bold text-danger"><i class="bi bi-x-circle me-2"></i>Rejeitar Pedido</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formRejeitar" method="POST">
+                <div class="modal-body">
+                    <textarea name="observacao" class="form-control form-control-sm" rows="2" placeholder="Motivo da rejeição..." required></textarea>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-sm btn-link text-muted" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-sm btn-danger px-4">Rejeitar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmarAprovar(id, tier) {
+    document.getElementById('formAprovar').action = `/compras/${id}/aprovar`;
+    document.getElementById('labelAprovarTier').textContent = `Pedido #${id} — ${tier}`;
+    new bootstrap.Modal(document.getElementById('modalAprovar')).show();
+}
+function confirmarRejeitar(id) {
+    document.getElementById('formRejeitar').action = `/compras/${id}/rejeitar`;
+    new bootstrap.Modal(document.getElementById('modalRejeitar')).show();
+}
+</script>
+{% endblock %}
