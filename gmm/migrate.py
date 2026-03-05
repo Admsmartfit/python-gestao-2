@@ -52,6 +52,20 @@ MIGRATIONS = [
      'ALTER TABLE whatsapp_regras_automacao ADD COLUMN notificar_usuario_id INTEGER'),
     ('whatsapp_regras_automacao', 'para_desconhecidos',
      'ALTER TABLE whatsapp_regras_automacao ADD COLUMN para_desconhecidos BOOLEAN DEFAULT 1'),
+
+    # v4.0 Compras Enterprise — Fornecedores
+    ('fornecedores', 'whatsapp', 'ALTER TABLE fornecedores ADD COLUMN whatsapp VARCHAR(20)'),
+    ('fornecedores', 'cnpj', 'ALTER TABLE fornecedores ADD COLUMN cnpj VARCHAR(20)'),
+    ('fornecedores', 'forma_contato_alternativa', 'ALTER TABLE fornecedores ADD COLUMN forma_contato_alternativa TEXT'),
+
+    # v4.0/4.1 Compras Enterprise — Pedidos
+    ('pedidos_compra', 'valor_unitario_estimado', 'ALTER TABLE pedidos_compra ADD COLUMN valor_unitario_estimado NUMERIC(12, 2)'),
+    ('pedidos_compra', 'valor_total_estimado', 'ALTER TABLE pedidos_compra ADD COLUMN valor_total_estimado NUMERIC(12, 2)'),
+    ('pedidos_compra', 'tier_aprovacao', 'ALTER TABLE pedidos_compra ADD COLUMN tier_aprovacao INTEGER'),
+    ('pedidos_compra', 'data_entrega_prevista', 'ALTER TABLE pedidos_compra ADD COLUMN data_entrega_prevista DATETIME'),
+    ('pedidos_compra', 'data_recebimento', 'ALTER TABLE pedidos_compra ADD COLUMN data_recebimento DATETIME'),
+    ('pedidos_compra', 'rating_fornecedor', 'ALTER TABLE pedidos_compra ADD COLUMN rating_fornecedor INTEGER'),
+    ('pedidos_compra', 'tipo_pedido', "ALTER TABLE pedidos_compra ADD COLUMN tipo_pedido VARCHAR(20) DEFAULT 'catalogo'"),
 ]
 
 
@@ -90,7 +104,88 @@ def create_new_tables(conn):
             observacao TEXT
         )
     '''))
-    print('  [ok]   listas_compra, lista_compra_itens, ordens_compra_lista (CREATE IF NOT EXISTS)')
+    
+    # Compras Enterprise v4.0 Tables
+    conn.execute(db.text('''
+        CREATE TABLE IF NOT EXISTS aprovacoes_pedido (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            pedido_id INTEGER NOT NULL REFERENCES pedidos_compra(id),
+            aprovador_id INTEGER NOT NULL REFERENCES usuarios(id),
+            acao VARCHAR(20) NOT NULL,
+            observacao TEXT,
+            via VARCHAR(20) DEFAULT 'web',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    '''))
+    
+    conn.execute(db.text('''
+        CREATE TABLE IF NOT EXISTS faturamentos_compra (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            pedido_id INTEGER NOT NULL UNIQUE REFERENCES pedidos_compra(id),
+            numero_nf VARCHAR(50),
+            valor_faturado NUMERIC(12, 2),
+            data_vencimento_boleto DATE,
+            linha_digitavel VARCHAR(100),
+            arquivo_nf VARCHAR(300),
+            arquivo_boleto VARCHAR(300),
+            registrado_por_id INTEGER REFERENCES usuarios(id),
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    '''))
+    
+    conn.execute(db.text('''
+        CREATE TABLE IF NOT EXISTS orcamentos_unidade (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            unidade_id INTEGER NOT NULL REFERENCES unidades(id),
+            ano INTEGER NOT NULL,
+            mes INTEGER NOT NULL,
+            categoria VARCHAR(50),
+            valor_orcado NUMERIC(12, 2) NOT NULL DEFAULT 0,
+            criado_por_id INTEGER REFERENCES usuarios(id),
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    '''))
+    
+    conn.execute(db.text('''
+        CREATE TABLE IF NOT EXISTS cotacoes_compra (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            pedido_id INTEGER NOT NULL REFERENCES pedidos_compra(id),
+            fornecedor_nome VARCHAR(200) NOT NULL,
+            valor_total NUMERIC(12, 2) NOT NULL,
+            prazo_dias INTEGER,
+            observacao TEXT,
+            selecionada BOOLEAN DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    '''))
+    
+    conn.execute(db.text('''
+        CREATE TABLE IF NOT EXISTS configuracao_compras (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            tier1_limite NUMERIC(12, 2) DEFAULT 500,
+            tier2_limite NUMERIC(12, 2) DEFAULT 5000,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_by_id INTEGER REFERENCES usuarios(id)
+        )
+    '''))
+
+    conn.execute(db.text('''
+        CREATE TABLE IF NOT EXISTS comunicacoes_fornecedor (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            pedido_compra_id INTEGER NOT NULL REFERENCES pedidos_compra(id),
+            fornecedor_id INTEGER NOT NULL REFERENCES fornecedores(id),
+            tipo_comunicacao VARCHAR(20) NOT NULL,
+            direcao VARCHAR(10) NOT NULL,
+            mensagem TEXT,
+            status VARCHAR(20) DEFAULT 'pendente',
+            resposta TEXT,
+            data_envio DATETIME DEFAULT CURRENT_TIMESTAMP,
+            data_resposta DATETIME
+        )
+    '''))
+    
+    print('  [ok]   Tabelas Enterprise (CREATE IF NOT EXISTS)')
 
 
 def fix_registros_ponto_unidade_nullable(conn):

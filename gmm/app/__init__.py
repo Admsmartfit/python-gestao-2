@@ -61,6 +61,10 @@ def create_app():
         login_manager.init_app(app)
         migrate.init_app(app, db)
 
+        # Self-Healing: Verifica e corrige o esquema do banco de dados na inicialização
+        from app.utils.schema_checker import check_db_schema
+        check_db_schema(app, db)
+
         # Inicializa Celery
         app.celery = make_celery(app)
 
