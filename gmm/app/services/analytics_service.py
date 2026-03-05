@@ -248,3 +248,78 @@ class AnalyticsService:
             'pecas': dataset_pecas,
             'servicos': dataset_servicos
         }
+
+
+class BIService:
+    """Gera cards de ação contextuais com base no perfil do utilizador (RBAC)."""
+
+    @staticmethod
+    def get_contextual_data(user):
+        from flask import url_for
+        from app.models.estoque_models import PedidoCompra, OrdemServico, Estoque
+
+        pendencias = []
+
+        # Diretor / Admin / Gerente → pedidos aguardando aprovação
+        if user.tipo in ['admin', 'diretor', 'gerente']:
+            if user.tipo == 'gerente':
+                q = PedidoCompra.query.filter_by(status='solicitado')
+            else:
+                q = PedidoCompra.query.filter(
+                    PedidoCompra.status.in_(['solicitado', 'aguardando_diretoria'])
+                )
+            qtd = q.count()
+            if qtd > 0:
+                pendencias.append({
+                    'label': 'Pedidos para Aprovar',
+                    'valor': qtd,
+                    'link': url_for('compras.aprovacoes'),
+                    'cor': 'danger',
+                    'icon': 'bi-check-circle-fill',
+                })
+
+        # Admin / Comprador → fila de pedidos aprovados aguardando processamento
+        if user.tipo in ['admin', 'comprador']:
+            qtd = PedidoCompra.query.filter_by(status='aprovado').count()
+            if qtd > 0:
+                pendencias.append({
+                    'label': 'Fila de Compras',
+                    'valor': qtd,
+                    'link': url_for('compras.listar') + '?status=aprovado',
+                    'cor': 'warning',
+                    'icon': 'bi-bag-check-fill',
+                })
+
+        # Admin / Gerente → OS abertas (com filtro de unidade para gerentes)
+        if user.tipo in ['admin', 'gerente']:
+            q = OrdemServico.query.filter_by(status='aberta')
+            if user.tipo == 'gerente' and user.unidade_padrao_id:
+                q = q.filter_by(unidade_id=user.unidade_padrao_id)
+            qtd = q.count()
+            if qtd > 0:
+                pendencias.append({
+                    'label': 'OS Pendentes',
+                    'valor': qtd,
+                    'link': url_for('ponto.index'),
+                    'cor': 'info',
+                    'icon': 'bi-tools',
+                })
+
+        # Admin / Gerente / Comprador → itens em ruptura de stock
+        if user.tipo in ['admin', 'gerente', 'comprador']:
+            qtd = Estoque.query.filter(
+                Estoque.quantidade_atual <= Estoque.quantidade_minima
+            ).count()
+            if qtd > 0:
+                pendencias.append({
+                    'label': 'Itens em Ruptura',
+                    'valor': qtd,
+                    'link': url_for('os.painel_estoque'),
+                    'cor': 'secondary',
+                    'icon': 'bi-exclamation-triangle-fill',
+                })
+
+        return {
+            'links_ativos': pendencias,
+            'total_pendencias': sum(p['valor'] for p in pendencias),
+        }

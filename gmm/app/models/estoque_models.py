@@ -416,6 +416,7 @@ class CotacaoCompra(db.Model):
     valor_total = db.Column(db.Numeric(12, 2), nullable=False)
     prazo_dias = db.Column(db.Integer, nullable=True)
     observacao = db.Column(db.Text, nullable=True)
+    link_produto = db.Column(db.String(500), nullable=True)
     selecionada = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 

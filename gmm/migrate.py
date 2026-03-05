@@ -66,6 +66,21 @@ MIGRATIONS = [
     ('pedidos_compra', 'data_recebimento', 'ALTER TABLE pedidos_compra ADD COLUMN data_recebimento DATETIME'),
     ('pedidos_compra', 'rating_fornecedor', 'ALTER TABLE pedidos_compra ADD COLUMN rating_fornecedor INTEGER'),
     ('pedidos_compra', 'tipo_pedido', "ALTER TABLE pedidos_compra ADD COLUMN tipo_pedido VARCHAR(20) DEFAULT 'catalogo'"),
+
+    # v4.2 WhatsApp — Configuração e Regras
+    ('whatsapp_configuracao', 'ativar_saudacao_nativa', 'ALTER TABLE whatsapp_configuracao ADD COLUMN activar_saudacao_nativa BOOLEAN DEFAULT 1'),
+    ('whatsapp_configuracao', 'acao_fallback_padrao', "ALTER TABLE whatsapp_configuracao ADD COLUMN acao_fallback_padrao VARCHAR(50) DEFAULT 'ignorar'"),
+    ('whatsapp_configuracao', 'mensagem_fallback_padrao', 'ALTER TABLE whatsapp_configuracao ADD COLUMN mensagem_fallback_padrao TEXT'),
+    ('whatsapp_configuracao', 'palavras_saudacao', "ALTER TABLE whatsapp_configuracao ADD COLUMN palavras_saudacao TEXT DEFAULT 'OI,OLA,OLÁ,MENU,#MENU,BOM DIA,BOA TARDE,BOA NOITE'"),
+    
+    ('whatsapp_regras_automacao', 'tipo_resposta', "ALTER TABLE whatsapp_regras_automacao ADD COLUMN tipo_resposta VARCHAR(30) DEFAULT 'texto'"),
+    ('whatsapp_regras_automacao', 'resposta_estruturada', 'ALTER TABLE whatsapp_regras_automacao ADD COLUMN resposta_estruturada TEXT'),
+    ('whatsapp_regras_automacao', 'para_terceirizados', 'ALTER TABLE whatsapp_regras_automacao ADD COLUMN para_terceirizados BOOLEAN DEFAULT 1'),
+    ('whatsapp_regras_automacao', 'para_usuarios', 'ALTER TABLE whatsapp_regras_automacao ADD COLUMN para_usuarios BOOLEAN DEFAULT 1'),
+
+    ('whatsapp_estados_conversa', 'usuario_tipo', 'ALTER TABLE whatsapp_estados_conversa ADD COLUMN usuario_tipo VARCHAR(20)'),
+    ('whatsapp_estados_conversa', 'usuario_id', 'ALTER TABLE whatsapp_estados_conversa ADD COLUMN usuario_id INTEGER'),
+    ('whatsapp_estados_conversa', 'ordem_servico_id', 'ALTER TABLE whatsapp_estados_conversa ADD COLUMN ordem_servico_id INTEGER'),
 ]
 
 

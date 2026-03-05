@@ -1,10 +1,23 @@
-from flask import Blueprint, render_template, jsonify, request, send_file
+from flask import Blueprint, render_template, jsonify, request, send_file, abort
 from flask_login import login_required, current_user
-from app.services.analytics_service import AnalyticsService
+from functools import wraps
+from app.services.analytics_service import AnalyticsService, BIService
 from app.models.models import Unidade, Usuario
 from datetime import datetime, timedelta
 import csv
 import io
+
+
+def role_required(*roles):
+    """Decorator que restringe acesso a utilizadores com os tipos listados."""
+    def decorator(f):
+        @wraps(f)
+        def wrapped(*args, **kwargs):
+            if not current_user.is_authenticated or current_user.tipo not in roles:
+                abort(403)
+            return f(*args, **kwargs)
+        return wrapped
+    return decorator
 
 bp = Blueprint('analytics', __name__, url_prefix='/analytics')
 
@@ -13,12 +26,11 @@ from app.models.estoque_models import PedidoCompra, Fornecedor, OrcamentoUnidade
 
 @bp.route('/dashboard')
 @login_required
+@role_required('admin', 'gerente', 'comprador', 'diretor')
 def dashboard():
-    if current_user.tipo not in ['admin', 'gerente', 'comprador']:
-        return render_template('errors/403.html'), 403
-    
+    bi_data = BIService.get_contextual_data(current_user)
     unidades = Unidade.query.filter_by(ativa=True).all()
-    return render_template('analytics/dashboard.html', unidades=unidades)
+    return render_template('analytics/dashboard.html', unidades=unidades, bi_data=bi_data)
 
 @bp.route('/desempenho-tecnico')
 @login_required

@@ -21,12 +21,20 @@ def listar():
     """Lista todos os pedidos de compra com filtros"""
     status_filter = request.args.get('status')
     query = PedidoCompra.query
-    
+
     if status_filter:
         query = query.filter_by(status=status_filter)
-    
+
     pedidos = query.order_by(PedidoCompra.data_solicitacao.desc()).all()
-    return render_template('compras/lista.html', pedidos=pedidos, status_atual=status_filter)
+
+    # Fila do comprador: aprovados aguardando processamento (do mais antigo para o mais recente)
+    fila = []
+    if current_user.tipo in ['admin', 'comprador', 'gerente']:
+        fila = PedidoCompra.query.filter(
+            PedidoCompra.status == 'aprovado'
+        ).order_by(PedidoCompra.data_solicitacao.asc()).all()
+
+    return render_template('compras/lista.html', pedidos=pedidos, status_atual=status_filter, fila=fila)
 
 @bp.route('/novo', methods=['GET', 'POST'])
 @login_required
@@ -121,8 +129,11 @@ def detalhes(id):
     quotes = CatalogoFornecedor.query.filter_by(estoque_id=pedido.estoque_id).order_by(CatalogoFornecedor.preco_atual).all()
     from app.models.models import Unidade
     unidades = Unidade.query.filter_by(ativa=True).order_by(Unidade.nome).all()
+    fornecedores_cadastrados = Fornecedor.query.filter_by(ativo=True).order_by(Fornecedor.nome).all()
 
-    return render_template('compras/detalhes_melhorado.html', pedido=pedido, quotes=quotes, unidades=unidades)
+    return render_template('compras/detalhes_melhorado.html',
+                           pedido=pedido, quotes=quotes, unidades=unidades,
+                           fornecedores_cadastrados=fornecedores_cadastrados)
 
 @bp.route('/<int:id>/alterar_unidade', methods=['POST'])
 @login_required
@@ -236,9 +247,11 @@ def aprovar(id):
         pedido.status = 'aprovado'
         pedido.aprovador_id = current_user.id
         db.session.commit()
-        from app.tasks.whatsapp_tasks import enviar_pedido_fornecedor
-        enviar_pedido_fornecedor.delay(pedido.id)
         _notificar_solicitante(pedido, aprovado=True)
+        _notificar_compradores(pedido)
+        if pedido.tipo_pedido != 'cotacao' and pedido.fornecedor_id:
+            from app.tasks.whatsapp_tasks import enviar_pedido_fornecedor
+            enviar_pedido_fornecedor.delay(pedido.id)
         flash(f"Pedido #{id} aprovado com sucesso!", "success")
     else:
         # Tier 3: precisa de 2 aprovações (gerente/diretor)
@@ -248,9 +261,11 @@ def aprovar(id):
             pedido.status = 'aprovado'
             pedido.aprovador_id = current_user.id
             db.session.commit()
-            from app.tasks.whatsapp_tasks import enviar_pedido_fornecedor
-            enviar_pedido_fornecedor.delay(pedido.id)
             _notificar_solicitante(pedido, aprovado=True)
+            _notificar_compradores(pedido)
+            if pedido.tipo_pedido != 'cotacao' and pedido.fornecedor_id:
+                from app.tasks.whatsapp_tasks import enviar_pedido_fornecedor
+                enviar_pedido_fornecedor.delay(pedido.id)
             flash(f"Pedido #{id} aprovado! Consenso de diretoria atingido ({total_aprovacoes}/2).", "success")
         else:
             flash(f"Sua aprovação foi registrada ({total_aprovacoes}/2). Aguardando segundo diretor.", "info")
@@ -268,34 +283,37 @@ def receber(id):
         return redirect(url_for('compras.detalhes', id=id))
 
     # 1. Atualiza Estoque
-    from app.services.estoque_service import EstoqueService
-    try:
-        EstoqueService.repor_estoque(
-            estoque_id=pedido.estoque_id,
-            quantidade=pedido.quantidade,
-            usuario_id=current_user.id,
-            motivo=f"Recebimento Pedido #{pedido.id}",
-            unidade_id=pedido.unidade_destino_id
-        )
-    except Exception as e:
-        flash(f"Erro ao atualizar estoque: {e}", "danger")
-        return redirect(url_for('compras.detalhes', id=id))
+    # 1. Atualiza Estoque (somente para pedidos de catálogo com estoque vinculado)
+    if pedido.estoque_id:
+        from app.services.estoque_service import EstoqueService
+        try:
+            EstoqueService.repor_estoque(
+                estoque_id=pedido.estoque_id,
+                quantidade=pedido.quantidade,
+                usuario_id=current_user.id,
+                motivo=f"Recebimento Pedido #{pedido.id}",
+                unidade_id=pedido.unidade_destino_id
+            )
+        except Exception as e:
+            flash(f"Erro ao atualizar estoque: {e}", "danger")
+            return redirect(url_for('compras.detalhes', id=id))
 
     # 2. Atualiza Pedido
     pedido.status = 'recebido'
     pedido.data_recebimento = datetime.now()
     db.session.commit()
 
-    # 3. Notifica Solicitante (US-011)
+    # 3. Notifica Solicitante
     from app.services.whatsapp_service import WhatsAppService
     if pedido.solicitante and pedido.solicitante.telefone:
-        msg = f"📦 *CHEGOU!*\n\nO item *{pedido.estoque.nome}* do seu pedido #{pedido.id} acaba de ser recebido no estoque."
+        item = pedido.peca.nome if pedido.peca else (pedido.descricao_livre or f'Pedido #{pedido.id}')
+        msg = f"📦 *CONCLUÍDO!*\n\n*{item}* do seu pedido #{pedido.id} foi recebido/concluído."
         WhatsAppService.enviar_mensagem(pedido.solicitante.telefone, msg)
 
-    flash(f"Pedido #{id} marcado como recebido. Estoque atualizado e solicitante notificado.", "success")
+    estoque_msg = " Estoque atualizado." if pedido.estoque_id else ""
+    flash(f"Pedido #{id} marcado como recebido.{estoque_msg} Solicitante notificado.", "success")
     return redirect(url_for('compras.detalhes', id=id))
 
-# [NOVO] Buscar Fornecedores por Item de Estoque
 def _notificar_solicitante(pedido, aprovado: bool):
     """Notifica o solicitante via WhatsApp sobre resultado da aprovação."""
     try:
@@ -303,12 +321,44 @@ def _notificar_solicitante(pedido, aprovado: bool):
         if pedido.solicitante and pedido.solicitante.telefone:
             item = pedido.peca.nome if pedido.peca else (pedido.descricao_livre or f'Pedido #{pedido.id}')
             if aprovado:
-                msg = f"✅ Seu pedido *#{pedido.id}* ({item}) foi *aprovado* pela diretoria e será processado."
+                msg = f"✅ Seu pedido *#{pedido.id}* ({item}) foi *aprovado* e será processado."
             else:
-                msg = f"❌ Seu pedido *#{pedido.id}* ({item}) foi *recusado* pela diretoria."
+                msg = f"❌ Seu pedido *#{pedido.id}* ({item}) foi *recusado*."
             WhatsAppService.enviar_mensagem(pedido.solicitante.telefone, msg)
     except Exception as e:
         logger.warning(f"Erro ao notificar solicitante: {e}")
+
+
+def _notificar_compradores(pedido):
+    """Notifica compradores/admins via WhatsApp quando um pedido é aprovado e precisa ser processado."""
+    try:
+        from app.models.models import Usuario
+        from app.services.whatsapp_service import WhatsAppService
+        compradores = Usuario.query.filter(
+            Usuario.tipo.in_(['admin', 'comprador']),
+            Usuario.ativo == True,
+            Usuario.telefone.isnot(None)
+        ).all()
+        if not compradores:
+            return
+        item = pedido.peca.nome if pedido.peca else (pedido.descricao_livre or f'Pedido #{pedido.id}')
+        solicitante = pedido.solicitante.nome if pedido.solicitante else 'Sistema'
+        cotacao_info = ''
+        if pedido.tipo_pedido == 'cotacao' and pedido.cotacoes:
+            sel = next((c for c in pedido.cotacoes if c.selecionada), pedido.cotacoes[0])
+            cotacao_info = f'\n🏢 Fornecedor indicado: *{sel.fornecedor_nome}* ({sel.valor_display})'
+        msg = (
+            f"✅ *Pedido #{pedido.id} APROVADO — Aguarda Processamento*\n\n"
+            f"📦 {item}\n"
+            f"💰 {pedido.valor_display}\n"
+            f"👤 Solicitante: {solicitante}"
+            f"{cotacao_info}\n\n"
+            f"Acesse o sistema para encaminhar ao fornecedor."
+        )
+        for comp in compradores:
+            WhatsAppService.enviar_mensagem(comp.telefone, msg)
+    except Exception as e:
+        logger.warning(f"Erro ao notificar compradores: {e}")
 
 
 @bp.route('/<int:id>/rejeitar', methods=['POST'])
@@ -385,18 +435,21 @@ def cotacao_nova():
             valores = request.form.getlist('cotacao_valor')
             prazos = request.form.getlist('cotacao_prazo')
             obs_list = request.form.getlist('cotacao_obs')
+            links_list = request.form.getlist('cotacao_link')
             selecionada_idx = int(request.form.get('cotacao_selecionada', 0))
 
             cotacoes_validas = []
             for i, (fn, vl) in enumerate(zip(fornecedores_nomes, valores)):
                 fn = fn.strip()
                 vl_str = vl.replace(',', '.').strip()
+                link = links_list[i].strip() if i < len(links_list) else ''
                 if fn and vl_str:
                     cotacoes_validas.append({
                         'fornecedor_nome': fn,
                         'valor_total': float(vl_str),
                         'prazo_dias': int(prazos[i]) if prazos[i].strip().isdigit() else None,
                         'observacao': obs_list[i].strip() or None,
+                        'link_produto': link or None,
                         'selecionada': (i == selecionada_idx),
                     })
 
@@ -454,7 +507,8 @@ def cotacao_nova():
             flash("Erro ao processar solicitação.", "danger")
 
     unidades = Unidade.query.order_by(Unidade.nome).all()
-    return render_template('compras/cotacao_nova.html', unidades=unidades)
+    fornecedores = Fornecedor.query.filter_by(ativo=True).order_by(Fornecedor.nome).all()
+    return render_template('compras/cotacao_nova.html', unidades=unidades, fornecedores=fornecedores)
 
 
 @bp.route('/<int:id>/cotacao/selecionar/<int:cotacao_id>', methods=['POST'])
@@ -472,6 +526,87 @@ def selecionar_cotacao(id, cotacao_id):
     db.session.commit()
     flash(f"Orçamento de '{cotacao.fornecedor_nome}' selecionado como referência.", "success")
     return redirect(url_for('compras.aprovacoes'))
+
+
+@bp.route('/<int:id>/encaminhar', methods=['POST'])
+@login_required
+def encaminhar(id):
+    """Comprador confirma o fornecedor vencedor e encaminha o pedido (status → 'pedido')."""
+    if current_user.tipo not in ['admin', 'comprador', 'gerente']:
+        flash("Permissão negada.", "danger")
+        return redirect(url_for('compras.detalhes', id=id))
+
+    pedido = PedidoCompra.query.get_or_404(id)
+    if pedido.status != 'aprovado':
+        flash("Só é possível encaminhar pedidos com status 'aprovado'.", "warning")
+        return redirect(url_for('compras.detalhes', id=id))
+
+    cotacao_id = request.form.get('cotacao_id')
+    obs = request.form.get('observacao', '').strip()
+
+    if cotacao_id:
+        CotacaoCompra.query.filter_by(pedido_id=id).update({'selecionada': False})
+        cotacao = CotacaoCompra.query.filter_by(id=int(cotacao_id), pedido_id=id).first()
+        if cotacao:
+            cotacao.selecionada = True
+            pedido.valor_total_estimado = cotacao.valor_total
+            fornecedor_nome = cotacao.fornecedor_nome
+        else:
+            fornecedor_nome = '(não selecionado)'
+    else:
+        fornecedor_nome = pedido.fornecedor.nome if pedido.fornecedor else '(não selecionado)'
+
+    pedido.status = 'pedido'
+    if obs:
+        pedido.justificativa = ((pedido.justificativa or '') + f'\n[Encaminhamento] {obs}').strip()
+
+    db.session.commit()
+
+    # Notifica solicitante
+    try:
+        from app.services.whatsapp_service import WhatsAppService
+        if pedido.solicitante and pedido.solicitante.telefone:
+            item = pedido.peca.nome if pedido.peca else (pedido.descricao_livre or f'Pedido #{pedido.id}')
+            msg = (f"🚀 *Pedido #{pedido.id} encaminhado!*\n\n"
+                   f"📦 {item}\n"
+                   f"🏢 Fornecedor: *{fornecedor_nome}*\n\n"
+                   f"Aguardando entrega/conclusão.")
+            WhatsAppService.enviar_mensagem(pedido.solicitante.telefone, msg)
+    except Exception as e:
+        logger.warning(f"Erro ao notificar solicitante no encaminhamento: {e}")
+
+    flash(f"Pedido #{id} encaminhado ao fornecedor '{fornecedor_nome}'.", "success")
+    return redirect(url_for('compras.detalhes', id=id))
+
+
+@bp.route('/fornecedor/cadastrar-rapido', methods=['POST'])
+@login_required
+def cadastrar_fornecedor_rapido():
+    """Cadastro rápido de fornecedor a partir da tela de cotação (retorna JSON)."""
+    if current_user.tipo not in ['admin', 'comprador', 'gerente', 'diretor']:
+        return jsonify({'error': 'Permissão negada'}), 403
+    data = request.json or {}
+    nome = (data.get('nome') or '').strip()
+    if not nome:
+        return jsonify({'error': 'Nome obrigatório'}), 400
+    # Evita duplicata pelo nome (case-insensitive)
+    existente = Fornecedor.query.filter(
+        db.func.lower(Fornecedor.nome) == nome.lower()
+    ).first()
+    if existente:
+        return jsonify({'success': True, 'id': existente.id, 'nome': existente.nome, 'duplicado': True})
+    tel = (data.get('telefone') or '').strip() or None
+    email = (data.get('email') or '').strip() or ''
+    forn = Fornecedor(
+        nome=nome,
+        telefone=tel,
+        email=email,
+        prazo_medio_entrega_dias=7,
+        ativo=True,
+    )
+    db.session.add(forn)
+    db.session.commit()
+    return jsonify({'success': True, 'id': forn.id, 'nome': forn.nome, 'duplicado': False})
 
 
 @bp.route('/<int:id>/faturamento', methods=['POST'])

@@ -72,6 +72,23 @@ def create_app():
         def inject_now():
             return {'hoje': datetime.utcnow()}
 
+        @app.context_processor
+        def inject_sidebar_data():
+            from flask_login import current_user
+            if current_user.is_authenticated and current_user.tipo in ['admin', 'diretor', 'gerente']:
+                from app.models.estoque_models import PedidoCompra
+                try:
+                    if current_user.tipo == 'gerente':
+                        count = PedidoCompra.query.filter_by(status='solicitado').count()
+                    else:
+                        count = PedidoCompra.query.filter(
+                            PedidoCompra.status.in_(['solicitado', 'aguardando_diretoria'])
+                        ).count()
+                except Exception:
+                    count = 0
+                return {'sidebar_pendencias': count}
+            return {'sidebar_pendencias': 0}
+
         @login_manager.user_loader
         def load_user(user_id):
             return Usuario.query.get(int(user_id))

@@ -50,7 +50,79 @@ def check_db_schema(app, db):
                         except Exception as e:
                             app.logger.error(f"Erro ao adicionar coluna {col_name}: {e}")
                 
-                # 3. Garantir que as novas tabelas existam
+                # 3. Verificar colunas em cotacoes_compra
+                result = conn.execute(text("PRAGMA table_info(cotacoes_compra)"))
+                columns = [row[1] for row in result]
+
+                if 'link_produto' not in columns:
+                    try:
+                        conn.execute(text("ALTER TABLE cotacoes_compra ADD COLUMN link_produto VARCHAR(500)"))
+                        conn.commit()
+                        app.logger.info("Self-Healing: Coluna 'link_produto' adicionada a 'cotacoes_compra'.")
+                    except Exception as e:
+                        app.logger.error(f"Erro ao adicionar coluna link_produto: {e}")
+
+                # 4. Verificar colunas em whatsapp_configuracao
+                result = conn.execute(text("PRAGMA table_info(whatsapp_configuracao)"))
+                columns = [row[1] for row in result]
+                
+                required_whatsapp_config = [
+                    ('ativar_saudacao_nativa', 'BOOLEAN DEFAULT 1'),
+                    ('acao_fallback_padrao', "VARCHAR(50) DEFAULT 'ignorar'"),
+                    ('mensagem_fallback_padrao', 'TEXT'),
+                    ('palavras_saudacao', "TEXT DEFAULT 'OI,OLA,OLÁ,MENU,#MENU,BOM DIA,BOA TARDE,BOA NOITE'")
+                ]
+                
+                for col_name, col_type in required_whatsapp_config:
+                    if col_name not in columns:
+                        try:
+                            conn.execute(text(f"ALTER TABLE whatsapp_configuracao ADD COLUMN {col_name} {col_type}"))
+                            conn.commit()
+                            app.logger.info(f"Self-Healing: Coluna '{col_name}' adicionada a 'whatsapp_configuracao'.")
+                        except Exception as e:
+                            app.logger.error(f"Erro ao adicionar coluna {col_name} em whatsapp_configuracao: {e}")
+
+                # 5. Verificar colunas em whatsapp_regras_automacao
+                result = conn.execute(text("PRAGMA table_info(whatsapp_regras_automacao)"))
+                columns = [row[1] for row in result]
+                
+                required_whatsapp_regras = [
+                    ('tipo_resposta', "VARCHAR(30) DEFAULT 'texto'"),
+                    ('resposta_estruturada', 'TEXT'),
+                    ('para_terceirizados', 'BOOLEAN DEFAULT 1'),
+                    ('para_usuarios', 'BOOLEAN DEFAULT 1')
+                ]
+                
+                for col_name, col_type in required_whatsapp_regras:
+                    if col_name not in columns:
+                        try:
+                            conn.execute(text(f"ALTER TABLE whatsapp_regras_automacao ADD COLUMN {col_name} {col_type}"))
+                            conn.commit()
+                            app.logger.info(f"Self-Healing: Coluna '{col_name}' adicionada a 'whatsapp_regras_automacao'.")
+                        except Exception as e:
+                            app.logger.error(f"Erro ao adicionar coluna {col_name} em whatsapp_regras_automacao: {e}")
+
+                # 6. Verificar colunas em whatsapp_estados_conversa
+                result = conn.execute(text("PRAGMA table_info(whatsapp_estados_conversa)"))
+                columns = [row[1] for row in result]
+                
+                required_whatsapp_estados = [
+                    ('usuario_tipo', 'VARCHAR(20)'),
+                    ('usuario_id', 'INTEGER'),
+                    ('ordem_servico_id', 'INTEGER')
+                ]
+                
+                for col_name, col_type in required_whatsapp_estados:
+                    if col_name not in columns:
+                        try:
+                            # Tentar foreign keys se suportado/necessário, mas focus é nas colunas para evitar OperationalError
+                            conn.execute(text(f"ALTER TABLE whatsapp_estados_conversa ADD COLUMN {col_name} {col_type}"))
+                            conn.commit()
+                            app.logger.info(f"Self-Healing: Coluna '{col_name}' adicionada a 'whatsapp_estados_conversa'.")
+                        except Exception as e:
+                            app.logger.error(f"Erro ao adicionar coluna {col_name} em whatsapp_estados_conversa: {e}")
+
+                # 7. Garantir que as novas tabelas existam
                 # create_all() não deleta dados, apenas cria tabelas que não existem
                 db.create_all()
                 

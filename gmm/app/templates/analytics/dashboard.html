@@ -37,6 +37,39 @@
     </div>
 </div>
 
+<!-- Painel de Ações Pendentes (RBAC) -->
+{% if bi_data and bi_data.links_ativos %}
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="fw-bold text-uppercase small text-muted">Pendências que precisam da sua atenção</span>
+            <span class="badge bg-danger rounded-pill">{{ bi_data.total_pendencias }}</span>
+        </div>
+    </div>
+    {% for acao in bi_data.links_ativos %}
+    <div class="col-xl-3 col-md-6">
+        <a href="{{ acao.link }}" class="text-decoration-none">
+            <div class="card border-0 shadow-sm h-100 border-start border-{{ acao.cor }} border-4">
+                <div class="card-body py-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="bg-{{ acao.cor }} bg-opacity-10 text-{{ acao.cor }} rounded p-2 fs-4">
+                            <i class="bi {{ acao.icon }}"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="text-muted small">{{ acao.label }}</div>
+                            <div class="h3 mb-0 fw-bold text-{{ acao.cor }}">{{ acao.valor }}</div>
+                        </div>
+                        <i class="bi bi-arrow-right-circle text-{{ acao.cor }} opacity-50 fs-5"></i>
+                    </div>
+                    <div class="mt-2 text-muted" style="font-size: 0.72rem;">Clique para resolver agora →</div>
+                </div>
+            </div>
+        </a>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
 <!-- Big Numbers Cards -->
 <div class="row g-3 mb-4">
     <div class="col-md-3">

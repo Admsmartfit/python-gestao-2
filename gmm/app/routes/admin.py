@@ -710,10 +710,11 @@ def compras_painel():
     # Filtra apenas as ativas (não 100% concluídas/canceladas)
     ordens_lista_ativas = [o for o in ordens_lista if o.status_geral not in ('concluido', 'cancelado', 'vazio')]
 
-    # Pedidos individuais (sem ordem de lista) aguardando ação do comprador
+    # Pedidos individuais tipo catálogo aguardando ação do comprador
     pendentes = PedidoCompra.query.filter(
         PedidoCompra.status.in_(['pendente', 'solicitado']),
-        PedidoCompra.ordem_lista_id.is_(None)
+        PedidoCompra.ordem_lista_id.is_(None),
+        PedidoCompra.tipo_pedido != 'cotacao'
     ).order_by(PedidoCompra.data_solicitacao.desc()).all()
 
     # Itens solicitados sem cadastro — comprador precisa cadastrar e vincular fornecedor
@@ -721,15 +722,22 @@ def compras_painel():
         status='analise_cadastro'
     ).filter(PedidoCompra.ordem_lista_id.is_(None)).order_by(PedidoCompra.data_solicitacao.desc()).all()
 
-    # Carrega pedidos aprovados/em andamento (individuais)
+    # Pedidos de catálogo aprovados/em andamento (individuais)
     aprovados = PedidoCompra.query.filter(
         PedidoCompra.status.in_(['aprovado', 'encomendado', 'aguardando_entrega']),
-        PedidoCompra.ordem_lista_id.is_(None)
+        PedidoCompra.ordem_lista_id.is_(None),
+        PedidoCompra.tipo_pedido != 'cotacao'
     ).all()
+
+    # Pedidos tipo Cotação (todos os status ativos)
+    cotacoes_ativas = PedidoCompra.query.filter(
+        PedidoCompra.tipo_pedido == 'cotacao',
+        PedidoCompra.status.in_(['solicitado', 'aguardando_diretoria', 'aprovado', 'pedido'])
+    ).order_by(PedidoCompra.data_solicitacao.desc()).all()
 
     # Histórico (concluidos ou cancelados)
     historico = PedidoCompra.query.filter(
-        PedidoCompra.status.in_(['entregue', 'cancelado', 'recusado'])
+        PedidoCompra.status.in_(['entregue', 'cancelado', 'recusado', 'recebido'])
     ).order_by(PedidoCompra.data_solicitacao.desc()).limit(30).all()
 
     fornecedores = Fornecedor.query.filter_by(ativo=True).order_by(Fornecedor.nome).all()
@@ -741,6 +749,7 @@ def compras_painel():
                          pendentes=pendentes,
                          em_analise=em_analise,
                          aprovados=aprovados,
+                         cotacoes_ativas=cotacoes_ativas,
                          historico=historico,
                          fornecedores=fornecedores,
                          unidades=unidades,

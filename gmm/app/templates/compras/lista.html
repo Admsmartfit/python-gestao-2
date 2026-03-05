@@ -10,10 +10,71 @@
         <h2 class="fw-bold mb-0">Pedidos de Compra</h2>
         <p class="text-muted small mb-0">Gerenciamento de solicitações de peças e suprimentos</p>
     </div>
-    <a href="{{ url_for('compras.novo') }}" class="btn btn-primary">
-        <i class="bi bi-plus-lg me-2"></i>Novo Pedido
-    </a>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('compras.cotacao_nova') }}" class="btn btn-outline-primary">
+            <i class="bi bi-file-earmark-text me-1"></i>Solicitar com Cotações
+        </a>
+        <a href="{{ url_for('compras.novo') }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-2"></i>Novo Pedido
+        </a>
+    </div>
 </div>
+
+{% if fila %}
+<!-- Fila do Comprador -->
+<div class="card border-0 shadow-sm mb-4 border-start border-4 border-success">
+    <div class="card-header bg-success bg-opacity-10 border-0 py-3 d-flex justify-content-between align-items-center">
+        <div>
+            <h6 class="fw-bold mb-0 text-success">
+                <i class="bi bi-inbox-fill me-2"></i>Fila do Comprador — Aguardando Processamento
+                <span class="badge bg-success ms-2">{{ fila|length }}</span>
+            </h6>
+            <small class="text-muted">Pedidos aprovados que precisam ser encaminhados ao fornecedor</small>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <table class="table align-middle mb-0">
+            <thead class="bg-light">
+                <tr>
+                    <th class="ps-4">Pedido</th>
+                    <th>Item / Serviço</th>
+                    <th>Valor</th>
+                    <th>Tipo</th>
+                    <th>Unidade</th>
+                    <th>Aprovado há</th>
+                    <th class="text-end pe-4">Ação</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for p in fila %}
+            <tr>
+                <td class="ps-4"><code>#{{ p.id }}</code></td>
+                <td>
+                    <div class="fw-bold">{{ p.peca.nome if p.peca else p.descricao_livre or '—' }}</div>
+                    {% if p.justificativa %}<div class="text-muted small fst-italic">{{ p.justificativa[:60] }}{% if p.justificativa|length > 60 %}...{% endif %}</div>{% endif %}
+                </td>
+                <td class="fw-bold text-success">{{ p.valor_display }}</td>
+                <td>
+                    {% if p.tipo_pedido == 'cotacao' %}
+                    <span class="badge bg-info bg-opacity-10 text-info border border-info"><i class="bi bi-file-earmark-text me-1"></i>Cotação</span>
+                    {% else %}
+                    <span class="badge bg-secondary bg-opacity-10 text-secondary border">Catálogo</span>
+                    {% endif %}
+                </td>
+                <td class="text-muted small">{{ p.unidade_destino.nome if p.unidade_destino else 'Central' }}</td>
+                <td class="text-muted small">{{ p.data_solicitacao.strftime('%d/%m %H:%M') }}</td>
+                <td class="text-end pe-4">
+                    <a href="{{ url_for('compras.detalhes', id=p.id) }}" class="btn btn-sm btn-success">
+                        <i class="bi bi-box-arrow-right me-1"></i>Processar
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
 
 <div class="card border-0 shadow-sm mb-4">
     <div class="card-body py-3">
@@ -24,11 +85,13 @@
             <div class="col-auto">
                 <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
                     <option value="">Todos</option>
-                    <option value="solicitado" {% if status_atual=='solicitado' %}selected{% endif %}>Solicitado
-                    </option>
-                    <option value="aprovado" {% if status_atual=='aprovado' %}selected{% endif %}>Aprovado</option>
-                    <option value="entregue" {% if status_atual=='entregue' %}selected{% endif %}>Entregue</option>
-                    <option value="rejeitado" {% if status_atual=='rejeitado' %}selected{% endif %}>Rejeitado</option>
+                    <option value="solicitado" {% if status_atual=='solicitado' %}selected{% endif %}>🟡 Solicitado</option>
+                    <option value="aguardando_diretoria" {% if status_atual=='aguardando_diretoria' %}selected{% endif %}>🔴 Aguardando Diretoria</option>
+                    <option value="aprovado" {% if status_atual=='aprovado' %}selected{% endif %}>✅ Aprovado — Em Fila</option>
+                    <option value="pedido" {% if status_atual=='pedido' %}selected{% endif %}>🚀 Encaminhado ao Fornecedor</option>
+                    <option value="recebido" {% if status_atual=='recebido' %}selected{% endif %}>📦 Recebido / Concluído</option>
+                    <option value="recusado" {% if status_atual=='recusado' %}selected{% endif %}>❌ Recusado</option>
+                    <option value="cancelado" {% if status_atual=='cancelado' %}selected{% endif %}>🚫 Cancelado</option>
                 </select>
             </div>
         </form>
@@ -59,23 +122,26 @@
                         <div class="small text-muted">{{ p.data_solicitacao.strftime('%d/%m/%Y %H:%M') }}</div>
                     </td>
                     <td>
+                        {% if p.peca %}
                         <div class="fw-medium">{{ p.peca.nome }}</div>
                         <div class="small text-muted">{{ p.peca.codigo }}</div>
+                        {% else %}
+                        <div class="fw-medium">{{ p.descricao_livre or '—' }}</div>
+                        <div class="small text-muted"><i class="bi bi-file-earmark-text me-1 text-info"></i>Cotação</div>
+                        {% endif %}
                     </td>
-                    <td>{{ "{:g}".format(p.quantidade) }} {{ p.peca.unidade_medida }}</td>
-                    <td>{{ p.fornecedor.nome if p.fornecedor else '<span class="text-muted italic">Não
-                            definido</span>'|safe }}</td>
+                    <td>
+                        {% if p.peca %}{{ "{:g}".format(p.quantidade) }} {{ p.peca.unidade_medida }}
+                        {% else %}{{ p.valor_display }}{% endif %}
+                    </td>
+                    <td>{{ p.fornecedor.nome if p.fornecedor else '<span class="text-muted">—</span>'|safe }}</td>
                     <td>{{ p.unidade_destino.nome if p.unidade_destino else 'Central' }}</td>
                     <td>
-                        {% set badge_class = 'secondary' %}
-                        {% if p.status == 'solicitado' %}{% set badge_class = 'warning text-dark' %}
-                        {% elif p.status == 'aprovado' %}{% set badge_class = 'info text-white' %}
-                        {% elif p.status == 'entregue' %}{% set badge_class = 'success' %}
-                        {% elif p.status == 'rejeitado' %}{% set badge_class = 'danger' %}
-                        {% endif %}
+                        {% set sc = {'solicitado':'warning text-dark','aguardando_diretoria':'danger','aprovado':'success','pedido':'primary','recebido':'success','recusado':'danger','cancelado':'secondary'} %}
+                        {% set badge_class = sc.get(p.status, 'secondary') %}
                         <span
                             class="badge bg-{{ badge_class }} bg-opacity-10 text-{{ badge_class.split(' ')[0] }} border">
-                            {{ p.status|upper }}
+                            {{ p.status|upper|replace('_',' ') }}
                         </span>
                     </td>
                     <td class="text-end pe-4" onclick="event.stopPropagation()">
