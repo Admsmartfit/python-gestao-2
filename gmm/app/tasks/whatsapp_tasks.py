@@ -30,7 +30,37 @@ def processar_mensagem_inbound(remetente: str, texto: str, timestamp: float):
         
         # Executar ação
         if resultado.get('acao') == 'responder':
-            if 'resposta' in resultado and resultado['resposta']:
+            tipo_resposta = resultado.get('tipo_resposta', 'texto')
+
+            if tipo_resposta == 'lista_interativa' and resultado.get('resposta_estruturada'):
+                try:
+                    dados = json.loads(resultado['resposta_estruturada'])
+                    WhatsAppService.send_list_message(
+                        phone=remetente,
+                        header=dados.get('header', ''),
+                        body=dados.get('body', ''),
+                        sections=dados.get('sections', []),
+                        button_text=dados.get('button_text', 'Ver Opções')
+                    )
+                except Exception as e:
+                    logger.error(f"Erro ao enviar lista interativa: {e}")
+                    if resultado.get('resposta'):
+                        WhatsAppService.enviar_mensagem(remetente, resultado['resposta'])
+
+            elif tipo_resposta == 'botoes' and resultado.get('resposta_estruturada'):
+                try:
+                    dados = json.loads(resultado['resposta_estruturada'])
+                    WhatsAppService.send_buttons_message(
+                        phone=remetente,
+                        body=dados.get('body', ''),
+                        buttons=dados.get('buttons', [])
+                    )
+                except Exception as e:
+                    logger.error(f"Erro ao enviar botões: {e}")
+                    if resultado.get('resposta'):
+                        WhatsAppService.enviar_mensagem(remetente, resultado['resposta'])
+
+            elif resultado.get('resposta'):
                 WhatsAppService.enviar_mensagem(remetente, resultado['resposta'])
         
         elif resultado.get('acao') == 'executar_funcao':

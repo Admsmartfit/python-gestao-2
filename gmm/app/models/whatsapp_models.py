@@ -12,6 +12,10 @@ class RegrasAutomacao(db.Model):
     tipo_correspondencia = db.Column(db.String(20), default='contem')  # exata, contem, regex
     acao = db.Column(db.String(50), nullable=False)  # responder, encaminhar, executar_funcao
     resposta_texto = db.Column(db.Text)
+    # Tipo da resposta: 'texto', 'lista_interativa', 'botoes'
+    tipo_resposta = db.Column(db.String(30), default='texto', nullable=False)
+    # JSON com estrutura da lista/botões quando tipo_resposta != 'texto'
+    resposta_estruturada = db.Column(db.Text, nullable=True)
     encaminhar_para_perfil = db.Column(db.String(50), nullable=True)  # admin, comprador, gerente
     funcao_sistema = db.Column(db.String(50), nullable=True)
     prioridade = db.Column(db.Integer, default=0)

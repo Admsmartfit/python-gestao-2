@@ -114,7 +114,7 @@
 
 <!-- Modal Nova Regra -->
 <div class="modal fade" id="modalNovaRegra">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-light">
                 <h5 class="modal-title fw-bold" id="tituloModal">Nova Regra de Automação</h5>
@@ -123,10 +123,11 @@
             <div class="modal-body p-4">
                 <form id="formRegra">
                     <input type="hidden" id="regraId">
+
+                    <!-- Gatilho -->
                     <div class="mb-3">
                         <label class="form-label small fw-bold text-uppercase text-muted">Gatilho</label>
-                        <input type="text" class="form-control" id="palavraChave" placeholder="Ex: #COMPRA, SIM, Preço"
-                            required>
+                        <input type="text" class="form-control" id="palavraChave" placeholder="Ex: #COMPRA, SIM, Preço" required>
                     </div>
 
                     <div class="row g-3 mb-3">
@@ -144,21 +145,76 @@
                         </div>
                     </div>
 
+                    <!-- Ação -->
                     <div class="mb-3">
                         <label class="form-label small fw-bold text-uppercase text-muted">Ação</label>
                         <select class="form-select" id="acao" onchange="toggleCampos()">
-                            <option value="responder">Responder com Texto</option>
+                            <option value="responder">Responder com Mensagem</option>
                             <option value="encaminhar">Encaminhar para Departamento</option>
                             <option value="executar_funcao">Executar Função do Sistema</option>
                         </select>
                     </div>
 
-                    <div class="mb-3 bg-light p-3 rounded" id="campoResposta">
-                        <label class="form-label small fw-bold">Mensagem de Resposta</label>
-                        <textarea class="form-control border-0" id="respostaTexto" rows="3"
-                            placeholder="Digite a resposta automática..."></textarea>
+                    <!-- Painel: Responder -->
+                    <div id="campoResposta" class="mb-3 bg-light p-3 rounded">
+
+                        <!-- Tipo de resposta -->
+                        <label class="form-label small fw-bold text-uppercase text-muted">Tipo de Resposta</label>
+                        <div class="btn-group w-100 mb-3" role="group">
+                            <input type="radio" class="btn-check" name="tipoRespostaRadio" id="trTexto" value="texto" checked onchange="toggleTipoResposta()">
+                            <label class="btn btn-outline-secondary btn-sm" for="trTexto"><i class="bi bi-chat-text me-1"></i>Texto</label>
+
+                            <input type="radio" class="btn-check" name="tipoRespostaRadio" id="trLista" value="lista_interativa" onchange="toggleTipoResposta()">
+                            <label class="btn btn-outline-primary btn-sm" for="trLista"><i class="bi bi-list-ul me-1"></i>Lista Interativa</label>
+
+                            <input type="radio" class="btn-check" name="tipoRespostaRadio" id="trBotoes" value="botoes" onchange="toggleTipoResposta()">
+                            <label class="btn btn-outline-success btn-sm" for="trBotoes"><i class="bi bi-ui-checks me-1"></i>Botões (máx. 3)</label>
+                        </div>
+
+                        <!-- Texto simples -->
+                        <div id="subTexto">
+                            <textarea class="form-control" id="respostaTexto" rows="4"
+                                placeholder="Digite a resposta automática...&#10;&#10;Suporte a *negrito*, _itálico_ e emojis."></textarea>
+                        </div>
+
+                        <!-- Lista Interativa -->
+                        <div id="subLista" class="d-none">
+                            <div class="row g-2 mb-2">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">Título (Header)</label>
+                                    <input type="text" class="form-control form-control-sm" id="listaHeader" placeholder="Ex: Menu de Opções">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">Texto do Botão</label>
+                                    <input type="text" class="form-control form-control-sm" id="listaBtnText" placeholder="Ex: Ver Opções" value="Ver Opções">
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small fw-bold">Corpo da Mensagem</label>
+                                <textarea class="form-control form-control-sm" id="listaBody" rows="2" placeholder="Texto principal exibido acima da lista..."></textarea>
+                            </div>
+                            <label class="form-label small fw-bold text-uppercase text-muted mt-1">Seções e Opções</label>
+                            <div id="listaSecoes"></div>
+                            <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="adicionarSecao()">
+                                <i class="bi bi-plus-lg me-1"></i>Adicionar Seção
+                            </button>
+                        </div>
+
+                        <!-- Botões -->
+                        <div id="subBotoes" class="d-none">
+                            <div class="mb-2">
+                                <label class="form-label small fw-bold">Corpo da Mensagem</label>
+                                <textarea class="form-control form-control-sm" id="botoesBody" rows="3" placeholder="Texto exibido acima dos botões..."></textarea>
+                            </div>
+                            <label class="form-label small fw-bold text-uppercase text-muted">Botões <span class="text-muted fw-normal">(máx. 3)</span></label>
+                            <div id="listaBotoes"></div>
+                            <button type="button" class="btn btn-outline-success btn-sm mt-2" onclick="adicionarBotao()" id="btnAdicionarBotao">
+                                <i class="bi bi-plus-lg me-1"></i>Adicionar Botão
+                            </button>
+                        </div>
                     </div>
 
+                    <!-- Encaminhar -->
                     <div class="mb-3 d-none bg-light p-3 rounded" id="campoEncaminhar">
                         <label class="form-label small fw-bold">Encaminhar para</label>
                         <select class="form-select border-0" id="encaminharPara">
@@ -168,6 +224,7 @@
                         </select>
                     </div>
 
+                    <!-- Função Sistema -->
                     <div class="mb-3 d-none bg-light p-3 rounded" id="campoFuncao">
                         <label class="form-label small fw-bold">Função do Sistema</label>
                         <select class="form-select border-0" id="funcaoSistema">
@@ -195,13 +252,9 @@
                                 <option value="falar_com_suporte">Encaminhar para Suporte</option>
                             </optgroup>
                         </select>
-                        <div class="form-text small mt-2">
-                            <strong>Dica:</strong> A função será executada automaticamente quando a palavra-chave for
-                            detectada.
-                        </div>
                     </div>
 
-                    <!-- Seção: Quem recebe a notificação -->
+                    <!-- Notificação e Público -->
                     <hr class="my-3">
                     <div class="mb-2">
                         <label class="form-label small fw-bold text-uppercase text-muted">
@@ -213,8 +266,6 @@
                             <option value="{{ u.id }}">{{ u.nome }} ({{ u.tipo }}) — {{ u.telefone }}</option>
                             {% endfor %}
                         </select>
-                        <div class="form-text">Quando esta regra disparar, o usuário selecionado receberá uma
-                            notificação no WhatsApp com a mensagem original.</div>
                     </div>
                     <div class="row g-3 mb-3">
                         <div class="col-md-4">
@@ -239,8 +290,7 @@
                 </form>
             </div>
             <div class="modal-footer border-0 pt-0">
-                <button type="button" class="btn btn-link text-muted text-decoration-none"
-                    data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-link text-muted text-decoration-none" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-primary px-4" onclick="salvarRegra()">Salvar Regra</button>
             </div>
         </div>
@@ -248,21 +298,170 @@
 </div>
 
 <script>
+    /* ── Visibilidade dos painéis ── */
     function toggleCampos() {
         const acao = document.getElementById('acao').value;
-        document.getElementById('campoResposta').classList.add('d-none');
-        document.getElementById('campoEncaminhar').classList.add('d-none');
-        document.getElementById('campoFuncao').classList.add('d-none');
-
-        if (acao === 'responder') {
-            document.getElementById('campoResposta').classList.remove('d-none');
-        } else if (acao === 'encaminhar') {
-            document.getElementById('campoEncaminhar').classList.remove('d-none');
-        } else if (acao === 'executar_funcao') {
-            document.getElementById('campoFuncao').classList.remove('d-none');
-        }
+        document.getElementById('campoResposta').classList.toggle('d-none', acao !== 'responder');
+        document.getElementById('campoEncaminhar').classList.toggle('d-none', acao !== 'encaminhar');
+        document.getElementById('campoFuncao').classList.toggle('d-none', acao !== 'executar_funcao');
     }
 
+    function toggleTipoResposta() {
+        const tipo = document.querySelector('input[name="tipoRespostaRadio"]:checked').value;
+        document.getElementById('subTexto').classList.toggle('d-none', tipo !== 'texto');
+        document.getElementById('subLista').classList.toggle('d-none', tipo !== 'lista_interativa');
+        document.getElementById('subBotoes').classList.toggle('d-none', tipo !== 'botoes');
+    }
+
+    /* ── Builder: Lista Interativa ── */
+    let secaoIdx = 0;
+
+    function adicionarSecao() {
+        const idx = secaoIdx++;
+        const container = document.getElementById('listaSecoes');
+        const div = document.createElement('div');
+        div.className = 'border rounded p-2 mb-2 bg-white';
+        div.id = `secao_${idx}`;
+        div.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <input type="text" class="form-control form-control-sm w-50" placeholder="Nome da seção" id="secao_titulo_${idx}">
+                <button type="button" class="btn btn-sm btn-link text-danger p-0" onclick="document.getElementById('secao_${idx}').remove()">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+            <div id="secao_rows_${idx}"></div>
+            <button type="button" class="btn btn-outline-secondary btn-sm mt-1" onclick="adicionarOpcao(${idx})">
+                <i class="bi bi-plus me-1"></i>Adicionar Opção
+            </button>`;
+        container.appendChild(div);
+        adicionarOpcao(idx);
+    }
+
+    let rowIdx = 0;
+    function adicionarOpcao(secIdx) {
+        const rIdx = rowIdx++;
+        const container = document.getElementById(`secao_rows_${secIdx}`);
+        const div = document.createElement('div');
+        div.className = 'd-flex gap-1 mb-1 align-items-center';
+        div.id = `row_${rIdx}`;
+        div.innerHTML = `
+            <input type="text" class="form-control form-control-sm" placeholder="ID único (sem espaços)" id="row_id_${rIdx}" style="max-width:120px">
+            <input type="text" class="form-control form-control-sm" placeholder="Título da opção" id="row_titulo_${rIdx}">
+            <input type="text" class="form-control form-control-sm" placeholder="Descrição (opcional)" id="row_desc_${rIdx}">
+            <button type="button" class="btn btn-sm btn-link text-danger p-0 flex-shrink-0" onclick="document.getElementById('row_${rIdx}').remove()">
+                <i class="bi bi-x-lg"></i>
+            </button>`;
+        container.appendChild(div);
+    }
+
+    function coletarEstrutura_lista() {
+        const sections = [];
+        document.querySelectorAll('[id^="secao_"]:not([id*="_rows_"]):not([id*="_titulo_"])').forEach(secDiv => {
+            if (!secDiv.id.match(/^secao_\d+$/)) return;
+            const idx = secDiv.id.split('_')[1];
+            const titulo = document.getElementById(`secao_titulo_${idx}`)?.value || '';
+            const rows = [];
+            secDiv.querySelectorAll('[id^="row_"]:not([id*="_id_"]):not([id*="_titulo_"]):not([id*="_desc_"])').forEach(rowDiv => {
+                if (!rowDiv.id.match(/^row_\d+$/)) return;
+                const rIdx = rowDiv.id.split('_')[1];
+                const rowId = document.getElementById(`row_id_${rIdx}`)?.value?.trim();
+                const rowTitulo = document.getElementById(`row_titulo_${rIdx}`)?.value?.trim();
+                if (rowId && rowTitulo) {
+                    rows.push({ rowId, title: rowTitulo, description: document.getElementById(`row_desc_${rIdx}`)?.value || '' });
+                }
+            });
+            if (rows.length > 0) sections.push({ title: titulo, rows });
+        });
+        return {
+            header: document.getElementById('listaHeader').value,
+            body: document.getElementById('listaBody').value,
+            button_text: document.getElementById('listaBtnText').value || 'Ver Opções',
+            sections
+        };
+    }
+
+    function preencherLista(dados) {
+        document.getElementById('listaHeader').value = dados.header || '';
+        document.getElementById('listaBody').value = dados.body || '';
+        document.getElementById('listaBtnText').value = dados.button_text || 'Ver Opções';
+        document.getElementById('listaSecoes').innerHTML = '';
+        (dados.sections || []).forEach(sec => {
+            adicionarSecao();
+            const idx = secaoIdx - 1;
+            document.getElementById(`secao_titulo_${idx}`).value = sec.title || '';
+            // Limpar a linha inicial automática e preencher as reais
+            document.getElementById(`secao_rows_${idx}`).innerHTML = '';
+            (sec.rows || []).forEach(row => {
+                adicionarOpcao(idx);
+                const rIdx = rowIdx - 1;
+                document.getElementById(`row_id_${rIdx}`).value = row.rowId || '';
+                document.getElementById(`row_titulo_${rIdx}`).value = row.title || '';
+                document.getElementById(`row_desc_${rIdx}`).value = row.description || '';
+            });
+        });
+    }
+
+    /* ── Builder: Botões ── */
+    let botaoIdx = 0;
+
+    function adicionarBotao() {
+        const lista = document.getElementById('listaBotoes');
+        if (lista.children.length >= 3) {
+            alert('Máximo de 3 botões permitido.');
+            return;
+        }
+        const idx = botaoIdx++;
+        const div = document.createElement('div');
+        div.className = 'd-flex gap-1 mb-1 align-items-center';
+        div.id = `botao_${idx}`;
+        div.innerHTML = `
+            <span class="badge bg-secondary flex-shrink-0">${lista.children.length + 1}</span>
+            <input type="text" class="form-control form-control-sm" placeholder="Texto do botão" id="botao_texto_${idx}">
+            <input type="text" class="form-control form-control-sm" placeholder="ID (sem espaços)" id="botao_id_${idx}" style="max-width:120px">
+            <button type="button" class="btn btn-sm btn-link text-danger p-0 flex-shrink-0" onclick="removerBotao('botao_${idx}')">
+                <i class="bi bi-x-lg"></i>
+            </button>`;
+        lista.appendChild(div);
+        atualizarNumeracaoBotoes();
+    }
+
+    function removerBotao(id) {
+        document.getElementById(id)?.remove();
+        atualizarNumeracaoBotoes();
+    }
+
+    function atualizarNumeracaoBotoes() {
+        document.querySelectorAll('#listaBotoes .badge').forEach((badge, i) => {
+            badge.textContent = i + 1;
+        });
+    }
+
+    function coletarEstrutura_botoes() {
+        const buttons = [];
+        document.querySelectorAll('[id^="botao_"]:not([id*="_texto_"]):not([id*="_id_"])').forEach(div => {
+            if (!div.id.match(/^botao_\d+$/)) return;
+            const idx = div.id.split('_')[1];
+            const texto = document.getElementById(`botao_texto_${idx}`)?.value?.trim();
+            const btnId = document.getElementById(`botao_id_${idx}`)?.value?.trim() || `btn${idx}`;
+            if (texto) {
+                buttons.push({ buttonId: btnId, buttonText: { displayText: texto }, type: 1 });
+            }
+        });
+        return { body: document.getElementById('botoesBody').value, buttons };
+    }
+
+    function preencherBotoes(dados) {
+        document.getElementById('botoesBody').value = dados.body || '';
+        document.getElementById('listaBotoes').innerHTML = '';
+        (dados.buttons || []).forEach(btn => {
+            adicionarBotao();
+            const idx = botaoIdx - 1;
+            document.getElementById(`botao_texto_${idx}`).value = btn.buttonText?.displayText || '';
+            document.getElementById(`botao_id_${idx}`).value = btn.buttonId || '';
+        });
+    }
+
+    /* ── Limpar formulário ── */
     function limparFormulario() {
         document.getElementById('regraId').value = '';
         document.getElementById('palavraChave').value = '';
@@ -277,20 +476,24 @@
         document.getElementById('paraTerceirizados').checked = true;
         document.getElementById('paraUsuarios').checked = true;
         document.getElementById('tituloModal').textContent = 'Nova Regra de Automação';
+        document.getElementById('trTexto').checked = true;
+        document.getElementById('listaHeader').value = '';
+        document.getElementById('listaBody').value = '';
+        document.getElementById('listaBtnText').value = 'Ver Opções';
+        document.getElementById('listaSecoes').innerHTML = '';
+        document.getElementById('botoesBody').value = '';
+        document.getElementById('listaBotoes').innerHTML = '';
         toggleCampos();
+        toggleTipoResposta();
     }
 
+    /* ── Editar regra ── */
     async function editarRegra(id) {
         try {
             const res = await fetch(`/admin/whatsapp/regras/${id}`);
             const regra = await res.json();
+            if (regra.error) { alert('Erro: ' + regra.error); return; }
 
-            if (regra.error) {
-                alert('Erro ao carregar regra: ' + regra.error);
-                return;
-            }
-
-            // Preencher formulário
             document.getElementById('regraId').value = regra.id;
             document.getElementById('palavraChave').value = regra.palavra_chave;
             document.getElementById('tipoMatch').value = regra.tipo_correspondencia;
@@ -303,116 +506,103 @@
             document.getElementById('paraDesconhecidos').checked = regra.para_desconhecidos !== false;
             document.getElementById('paraTerceirizados').checked = regra.para_terceirizados !== false;
             document.getElementById('paraUsuarios').checked = regra.para_usuarios !== false;
-
             document.getElementById('tituloModal').textContent = 'Editar Regra de Automação';
 
-            toggleCampos();
+            // Tipo de resposta
+            const tr = regra.tipo_resposta || 'texto';
+            document.querySelector(`input[name="tipoRespostaRadio"][value="${tr}"]`).checked = true;
+            if (regra.resposta_estruturada) {
+                try {
+                    const dados = JSON.parse(regra.resposta_estruturada);
+                    if (tr === 'lista_interativa') preencherLista(dados);
+                    if (tr === 'botoes') preencherBotoes(dados);
+                } catch(e) { console.warn('resposta_estruturada inválida', e); }
+            }
 
-            // Abrir modal
-            const modal = new bootstrap.Modal(document.getElementById('modalNovaRegra'));
-            modal.show();
+            toggleCampos();
+            toggleTipoResposta();
+            new bootstrap.Modal(document.getElementById('modalNovaRegra')).show();
         } catch (e) {
             console.error(e);
             alert('Erro ao carregar regra');
         }
     }
 
+    /* ── Salvar regra ── */
     async function salvarRegra() {
         const regraId = document.getElementById('regraId').value;
-        const notifUserId = document.getElementById('notificarUsuarioId').value;
         const acao = document.getElementById('acao').value;
+        const tipo_resposta = document.querySelector('input[name="tipoRespostaRadio"]:checked')?.value || 'texto';
 
-        // Só envia campos relevantes à ação selecionada — evita sobrescrever com valores antigos
+        let resposta_texto = null;
+        let resposta_estruturada = null;
+
+        if (acao === 'responder') {
+            if (tipo_resposta === 'texto') {
+                resposta_texto = document.getElementById('respostaTexto').value;
+            } else if (tipo_resposta === 'lista_interativa') {
+                const est = coletarEstrutura_lista();
+                if (!est.sections.length) { alert('Adicione pelo menos uma seção com uma opção.'); return; }
+                resposta_estruturada = JSON.stringify(est);
+                resposta_texto = est.body; // fallback texto
+            } else if (tipo_resposta === 'botoes') {
+                const est = coletarEstrutura_botoes();
+                if (!est.buttons.length) { alert('Adicione pelo menos um botão.'); return; }
+                resposta_estruturada = JSON.stringify(est);
+                resposta_texto = est.body;
+            }
+        }
+
         const dados = {
             palavra_chave: document.getElementById('palavraChave').value,
             tipo_correspondencia: document.getElementById('tipoMatch').value,
             acao: acao,
-            resposta_texto: acao === 'responder' ? document.getElementById('respostaTexto').value : null,
+            resposta_texto,
+            tipo_resposta,
+            resposta_estruturada,
             encaminhar_para_perfil: acao === 'encaminhar' ? document.getElementById('encaminharPara').value : null,
             funcao_sistema: acao === 'executar_funcao' ? document.getElementById('funcaoSistema').value : null,
             prioridade: parseInt(document.getElementById('prioridade').value),
-            notificar_usuario_id: notifUserId ? parseInt(notifUserId) : null,
+            notificar_usuario_id: document.getElementById('notificarUsuarioId').value ? parseInt(document.getElementById('notificarUsuarioId').value) : null,
             para_desconhecidos: document.getElementById('paraDesconhecidos').checked,
             para_terceirizados: document.getElementById('paraTerceirizados').checked,
             para_usuarios: document.getElementById('paraUsuarios').checked,
         };
 
-        if (!dados.palavra_chave) {
-            alert('Palavra-chave é obrigatória');
-            return;
-        }
+        if (!dados.palavra_chave) { alert('Palavra-chave é obrigatória'); return; }
 
         try {
-            let url = '/admin/whatsapp/regras';
-            let method = 'POST';
-
-            if (regraId) {
-                url += `/${regraId}`;
-                method = 'PUT';
-            }
-
+            const url = regraId ? `/admin/whatsapp/regras/${regraId}` : '/admin/whatsapp/regras';
             const res = await fetch(url, {
-                method: method,
+                method: regraId ? 'PUT' : 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(dados)
             });
-
             const data = await res.json();
-
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Erro: ' + (data.error || 'Desconhecido'));
-            }
+            if (data.success) { location.reload(); }
+            else { alert('Erro: ' + (data.error || 'Desconhecido')); }
         } catch (e) {
             console.error(e);
             alert('Erro ao salvar regra');
         }
     }
 
+    /* ── Toggle / Excluir ── */
     async function excluirRegra(id) {
-        if (!confirm('Tem certeza que deseja excluir esta regra?')) {
-            return;
-        }
-
-        try {
-            const res = await fetch(`/admin/whatsapp/regras/${id}`, {
-                method: 'DELETE'
-            });
-
-            const data = await res.json();
-
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Erro ao excluir: ' + (data.error || 'Desconhecido'));
-            }
-        } catch (e) {
-            console.error(e);
-            alert('Erro ao excluir regra');
-        }
+        if (!confirm('Excluir esta regra?')) return;
+        const res = await fetch(`/admin/whatsapp/regras/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) location.reload();
+        else alert('Erro: ' + (data.error || 'Desconhecido'));
     }
 
     async function toggleRegra(id) {
-        try {
-            const res = await fetch(`/admin/whatsapp/regras/${id}/toggle`, {
-                method: 'POST'
-            });
-
-            const data = await res.json();
-
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Erro ao alterar status: ' + (data.error || 'Desconhecido'));
-            }
-        } catch (e) {
-            console.error(e);
-            alert('Erro ao alterar status da regra');
-        }
+        const res = await fetch(`/admin/whatsapp/regras/${id}/toggle`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) location.reload();
+        else alert('Erro: ' + (data.error || 'Desconhecido'));
     }
 
-    // Limpar formulário quando fechar o modal
     document.getElementById('modalNovaRegra').addEventListener('hidden.bs.modal', limparFormulario);
 </script>
 {% endblock %}

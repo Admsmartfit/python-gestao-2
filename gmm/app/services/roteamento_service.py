@@ -145,11 +145,13 @@ class RoteamentoService:
                 if r.acao == 'executar_funcao' and r.funcao_sistema:
                     return RoteamentoService._executar_funcao_sistema(r.funcao_sistema, terceirizado)
                 
-                if r.resposta_texto:
+                if r.resposta_texto or r.resposta_estruturada:
                     return {
                         'acao': r.acao,
                         'resposta': r.resposta_texto,
                         'mensagem': r.resposta_texto,
+                        'tipo_resposta': getattr(r, 'tipo_resposta', 'texto') or 'texto',
+                        'resposta_estruturada': r.resposta_estruturada,
                         'encaminhar_para': r.encaminhar_para_perfil,
                         'funcao': r.funcao_sistema
                     }
@@ -262,11 +264,13 @@ class RoteamentoService:
                 RoteamentoService._notificar_usuario_regra(r, remetente, texto, entidade=usuario)
                 if r.acao == 'executar_funcao' and r.funcao_sistema:
                     return RoteamentoService._executar_funcao_sistema(r.funcao_sistema, usuario, is_usuario=True)
-                if r.resposta_texto:
+                if r.resposta_texto or r.resposta_estruturada:
                     return {
                         'acao': r.acao,
                         'resposta': r.resposta_texto,
                         'mensagem': r.resposta_texto,
+                        'tipo_resposta': getattr(r, 'tipo_resposta', 'texto') or 'texto',
+                        'resposta_estruturada': r.resposta_estruturada,
                         'encaminhar_para': r.encaminhar_para_perfil,
                         'funcao': r.funcao_sistema
                     }

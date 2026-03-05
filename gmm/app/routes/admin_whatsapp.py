@@ -59,6 +59,8 @@ def criar_regra():
         tipo_correspondencia=data.get('tipo_correspondencia', 'contem'),
         acao=data['acao'],
         resposta_texto=data.get('resposta_texto'),
+        tipo_resposta=data.get('tipo_resposta', 'texto'),
+        resposta_estruturada=data.get('resposta_estruturada'),
         encaminhar_para_perfil=data.get('encaminhar_para_perfil'),
         funcao_sistema=data.get('funcao_sistema'),
         prioridade=data.get('prioridade', 0),
@@ -89,6 +91,8 @@ def obter_regra(regra_id):
         'tipo_correspondencia': regra.tipo_correspondencia,
         'acao': regra.acao,
         'resposta_texto': regra.resposta_texto,
+        'tipo_resposta': getattr(regra, 'tipo_resposta', 'texto') or 'texto',
+        'resposta_estruturada': regra.resposta_estruturada,
         'encaminhar_para_perfil': regra.encaminhar_para_perfil,
         'funcao_sistema': regra.funcao_sistema,
         'prioridade': regra.prioridade,
@@ -116,6 +120,8 @@ def atualizar_regra(regra_id):
     regra.tipo_correspondencia = data.get('tipo_correspondencia', 'contem')
     regra.acao = data['acao']
     regra.resposta_texto = data.get('resposta_texto')
+    regra.tipo_resposta = data.get('tipo_resposta', 'texto')
+    regra.resposta_estruturada = data.get('resposta_estruturada')
     regra.encaminhar_para_perfil = data.get('encaminhar_para_perfil')
     regra.funcao_sistema = data.get('funcao_sistema')
     regra.prioridade = data.get('prioridade', 0)
