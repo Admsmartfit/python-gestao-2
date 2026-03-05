@@ -235,6 +235,7 @@ class PedidoCompra(db.Model):
     data_entrega_prevista = db.Column(db.DateTime, nullable=True)
     data_recebimento = db.Column(db.DateTime, nullable=True)
     rating_fornecedor = db.Column(db.Integer, nullable=True)  # 1-5 estrelas
+    tipo_pedido = db.Column(db.String(20), default='catalogo', nullable=False)  # catalogo | cotacao
 
     fornecedor = db.relationship('Fornecedor', backref='pedidos')
     peca = db.relationship('Estoque')
@@ -404,6 +405,46 @@ class OrcamentoUnidade(db.Model):
 
     unidade = db.relationship('Unidade', backref='orcamentos')
     criado_por = db.relationship('Usuario', foreign_keys=[criado_por_id])
+
+
+class CotacaoCompra(db.Model):
+    """Orçamento individual de fornecedor vinculado a um pedido do tipo 'cotacao'."""
+    __tablename__ = 'cotacoes_compra'
+    id = db.Column(db.Integer, primary_key=True)
+    pedido_id = db.Column(db.Integer, db.ForeignKey('pedidos_compra.id'), nullable=False)
+    fornecedor_nome = db.Column(db.String(200), nullable=False)
+    valor_total = db.Column(db.Numeric(12, 2), nullable=False)
+    prazo_dias = db.Column(db.Integer, nullable=True)
+    observacao = db.Column(db.Text, nullable=True)
+    selecionada = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    pedido = db.relationship('PedidoCompra', backref='cotacoes')
+
+    @property
+    def valor_display(self):
+        return f"R$ {float(self.valor_total):,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+
+
+class ConfiguracaoCompras(db.Model):
+    """Configuração global do módulo de compras (singleton)."""
+    __tablename__ = 'configuracao_compras'
+    id = db.Column(db.Integer, primary_key=True)
+    tier1_limite = db.Column(db.Numeric(12, 2), default=500)    # ≤ → auto-aprovado
+    tier2_limite = db.Column(db.Numeric(12, 2), default=5000)   # ≤ → gerente; > → diretoria
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_by_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+
+    updated_by = db.relationship('Usuario', foreign_keys=[updated_by_id])
+
+    @staticmethod
+    def get():
+        cfg = ConfiguracaoCompras.query.first()
+        if not cfg:
+            cfg = ConfiguracaoCompras()
+            db.session.add(cfg)
+            db.session.commit()
+        return cfg
 
 # ──────────────────────────────────────────────────────────────────────────────
 

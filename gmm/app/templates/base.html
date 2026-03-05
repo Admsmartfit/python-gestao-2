@@ -141,6 +141,10 @@
                                 <i class="bi bi-list-stars"></i> Listas Padrão
                             </a>
                             {% endif %}
+                            <a href="{{ url_for('compras.cotacao_nova') }}"
+                                class="nav-link-saas nav-link-sub {{ 'active' if request.endpoint == 'compras.cotacao_nova' }}">
+                                <i class="bi bi-file-earmark-text"></i> Solicitar com Cotações
+                            </a>
                             {% if current_user.tipo in ['admin', 'gerente', 'diretor'] %}
                             <a href="{{ url_for('compras.aprovacoes') }}"
                                 class="nav-link-saas nav-link-sub {{ 'active' if request.endpoint == 'compras.aprovacoes' }}">

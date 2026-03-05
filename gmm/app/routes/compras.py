@@ -3,7 +3,8 @@ from flask_login import login_required, current_user
 from app.models.estoque_models import (
     PedidoCompra, Fornecedor, Estoque, CatalogoFornecedor, ComunicacaoFornecedor,
     ListaCompra, ListaCompraItem, OrdemCompraLista,
-    AprovacaoPedido, FaturamentoCompra, OrcamentoUnidade
+    AprovacaoPedido, FaturamentoCompra, OrcamentoUnidade,
+    CotacaoCompra, ConfiguracaoCompras
 )
 from app.extensions import db
 from datetime import datetime
@@ -48,21 +49,18 @@ def novo():
 
             status_inicial = 'solicitado'
             aprovador_id = None
-            if valor_total <= 500:
-                status_inicial = 'aprovado'
-                aprovador_id = 0 # Sistema
-
             os_id_ref = request.form.get('os_id') or None
 
-            # Calcular tier de aprovação
+            # Calcular tier de aprovação (limites configuráveis)
+            cfg = ConfiguracaoCompras.get()
             valor_unitario_est = float(request.form.get('valor_unitario', 0) or 0)
             valor_total_est = valor_unitario_est * quantidade if valor_unitario_est else valor_total
 
-            if valor_total_est <= 500:
+            if valor_total_est <= float(cfg.tier1_limite):
                 tier = 1
                 status_inicial = 'aprovado'
                 aprovador_id = 0
-            elif valor_total_est <= 5000:
+            elif valor_total_est <= float(cfg.tier2_limite):
                 tier = 2
                 status_inicial = 'solicitado'
                 aprovador_id = None
@@ -196,7 +194,8 @@ def aprovacoes():
         aprovs = AprovacaoPedido.query.filter_by(pedido_id=p.id, acao='aprovado').count()
         tier3_info.append({'pedido': p, 'aprovacoes_count': aprovs})
 
-    return render_template('compras/aprovacoes.html', tier2=tier2, tier3_info=tier3_info)
+    cfg = ConfiguracaoCompras.get()
+    return render_template('compras/aprovacoes.html', tier2=tier2, tier3_info=tier3_info, cfg=cfg)
 
 
 @bp.route('/<int:id>/aprovar', methods=['POST'])
@@ -230,16 +229,19 @@ def aprovar(id):
     db.session.add(registro)
 
     tier = pedido.tier_aprovacao or 2
-    if tier <= 2:
-        # Tier 1 ou 2: aprovação simples
+    is_admin = current_user.tipo == 'admin'
+
+    if tier <= 2 or is_admin:
+        # Tier 1/2: aprovação simples. Admin sempre aprova de imediato, qualquer tier.
         pedido.status = 'aprovado'
         pedido.aprovador_id = current_user.id
         db.session.commit()
         from app.tasks.whatsapp_tasks import enviar_pedido_fornecedor
         enviar_pedido_fornecedor.delay(pedido.id)
+        _notificar_solicitante(pedido, aprovado=True)
         flash(f"Pedido #{id} aprovado com sucesso!", "success")
     else:
-        # Tier 3: precisa de 2 aprovações
+        # Tier 3: precisa de 2 aprovações (gerente/diretor)
         db.session.commit()  # salva o registro acima
         total_aprovacoes = AprovacaoPedido.query.filter_by(pedido_id=id, acao='aprovado').count()
         if total_aprovacoes >= 2:
@@ -334,6 +336,141 @@ def rejeitar(id):
     db.session.commit()
     _notificar_solicitante(pedido, aprovado=False)
     flash(f"Pedido #{id} recusado.", "warning")
+    return redirect(url_for('compras.aprovacoes'))
+
+
+@bp.route('/config/tiers', methods=['POST'])
+@login_required
+def salvar_config_tiers():
+    """Salva limites de Tier (admin only)."""
+    if current_user.tipo != 'admin':
+        flash("Apenas administradores podem alterar os limites de tier.", "danger")
+        return redirect(url_for('compras.aprovacoes'))
+
+    cfg = ConfiguracaoCompras.get()
+    try:
+        t1 = float(request.form.get('tier1_limite', '500').replace(',', '.'))
+        t2 = float(request.form.get('tier2_limite', '5000').replace(',', '.'))
+        if t1 >= t2:
+            flash("O limite do Tier 1 deve ser menor que o do Tier 2.", "warning")
+            return redirect(url_for('compras.aprovacoes'))
+        cfg.tier1_limite = t1
+        cfg.tier2_limite = t2
+        cfg.updated_by_id = current_user.id
+        db.session.commit()
+        flash(f"Limites atualizados: Tier 1 ≤ R${t1:,.0f} | Tier 2 ≤ R${t2:,.0f}", "success")
+    except (ValueError, TypeError):
+        flash("Valores inválidos.", "warning")
+    return redirect(url_for('compras.aprovacoes'))
+
+
+@bp.route('/cotacao/nova', methods=['GET', 'POST'])
+@login_required
+def cotacao_nova():
+    """Solicitação de compra livre com múltiplos orçamentos (ex: serviços, reformas)."""
+    from app.models.models import Unidade
+    if request.method == 'POST':
+        try:
+            descricao = request.form.get('descricao', '').strip()
+            if not descricao:
+                flash("Descrição do que deseja comprar é obrigatória.", "warning")
+                return redirect(url_for('compras.cotacao_nova'))
+
+            unidade_id = request.form.get('unidade_destino_id') or None
+            categoria = request.form.get('categoria_compra', 'outros')
+            justificativa = request.form.get('justificativa', '').strip() or None
+
+            # Coletar cotações submetidas
+            fornecedores_nomes = request.form.getlist('cotacao_fornecedor')
+            valores = request.form.getlist('cotacao_valor')
+            prazos = request.form.getlist('cotacao_prazo')
+            obs_list = request.form.getlist('cotacao_obs')
+            selecionada_idx = int(request.form.get('cotacao_selecionada', 0))
+
+            cotacoes_validas = []
+            for i, (fn, vl) in enumerate(zip(fornecedores_nomes, valores)):
+                fn = fn.strip()
+                vl_str = vl.replace(',', '.').strip()
+                if fn and vl_str:
+                    cotacoes_validas.append({
+                        'fornecedor_nome': fn,
+                        'valor_total': float(vl_str),
+                        'prazo_dias': int(prazos[i]) if prazos[i].strip().isdigit() else None,
+                        'observacao': obs_list[i].strip() or None,
+                        'selecionada': (i == selecionada_idx),
+                    })
+
+            if not cotacoes_validas:
+                flash("Informe pelo menos um orçamento.", "warning")
+                return redirect(url_for('compras.cotacao_nova'))
+
+            # Valor de referência = cotação selecionada (ou menor)
+            valor_ref = cotacoes_validas[selecionada_idx]['valor_total'] if selecionada_idx < len(cotacoes_validas) \
+                else min(c['valor_total'] for c in cotacoes_validas)
+
+            cfg = ConfiguracaoCompras.get()
+            if valor_ref <= float(cfg.tier1_limite):
+                tier, status_ini, aprov_id = 1, 'aprovado', 0
+            elif valor_ref <= float(cfg.tier2_limite):
+                tier, status_ini, aprov_id = 2, 'solicitado', None
+            else:
+                tier, status_ini, aprov_id = 3, 'aguardando_diretoria', None
+
+            pedido = PedidoCompra(
+                estoque_id=None,
+                quantidade=1,
+                solicitante_id=current_user.id,
+                unidade_destino_id=unidade_id,
+                status=status_ini,
+                aprovador_id=aprov_id,
+                descricao_livre=descricao,
+                categoria_compra=categoria,
+                justificativa=justificativa,
+                valor_total_estimado=valor_ref,
+                tier_aprovacao=tier,
+                tipo_pedido='cotacao',
+            )
+            db.session.add(pedido)
+            db.session.flush()  # gera pedido.id
+
+            for c in cotacoes_validas:
+                db.session.add(CotacaoCompra(pedido_id=pedido.id, **c))
+
+            db.session.commit()
+
+            if tier == 1:
+                flash(f"Solicitação #{pedido.id} criada e aprovada automaticamente (Tier 1).", "success")
+            elif tier == 2:
+                flash(f"Solicitação #{pedido.id} criada — aguardando aprovação do gerente.", "info")
+            else:
+                _notificar_diretores_tier3(pedido)
+                flash(f"Solicitação #{pedido.id} criada — aguardando consenso da diretoria.", "info")
+
+            return redirect(url_for('compras.listar'))
+
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Erro ao criar cotação: {e}")
+            flash("Erro ao processar solicitação.", "danger")
+
+    unidades = Unidade.query.order_by(Unidade.nome).all()
+    return render_template('compras/cotacao_nova.html', unidades=unidades)
+
+
+@bp.route('/<int:id>/cotacao/selecionar/<int:cotacao_id>', methods=['POST'])
+@login_required
+def selecionar_cotacao(id, cotacao_id):
+    """Marca uma cotação como selecionada (durante aprovação)."""
+    if current_user.tipo not in ['admin', 'gerente', 'diretor']:
+        return jsonify({'error': 'Permissão negada'}), 403
+    CotacaoCompra.query.filter_by(pedido_id=id).update({'selecionada': False})
+    cotacao = CotacaoCompra.query.filter_by(id=cotacao_id, pedido_id=id).first_or_404()
+    cotacao.selecionada = True
+    # Atualiza valor de referência do pedido
+    pedido = PedidoCompra.query.get_or_404(id)
+    pedido.valor_total_estimado = cotacao.valor_total
+    db.session.commit()
+    flash(f"Orçamento de '{cotacao.fornecedor_nome}' selecionado como referência.", "success")
     return redirect(url_for('compras.aprovacoes'))
 
 

@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('compras.listar') }}">Compras</a></li>
+<li class="breadcrumb-item active">Nova Solicitação com Cotações</li>
+{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-8">
+
+<div class="card border-0 shadow-sm mt-3">
+    <div class="card-header bg-white py-3 border-0">
+        <h4 class="fw-bold mb-0"><i class="bi bi-file-earmark-text me-2 text-primary"></i>Nova Solicitação com Cotações</h4>
+        <p class="text-muted small mb-0 mt-1">Use quando você já possui 2 ou mais orçamentos de fornecedores (ex: serviços, reformas, compras de alto valor).</p>
+    </div>
+    <div class="card-body p-4">
+        <form action="{{ url_for('compras.cotacao_nova') }}" method="POST" id="formCotacao">
+
+            <!-- Descrição -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">O que você quer comprar / contratar?</label>
+                <input type="text" name="descricao" class="form-control" required
+                       placeholder="Ex: Pintura completa da Unidade Centro, Manutenção do ar-condicionado...">
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Unidade</label>
+                    <select name="unidade_destino_id" class="form-select">
+                        <option value="">Global / Todas as Unidades</option>
+                        {% for u in unidades %}
+                        <option value="{{ u.id }}">{{ u.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Categoria</label>
+                    <select name="categoria_compra" class="form-select">
+                        <option value="servico">Serviço / Mão de Obra</option>
+                        <option value="reforma">Reforma / Obra</option>
+                        <option value="peca">Peça / Material</option>
+                        <option value="limpeza">Limpeza / Higiene</option>
+                        <option value="ti">TI / Tecnologia</option>
+                        <option value="outros">Outros</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-bold">Justificativa <span class="text-muted fw-normal">(opcional)</span></label>
+                <textarea name="justificativa" class="form-control" rows="2"
+                          placeholder="Por que esta compra é necessária?"></textarea>
+            </div>
+
+            <!-- Orçamentos -->
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <label class="form-label fw-bold mb-0"><i class="bi bi-currency-dollar me-1 text-success"></i>Orçamentos recebidos</label>
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="adicionarLinha()">
+                        <i class="bi bi-plus-lg me-1"></i>Adicionar orçamento
+                    </button>
+                </div>
+                <div class="form-text mb-2">Informe pelo menos 1 orçamento. Marque o recomendado com ★.</div>
+
+                <div id="linhasCotacao">
+                    <!-- linhas inseridas via JS -->
+                </div>
+                <input type="hidden" name="cotacao_selecionada" id="cotacaoSelecionada" value="0">
+            </div>
+
+            <div class="d-flex justify-content-between pt-2 border-top">
+                <a href="{{ url_for('compras.listar') }}" class="btn btn-light border px-4">Cancelar</a>
+                <button type="submit" class="btn btn-primary px-4">
+                    <i class="bi bi-send me-1"></i>Enviar para Aprovação
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+</div>
+</div>
+
+<script>
+let numLinhas = 0;
+
+function adicionarLinha(fn='', vl='', pz='', ob='') {
+    const idx = numLinhas++;
+    const div = document.createElement('div');
+    div.className = 'card border-0 bg-light mb-2 p-3';
+    div.id = 'linha_' + idx;
+    div.innerHTML = `
+        <div class="row g-2 align-items-start">
+            <div class="col-md-4">
+                <label class="form-label small fw-bold">Fornecedor / Empresa</label>
+                <input type="text" name="cotacao_fornecedor" class="form-control form-control-sm"
+                       value="${fn}" placeholder="Nome do fornecedor" required>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-bold">Valor Total (R$)</label>
+                <input type="text" name="cotacao_valor" class="form-control form-control-sm"
+                       value="${vl}" placeholder="Ex: 8.500,00" required>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-bold">Prazo (dias)</label>
+                <input type="number" name="cotacao_prazo" class="form-control form-control-sm"
+                       value="${pz}" placeholder="—" min="1">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold">Observação</label>
+                <input type="text" name="cotacao_obs" class="form-control form-control-sm"
+                       value="${ob}" placeholder="Condições, parcelas, etc.">
+            </div>
+            <div class="col-md-1 d-flex flex-column align-items-center pt-4">
+                <button type="button" class="btn btn-sm btn-warning mb-1 w-100" title="Recomendar este"
+                        onclick="selecionarCotacao(${idx})" id="btnSel_${idx}">
+                    <i class="bi bi-star" id="icoSel_${idx}"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="removerLinha(${idx})">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        </div>`;
+    document.getElementById('linhasCotacao').appendChild(div);
+    if (numLinhas === 1) selecionarCotacao(0); // primeira linha = selecionada por default
+}
+
+function selecionarCotacao(idx) {
+    // Reset visual de todas
+    document.querySelectorAll('[id^="btnSel_"]').forEach(b => {
+        b.classList.remove('btn-warning');
+        b.classList.add('btn-outline-warning');
+    });
+    document.querySelectorAll('[id^="icoSel_"]').forEach(i => {
+        i.className = 'bi bi-star';
+    });
+    // Destaca selecionada
+    const btn = document.getElementById('btnSel_' + idx);
+    const ico = document.getElementById('icoSel_' + idx);
+    if (btn) { btn.classList.remove('btn-outline-warning'); btn.classList.add('btn-warning'); }
+    if (ico) ico.className = 'bi bi-star-fill';
+    document.getElementById('cotacaoSelecionada').value = idx;
+}
+
+function removerLinha(idx) {
+    const el = document.getElementById('linha_' + idx);
+    if (el) el.remove();
+}
+
+// Começa com 1 linha
+document.addEventListener('DOMContentLoaded', () => adicionarLinha());
+</script>
+{% endblock %}

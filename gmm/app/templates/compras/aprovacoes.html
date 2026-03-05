@@ -6,10 +6,50 @@
             <h2 class="h4 fw-bold mb-0">Aprovações Pendentes</h2>
             <p class="text-muted small mb-0">Pedidos aguardando autorização de compra</p>
         </div>
-        <a href="{{ url_for('compras.listar') }}" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-arrow-left me-1"></i>Voltar
-        </a>
+        <div class="d-flex gap-2">
+            {% if current_user.tipo == 'admin' %}
+            <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#painelTiers">
+                <i class="bi bi-sliders me-1"></i>Configurar Tiers
+            </button>
+            {% endif %}
+            <a href="{{ url_for('compras.listar') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i>Voltar
+            </a>
+        </div>
     </div>
+
+    {% if current_user.tipo == 'admin' %}
+    <!-- Painel de Configuração de Tiers (admin only) -->
+    <div class="collapse mb-4" id="painelTiers">
+        <div class="card border-0 shadow-sm border-start border-4 border-primary">
+            <div class="card-body py-3">
+                <h6 class="fw-bold mb-3"><i class="bi bi-sliders me-2 text-primary"></i>Limites de Aprovação por Tier</h6>
+                <form action="{{ url_for('compras.salvar_config_tiers') }}" method="POST" class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Tier 1 — Aprovação Automática (≤ R$)</label>
+                        <input type="text" name="tier1_limite" class="form-control form-control-sm"
+                               value="{{ cfg.tier1_limite|int }}" placeholder="Ex: 500">
+                        <div class="form-text">Pedidos até este valor são aprovados automaticamente.</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Tier 2 — Aprovação Gerente (≤ R$)</label>
+                        <input type="text" name="tier2_limite" class="form-control form-control-sm"
+                               value="{{ cfg.tier2_limite|int }}" placeholder="Ex: 5000">
+                        <div class="form-text">Acima disso exige consenso de diretoria (Tier 3).</div>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary btn-sm px-4">
+                            <i class="bi bi-check-lg me-1"></i>Salvar Limites
+                        </button>
+                    </div>
+                </form>
+                {% if cfg.updated_by %}
+                <small class="text-muted mt-2 d-block">Última alteração por {{ cfg.updated_by.nome }}</small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Tier 2: Gerente -->
     <div class="card border-0 shadow-sm mb-4">
@@ -18,7 +58,7 @@
                 <i class="bi bi-person-check me-2"></i>Tier 2 — Aguardando Gerente
                 <span class="badge bg-warning text-dark ms-2">{{ tier2|length }}</span>
             </h6>
-            <small class="text-muted">Pedidos entre R$ 501 e R$ 5.000 — 1 aprovação necessária</small>
+            <small class="text-muted">Pedidos entre R$ {{ cfg.tier1_limite|int }} e R$ {{ cfg.tier2_limite|int }} — 1 aprovação necessária</small>
         </div>
         <div class="card-body p-0">
             {% if tier2 %}
@@ -26,7 +66,7 @@
                 <thead class="bg-light">
                     <tr>
                         <th class="ps-4">Pedido</th>
-                        <th>Item</th>
+                        <th>Item / Serviço</th>
                         <th>Valor</th>
                         <th>Solicitante</th>
                         <th>Data</th>
@@ -36,11 +76,43 @@
                 <tbody>
                 {% for p in tier2 %}
                 <tr>
-                    <td class="ps-4"><code>#{{ p.id }}</code></td>
-                    <td>{{ p.peca.nome if p.peca else p.descricao_livre or '—' }}</td>
-                    <td>
-                        <span class="fw-bold text-warning">{{ p.valor_display }}</span>
+                    <td class="ps-4">
+                        <code>#{{ p.id }}</code>
+                        {% if p.tipo_pedido == 'cotacao' %}<span class="badge bg-info bg-opacity-10 text-info ms-1">Cotação</span>{% endif %}
                     </td>
+                    <td>
+                        {{ p.peca.nome if p.peca else p.descricao_livre or '—' }}
+                        {% if p.tipo_pedido == 'cotacao' and p.cotacoes %}
+                        <button class="btn btn-link btn-sm p-0 ms-1 text-muted" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#cot2_{{ p.id }}">
+                            <i class="bi bi-chevron-down"></i> {{ p.cotacoes|length }} orçamentos
+                        </button>
+                        {% endif %}
+                        {% if p.justificativa %}<div class="text-muted small fst-italic">{{ p.justificativa }}</div>{% endif %}
+                        {% if p.tipo_pedido == 'cotacao' and p.cotacoes %}
+                        <div class="collapse mt-2" id="cot2_{{ p.id }}">
+                            <table class="table table-sm table-bordered mb-0 rounded">
+                                <thead class="table-secondary"><tr><th>Fornecedor</th><th>Valor</th><th>Prazo</th><th>Obs</th><th></th></tr></thead>
+                                <tbody>
+                                {% for c in p.cotacoes %}
+                                <tr class="{{ 'table-success' if c.selecionada }}">
+                                    <td>{{ c.fornecedor_nome }}{% if c.selecionada %} <i class="bi bi-star-fill text-warning"></i>{% endif %}</td>
+                                    <td class="fw-bold">{{ c.valor_display }}</td>
+                                    <td>{{ c.prazo_dias ~ ' dias' if c.prazo_dias else '—' }}</td>
+                                    <td class="text-muted small">{{ c.observacao or '—' }}</td>
+                                    <td>
+                                        <form action="{{ url_for('compras.selecionar_cotacao', id=p.id, cotacao_id=c.id) }}" method="POST" class="d-inline">
+                                            <button class="btn btn-sm btn-outline-success py-0 px-1" title="Selecionar">✓</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td><span class="fw-bold text-warning">{{ p.valor_display }}</span></td>
                     <td>{{ p.solicitante.nome if p.solicitante else '—' }}</td>
                     <td class="text-muted small">{{ p.data_solicitacao.strftime('%d/%m %H:%M') }}</td>
                     <td class="text-end pe-4">
@@ -71,7 +143,14 @@
                 <i class="bi bi-people me-2"></i>Tier 3 — Consenso de Diretoria
                 <span class="badge bg-danger ms-2">{{ tier3_info|length }}</span>
             </h6>
-            <small class="text-muted">Pedidos acima de R$ 5.000 — 2 aprovações necessárias</small>
+            <small class="text-muted">
+                Pedidos acima de R$ {{ cfg.tier2_limite|int }} —
+                {% if current_user.tipo == 'admin' %}
+                <span class="fw-bold text-danger">Admin: aprovação imediata (1 clique)</span>
+                {% else %}
+                2 aprovações de diretores necessárias
+                {% endif %}
+            </small>
         </div>
         <div class="card-body p-0">
             {% if tier3_info %}
@@ -79,7 +158,7 @@
                 <thead class="bg-light">
                     <tr>
                         <th class="ps-4">Pedido</th>
-                        <th>Item</th>
+                        <th>Item / Serviço</th>
                         <th>Valor</th>
                         <th>Solicitante</th>
                         <th>Aprovações</th>
@@ -90,21 +169,61 @@
                 {% for info in tier3_info %}
                 {% set p = info.pedido %}
                 <tr>
-                    <td class="ps-4"><code>#{{ p.id }}</code></td>
-                    <td>{{ p.peca.nome if p.peca else p.descricao_livre or '—' }}</td>
+                    <td class="ps-4">
+                        <code>#{{ p.id }}</code>
+                        {% if p.tipo_pedido == 'cotacao' %}<span class="badge bg-info bg-opacity-10 text-info ms-1">Cotação</span>{% endif %}
+                    </td>
+                    <td>
+                        {{ p.peca.nome if p.peca else p.descricao_livre or '—' }}
+                        {% if p.tipo_pedido == 'cotacao' and p.cotacoes %}
+                        <button class="btn btn-link btn-sm p-0 ms-1 text-muted" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#cot3_{{ p.id }}">
+                            <i class="bi bi-chevron-down"></i> {{ p.cotacoes|length }} orçamentos
+                        </button>
+                        {% endif %}
+                        {% if p.justificativa %}<div class="text-muted small fst-italic">{{ p.justificativa }}</div>{% endif %}
+                        {% if p.tipo_pedido == 'cotacao' and p.cotacoes %}
+                        <div class="collapse mt-2" id="cot3_{{ p.id }}">
+                            <table class="table table-sm table-bordered mb-0 rounded">
+                                <thead class="table-secondary"><tr><th>Fornecedor</th><th>Valor</th><th>Prazo</th><th>Obs</th><th></th></tr></thead>
+                                <tbody>
+                                {% for c in p.cotacoes %}
+                                <tr class="{{ 'table-success' if c.selecionada }}">
+                                    <td>{{ c.fornecedor_nome }}{% if c.selecionada %} <i class="bi bi-star-fill text-warning"></i>{% endif %}</td>
+                                    <td class="fw-bold">{{ c.valor_display }}</td>
+                                    <td>{{ c.prazo_dias ~ ' dias' if c.prazo_dias else '—' }}</td>
+                                    <td class="text-muted small">{{ c.observacao or '—' }}</td>
+                                    <td>
+                                        <form action="{{ url_for('compras.selecionar_cotacao', id=p.id, cotacao_id=c.id) }}" method="POST" class="d-inline">
+                                            <button class="btn btn-sm btn-outline-success py-0 px-1" title="Selecionar">✓</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% endif %}
+                    </td>
                     <td><span class="fw-bold text-danger">{{ p.valor_display }}</span></td>
                     <td>{{ p.solicitante.nome if p.solicitante else '—' }}</td>
                     <td>
+                        {% if current_user.tipo == 'admin' %}
+                        <span class="badge bg-danger bg-opacity-10 text-danger fw-bold">Admin override</span>
+                        {% else %}
                         <div class="d-flex gap-1 align-items-center">
                             {% for i in range(2) %}
                             <i class="bi bi-{{ 'check-circle-fill text-success' if i < info.aprovacoes_count else 'circle text-muted' }}"></i>
                             {% endfor %}
                             <small class="text-muted ms-1">{{ info.aprovacoes_count }}/2</small>
                         </div>
+                        {% endif %}
                     </td>
                     <td class="text-end pe-4">
-                        <button class="btn btn-sm btn-success me-1" onclick="confirmarAprovar({{ p.id }}, 'Tier 3')">
-                            <i class="bi bi-check-lg"></i> Aprovar
+                        <button class="btn btn-sm btn-{{ 'danger' if current_user.tipo == 'admin' else 'success' }} me-1"
+                                onclick="confirmarAprovar({{ p.id }}, 'Tier 3')">
+                            <i class="bi bi-check-lg"></i>
+                            {% if current_user.tipo == 'admin' %}Aprovar (Admin){% else %}Aprovar{% endif %}
                         </button>
                         <button class="btn btn-sm btn-outline-danger" onclick="confirmarRejeitar({{ p.id }})">
                             <i class="bi bi-x-lg"></i>
