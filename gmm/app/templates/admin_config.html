@@ -181,13 +181,9 @@
                                 </td>
                                 <td class="text-end pe-4" data-label="Ações">
                                     <button class="btn btn-sm btn-outline-primary me-1 btn-editar-usuario"
-                                        title="Editar usuário"
-                                        data-id="{{ f.id }}"
-                                        data-nome="{{ f.nome }}"
-                                        data-username="{{ f.username }}"
-                                        data-email="{{ f.email or '' }}"
-                                        data-telefone="{{ f.telefone or '' }}"
-                                        data-tipo="{{ f.tipo }}"
+                                        title="Editar usuário" data-id="{{ f.id }}" data-nome="{{ f.nome }}"
+                                        data-username="{{ f.username }}" data-email="{{ f.email or '' }}"
+                                        data-telefone="{{ f.telefone or '' }}" data-tipo="{{ f.tipo }}"
                                         data-unidade="{{ f.unidade_padrao_id or '' }}">
                                         <i class="bi bi-pencil"></i>
                                     </button>
@@ -265,10 +261,12 @@
                         {% for e in equipamentos %}
                         <tr>
                             <td class="ps-4 fw-medium">
-                                <a href="{{ url_for('equipamentos.detalhes', id=e.id) }}" class="text-decoration-none">{{ e.nome }}</a>
+                                <a href="{{ url_for('equipamentos.detalhes', id=e.id) }}"
+                                    class="text-decoration-none">{{ e.nome }}</a>
                             </td>
                             <td data-label="Nº Série">
-                                {% if e.numero_serie %}<code class="small">{{ e.numero_serie }}</code>{% else %}<span class="text-muted small">—</span>{% endif %}
+                                {% if e.numero_serie %}<code class="small">{{ e.numero_serie }}</code>{% else %}<span
+                                    class="text-muted small">—</span>{% endif %}
                             </td>
                             <td data-label="Categoria">{{ e.categoria|capitalize }}</td>
                             <td data-label="Unidade">{{ e.unidade.nome }}</td>
@@ -348,10 +346,10 @@
                                     class="bg-light px-2 py-1 rounded text-dark">{{ u.faixa_ip_permitida }}</code></td>
                             <td class="text-end pe-4" data-label="Ações">
                                 <div class="d-flex justify-content-end gap-1">
-                                    <button class="btn btn-sm btn-outline-secondary"
-                                        data-id="{{ u.id }}" data-nome="{{ u.nome }}"
-                                        data-endereco="{{ u.endereco or '' }}" data-razao="{{ u.razao_social or '' }}"
-                                        data-cnpj="{{ u.cnpj or '' }}" data-telefone="{{ u.telefone or '' }}"
+                                    <button class="btn btn-sm btn-outline-secondary" data-id="{{ u.id }}"
+                                        data-nome="{{ u.nome }}" data-endereco="{{ u.endereco or '' }}"
+                                        data-razao="{{ u.razao_social or '' }}" data-cnpj="{{ u.cnpj or '' }}"
+                                        data-telefone="{{ u.telefone or '' }}"
                                         data-ip="{{ u.faixa_ip_permitida or '' }}"
                                         onclick="var d=this.dataset; editarUnidade(d.id, d.nome, d.endereco, d.razao, d.cnpj, d.telefone, d.ip)"
                                         title="Editar">
@@ -383,19 +381,19 @@
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
                 <h5 class="mb-0 fw-bold text-primary">Categorias</h5>
-                <button class="btn btn-sm btn-outline-primary" type="button"
-                        data-bs-toggle="collapse" data-bs-target="#collapseCategoria">
+                <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapseCategoria">
                     <i class="bi bi-tags me-1"></i>Gerenciar
                 </button>
             </div>
             <div class="collapse" id="collapseCategoria">
                 <div class="card-body border-bottom">
                     <form action="{{ url_for('admin.nova_categoria_estoque') }}" method="POST"
-                          class="row g-2 align-items-end mb-3">
+                        class="row g-2 align-items-end mb-3">
                         <div class="col-md-6">
                             <label class="form-label small">Nova Categoria</label>
                             <input type="text" name="nome" class="form-control form-control-sm"
-                                   placeholder="Ex: Cardio, Limpeza, Predial…" required>
+                                placeholder="Ex: Cardio, Limpeza, Predial…" required>
                         </div>
                         <div class="col-md-3">
                             <button type="submit" class="btn btn-primary btn-sm w-100">Adicionar</button>
@@ -405,11 +403,10 @@
                         {% for cat in categorias_estoque %}
                         <span class="badge bg-secondary d-flex align-items-center gap-1 fs-6 fw-normal px-3 py-2">
                             {{ cat.nome }}
-                            <form action="{{ url_for('admin.excluir_categoria_estoque', id=cat.id) }}"
-                                  method="POST" class="d-inline m-0 p-0"
-                                  onsubmit="return confirm('Excluir categoria {{ cat.nome }}?')">
-                                <button type="submit" class="btn-close btn-close-white"
-                                        style="font-size:0.6rem;" title="Excluir"></button>
+                            <form action="{{ url_for('admin.excluir_categoria_estoque', id=cat.id) }}" method="POST"
+                                class="d-inline m-0 p-0" onsubmit="return confirm('Excluir categoria {{ cat.nome }}?')">
+                                <button type="submit" class="btn-close btn-close-white" style="font-size:0.6rem;"
+                                    title="Excluir"></button>
                             </form>
                         </span>
                         {% else %}
@@ -464,7 +461,7 @@
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white border-bottom py-2 d-flex gap-2 flex-wrap">
                 <select id="filtroCategoriaCatalogo" class="form-select form-select-sm w-auto"
-                        onchange="filtrarCatalogo()">
+                    onchange="filtrarCatalogo()">
                     <option value="">Todas as categorias</option>
                     {% for cat in categorias_estoque %}
                     <option value="{{ cat.id }}">{{ cat.nome }}</option>
@@ -491,7 +488,8 @@
                             <td data-label="Nome">{{ item.nome }}</td>
                             <td data-label="Categoria">
                                 {% if item.categoria %}
-                                <span class="badge bg-primary-subtle text-primary-emphasis">{{ item.categoria.nome }}</span>
+                                <span class="badge bg-primary-subtle text-primary-emphasis">{{ item.categoria.nome
+                                    }}</span>
                                 {% else %}
                                 <span class="text-muted">—</span>
                                 {% endif %}
@@ -511,12 +509,12 @@
         </div>
 
         <script>
-        function filtrarCatalogo() {
-            const val = document.getElementById('filtroCategoriaCatalogo').value;
-            document.querySelectorAll('#tabelaCatalogo tbody tr[data-cat]').forEach(tr => {
-                tr.style.display = (!val || tr.dataset.cat === val) ? '' : 'none';
-            });
-        }
+            function filtrarCatalogo() {
+                const val = document.getElementById('filtroCategoriaCatalogo').value;
+                document.querySelectorAll('#tabelaCatalogo tbody tr[data-cat]').forEach(tr => {
+                    tr.style.display = (!val || tr.dataset.cat === val) ? '' : 'none';
+                });
+            }
         </script>
     </div>
 
@@ -542,7 +540,7 @@
                     </thead>
                     <tbody>
                         {% for f in fornecedores %}
-                        <tr{% if not f.ativo %} class="table-secondary opacity-75"{% endif %}>
+                        <tr{% if not f.ativo %} class="table-secondary opacity-75" {% endif %}>
                             <td class="ps-4 fw-bold" data-label="Fornecedor">{{ f.nome }}
                                 {% if not f.ativo %}
                                 <span class="badge bg-danger bg-opacity-10 text-danger ms-1">Pausado</span>
@@ -572,15 +570,13 @@
                                     {% if f.ativo %}
                                     <a href="{{ url_for('admin.toggle_fornecedor_status', id=f.id) }}"
                                         class="btn btn-sm btn-outline-warning"
-                                        onclick="return confirm('Pausar fornecedor {{ f.nome }}?')"
-                                        title="Pausar">
+                                        onclick="return confirm('Pausar fornecedor {{ f.nome }}?')" title="Pausar">
                                         <i class="bi bi-pause-circle"></i>
                                     </a>
                                     {% else %}
                                     <a href="{{ url_for('admin.toggle_fornecedor_status', id=f.id) }}"
                                         class="btn btn-sm btn-outline-success"
-                                        onclick="return confirm('Reativar fornecedor {{ f.nome }}?')"
-                                        title="Reativar">
+                                        onclick="return confirm('Reativar fornecedor {{ f.nome }}?')" title="Reativar">
                                         <i class="bi bi-play-circle"></i>
                                     </a>
                                     {% endif %}
@@ -592,12 +588,12 @@
                                     </a>
                                 </div>
                             </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="5" class="text-center py-4 text-muted">Nenhum fornecedor cadastrado.</td>
-                        </tr>
-                        {% endfor %}
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">Nenhum fornecedor cadastrado.</td>
+                            </tr>
+                            {% endfor %}
                     </tbody>
                 </table>
             </div>
@@ -663,7 +659,7 @@
                     </thead>
                     <tbody>
                         {% for t in terceirizados %}
-                        <tr{% if not t.ativo %} class="table-secondary opacity-75"{% endif %}>
+                        <tr{% if not t.ativo %} class="table-secondary opacity-75" {% endif %}>
                             <td class="ps-4" data-label="Nome">
                                 <div class="fw-bold">{{ t.nome }}
                                     {% if not t.ativo %}
@@ -701,29 +697,31 @@
                                 </button>
                                 {% if t.ativo %}
                                 <a href="{{ url_for('admin.toggle_terceirizado_status', id=t.id) }}"
-                                    class="btn btn-sm btn-outline-warning me-1" onclick="return confirm('Pausar prestador? Ele não aparecerá nas listas de OS.')"
+                                    class="btn btn-sm btn-outline-warning me-1"
+                                    onclick="return confirm('Pausar prestador? Ele não aparecerá nas listas de OS.')"
                                     title="Pausar">
                                     <i class="bi bi-pause-circle"></i>
                                 </a>
                                 {% else %}
                                 <a href="{{ url_for('admin.toggle_terceirizado_status', id=t.id) }}"
-                                    class="btn btn-sm btn-outline-success me-1" onclick="return confirm('Reativar prestador?')"
-                                    title="Reativar">
+                                    class="btn btn-sm btn-outline-success me-1"
+                                    onclick="return confirm('Reativar prestador?')" title="Reativar">
                                     <i class="bi bi-play-circle"></i>
                                 </a>
                                 {% endif %}
                                 <a href="{{ url_for('admin.excluir_terceirizado', id=t.id) }}"
-                                    class="btn btn-sm btn-outline-danger" onclick="return confirm('Tem certeza? Se possuir histórico, será apenas desativado.')"
+                                    class="btn btn-sm btn-outline-danger"
+                                    onclick="return confirm('Tem certeza? Se possuir histórico, será apenas desativado.')"
                                     title="Excluir">
                                     <i class="bi bi-trash"></i>
                                 </a>
                             </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="5" class="text-center py-4 text-muted">Nenhum prestador cadastrado.</td>
-                        </tr>
-                        {% endfor %}
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">Nenhum prestador cadastrado.</td>
+                            </tr>
+                            {% endfor %}
                     </tbody>
                 </table>
             </div>
@@ -810,11 +808,13 @@
                                 <input type="text" id="buscaPecaInput" class="form-control form-control-sm"
                                     placeholder="Digite para buscar..." autocomplete="off"
                                     oninput="filtrarPecas(this.value)">
-                                <div id="pecaDropdown" class="position-absolute w-100 bg-white border rounded shadow-sm d-none"
+                                <div id="pecaDropdown"
+                                    class="position-absolute w-100 bg-white border rounded shadow-sm d-none"
                                     style="z-index:1000; max-height:200px; overflow-y:auto; top:100%;">
                                 </div>
                             </div>
-                            <small id="pecaSelecionada" class="text-success d-none"><i class="bi bi-check-circle me-1"></i><span></span></small>
+                            <small id="pecaSelecionada" class="text-success d-none"><i
+                                    class="bi bi-check-circle me-1"></i><span></span></small>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label small text-muted">Preço Atual</label>
@@ -826,49 +826,50 @@
                             <input type="number" name="prazo" class="form-control form-control-sm" placeholder="Dias">
                         </div>
                         <div class="col-md-2">
-                            <button type="submit" class="btn btn-primary btn-sm w-100" id="btnVincularPeca" disabled>Vincular</button>
+                            <button type="submit" class="btn btn-primary btn-sm w-100" id="btnVincularPeca"
+                                disabled>Vincular</button>
                         </div>
                     </div>
                 </form>
                 <script>
-                const PECAS_CATALOGO = [
+                    const PECAS_CATALOGO = JSON.parse(`[
                     {% for item in estoque_itens %}
-                    { id: {{ item.id }}, nome: "{{ item.nome|e }}", codigo: "{{ item.codigo|e }}" },
+                    { "id": {{ item.id|tojson }}, "nome": {{ item.nome|tojson }}, "codigo": {{ item.codigo|tojson }} }{% if not loop.last %},{% endif %}
                     {% endfor %}
-                ];
-                function filtrarPecas(q) {
-                    const dd = document.getElementById('pecaDropdown');
-                    document.getElementById('inputEstoqueId').value = '';
-                    document.getElementById('btnVincularPeca').disabled = true;
-                    document.getElementById('pecaSelecionada').classList.add('d-none');
-                    if (!q.trim()) { dd.classList.add('d-none'); return; }
-                    const res = PECAS_CATALOGO.filter(p =>
-                        p.nome.toLowerCase().includes(q.toLowerCase()) ||
-                        p.codigo.toLowerCase().includes(q.toLowerCase())
-                    ).slice(0, 15);
-                    if (!res.length) { dd.innerHTML = '<div class="p-2 text-muted small">Nenhum item encontrado</div>'; dd.classList.remove('d-none'); return; }
-                    dd.innerHTML = res.map(p =>
-                        `<div class="p-2 small border-bottom" style="cursor:pointer"
-                            onmousedown="selecionarPeca(${p.id}, '${p.nome.replace(/'/g,"\\'")} (${p.codigo.replace(/'/g,"\\'")})')">
+                ]`);
+                    function filtrarPecas(q) {
+                        const dd = document.getElementById('pecaDropdown');
+                        document.getElementById('inputEstoqueId').value = '';
+                        document.getElementById('btnVincularPeca').disabled = true;
+                        document.getElementById('pecaSelecionada').classList.add('d-none');
+                        if (!q.trim()) { dd.classList.add('d-none'); return; }
+                        const res = PECAS_CATALOGO.filter(p =>
+                            p.nome.toLowerCase().includes(q.toLowerCase()) ||
+                            p.codigo.toLowerCase().includes(q.toLowerCase())
+                        ).slice(0, 15);
+                        if (!res.length) { dd.innerHTML = '<div class="p-2 text-muted small">Nenhum item encontrado</div>'; dd.classList.remove('d-none'); return; }
+                        dd.innerHTML = res.map(p =>
+                            `<div class="p-2 small border-bottom" style="cursor:pointer"
+                            onmousedown="selecionarPeca(${p.id}, '${p.nome.replace(/'/g, "\\'")} (${p.codigo.replace(/'/g, "\\'")})')">
                             <strong>${p.nome}</strong> <span class="text-muted">${p.codigo}</span>
                         </div>`
-                    ).join('');
-                    dd.classList.remove('d-none');
-                }
-                function selecionarPeca(id, label) {
-                    document.getElementById('inputEstoqueId').value = id;
-                    document.getElementById('buscaPecaInput').value = label;
-                    document.getElementById('pecaDropdown').classList.add('d-none');
-                    document.getElementById('btnVincularPeca').disabled = false;
-                    const el = document.getElementById('pecaSelecionada');
-                    el.querySelector('span').textContent = label;
-                    el.classList.remove('d-none');
-                }
-                document.addEventListener('click', e => {
-                    if (!e.target.closest('#buscaPecaInput') && !e.target.closest('#pecaDropdown')) {
-                        document.getElementById('pecaDropdown').classList.add('d-none');
+                        ).join('');
+                        dd.classList.remove('d-none');
                     }
-                });
+                    function selecionarPeca(id, label) {
+                        document.getElementById('inputEstoqueId').value = id;
+                        document.getElementById('buscaPecaInput').value = label;
+                        document.getElementById('pecaDropdown').classList.add('d-none');
+                        document.getElementById('btnVincularPeca').disabled = false;
+                        const el = document.getElementById('pecaSelecionada');
+                        el.querySelector('span').textContent = label;
+                        el.classList.remove('d-none');
+                    }
+                    document.addEventListener('click', e => {
+                        if (!e.target.closest('#buscaPecaInput') && !e.target.closest('#pecaDropdown')) {
+                            document.getElementById('pecaDropdown').classList.add('d-none');
+                        }
+                    });
                 </script>
             </div>
         </div>
@@ -1191,7 +1192,8 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Telefone / WhatsApp</label>
-                            <input type="text" name="telefone" id="editUserTelefone" class="form-control" placeholder="(xx) xxxxx-xxxx">
+                            <input type="text" name="telefone" id="editUserTelefone" class="form-control"
+                                placeholder="(xx) xxxxx-xxxx">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Cargo / Função</label>
@@ -1212,14 +1214,17 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Nova Senha <span class="text-muted fw-normal">(deixe vazio para manter)</span></label>
-                            <input type="password" name="senha" id="editUserSenha" class="form-control" placeholder="Nova senha (opcional)">
+                            <label class="form-label fw-semibold">Nova Senha <span class="text-muted fw-normal">(deixe
+                                    vazio para manter)</span></label>
+                            <input type="password" name="senha" id="editUserSenha" class="form-control"
+                                placeholder="Nova senha (opcional)">
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar Alterações</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar
+                        Alterações</button>
                 </div>
             </form>
         </div>

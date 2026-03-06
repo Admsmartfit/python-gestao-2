@@ -82,17 +82,17 @@
                             </td>
                             <td class="text-end pe-4">
                                 <button class="btn btn-sm btn-link text-primary p-0 me-2"
-                                    onclick="editarRegra({{ regra.id }})" title="Editar regra">
+                                    onclick="editarRegra('{{ regra.id }}')" title="Editar regra">
                                     <i class="bi bi-pencil"></i>
                                 </button>
                                 <button
                                     class="btn btn-sm btn-link text-{{ 'success' if regra.ativo else 'secondary' }} p-0 me-2"
-                                    onclick="toggleRegra({{ regra.id }})"
+                                    onclick="toggleRegra('{{ regra.id }}')"
                                     title="{{ 'Desativar' if regra.ativo else 'Ativar' }}">
                                     <i class="bi bi-toggle-{{ 'on' if regra.ativo else 'off' }}"></i>
                                 </button>
                                 <button class="btn btn-sm btn-link text-danger p-0"
-                                    onclick="excluirRegra({{ regra.id }})" title="Excluir regra">
+                                    onclick="excluirRegra('{{ regra.id }}')" title="Excluir regra">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </td>
@@ -127,7 +127,8 @@
                     <!-- Gatilho -->
                     <div class="mb-3">
                         <label class="form-label small fw-bold text-uppercase text-muted">Gatilho</label>
-                        <input type="text" class="form-control" id="palavraChave" placeholder="Ex: #COMPRA, SIM, Preço" required>
+                        <input type="text" class="form-control" id="palavraChave" placeholder="Ex: #COMPRA, SIM, Preço"
+                            required>
                     </div>
 
                     <div class="row g-3 mb-3">
@@ -161,14 +162,20 @@
                         <!-- Tipo de resposta -->
                         <label class="form-label small fw-bold text-uppercase text-muted">Tipo de Resposta</label>
                         <div class="btn-group w-100 mb-3" role="group">
-                            <input type="radio" class="btn-check" name="tipoRespostaRadio" id="trTexto" value="texto" checked onchange="toggleTipoResposta()">
-                            <label class="btn btn-outline-secondary btn-sm" for="trTexto"><i class="bi bi-chat-text me-1"></i>Texto</label>
+                            <input type="radio" class="btn-check" name="tipoRespostaRadio" id="trTexto" value="texto"
+                                checked onchange="toggleTipoResposta()">
+                            <label class="btn btn-outline-secondary btn-sm" for="trTexto"><i
+                                    class="bi bi-chat-text me-1"></i>Texto</label>
 
-                            <input type="radio" class="btn-check" name="tipoRespostaRadio" id="trLista" value="lista_interativa" onchange="toggleTipoResposta()">
-                            <label class="btn btn-outline-primary btn-sm" for="trLista"><i class="bi bi-list-ul me-1"></i>Lista Interativa</label>
+                            <input type="radio" class="btn-check" name="tipoRespostaRadio" id="trLista"
+                                value="lista_interativa" onchange="toggleTipoResposta()">
+                            <label class="btn btn-outline-primary btn-sm" for="trLista"><i
+                                    class="bi bi-list-ul me-1"></i>Lista Interativa</label>
 
-                            <input type="radio" class="btn-check" name="tipoRespostaRadio" id="trBotoes" value="botoes" onchange="toggleTipoResposta()">
-                            <label class="btn btn-outline-success btn-sm" for="trBotoes"><i class="bi bi-ui-checks me-1"></i>Botões (máx. 3)</label>
+                            <input type="radio" class="btn-check" name="tipoRespostaRadio" id="trBotoes" value="botoes"
+                                onchange="toggleTipoResposta()">
+                            <label class="btn btn-outline-success btn-sm" for="trBotoes"><i
+                                    class="bi bi-ui-checks me-1"></i>Botões (máx. 3)</label>
                         </div>
 
                         <!-- Texto simples -->
@@ -182,20 +189,25 @@
                             <div class="row g-2 mb-2">
                                 <div class="col-md-6">
                                     <label class="form-label small fw-bold">Título (Header)</label>
-                                    <input type="text" class="form-control form-control-sm" id="listaHeader" placeholder="Ex: Menu de Opções">
+                                    <input type="text" class="form-control form-control-sm" id="listaHeader"
+                                        placeholder="Ex: Menu de Opções">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label small fw-bold">Texto do Botão</label>
-                                    <input type="text" class="form-control form-control-sm" id="listaBtnText" placeholder="Ex: Ver Opções" value="Ver Opções">
+                                    <input type="text" class="form-control form-control-sm" id="listaBtnText"
+                                        placeholder="Ex: Ver Opções" value="Ver Opções">
                                 </div>
                             </div>
                             <div class="mb-2">
                                 <label class="form-label small fw-bold">Corpo da Mensagem</label>
-                                <textarea class="form-control form-control-sm" id="listaBody" rows="2" placeholder="Texto principal exibido acima da lista..."></textarea>
+                                <textarea class="form-control form-control-sm" id="listaBody" rows="2"
+                                    placeholder="Texto principal exibido acima da lista..."></textarea>
                             </div>
-                            <label class="form-label small fw-bold text-uppercase text-muted mt-1">Seções e Opções</label>
+                            <label class="form-label small fw-bold text-uppercase text-muted mt-1">Seções e
+                                Opções</label>
                             <div id="listaSecoes"></div>
-                            <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="adicionarSecao()">
+                            <button type="button" class="btn btn-outline-primary btn-sm mt-2"
+                                onclick="adicionarSecao()">
                                 <i class="bi bi-plus-lg me-1"></i>Adicionar Seção
                             </button>
                         </div>
@@ -204,11 +216,14 @@
                         <div id="subBotoes" class="d-none">
                             <div class="mb-2">
                                 <label class="form-label small fw-bold">Corpo da Mensagem</label>
-                                <textarea class="form-control form-control-sm" id="botoesBody" rows="3" placeholder="Texto exibido acima dos botões..."></textarea>
+                                <textarea class="form-control form-control-sm" id="botoesBody" rows="3"
+                                    placeholder="Texto exibido acima dos botões..."></textarea>
                             </div>
-                            <label class="form-label small fw-bold text-uppercase text-muted">Botões <span class="text-muted fw-normal">(máx. 3)</span></label>
+                            <label class="form-label small fw-bold text-uppercase text-muted">Botões <span
+                                    class="text-muted fw-normal">(máx. 3)</span></label>
                             <div id="listaBotoes"></div>
-                            <button type="button" class="btn btn-outline-success btn-sm mt-2" onclick="adicionarBotao()" id="btnAdicionarBotao">
+                            <button type="button" class="btn btn-outline-success btn-sm mt-2" onclick="adicionarBotao()"
+                                id="btnAdicionarBotao">
                                 <i class="bi bi-plus-lg me-1"></i>Adicionar Botão
                             </button>
                         </div>
@@ -291,7 +306,8 @@
                 </form>
             </div>
             <div class="modal-footer border-0 pt-0">
-                <button type="button" class="btn btn-link text-muted text-decoration-none" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-link text-muted text-decoration-none"
+                    data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-primary px-4" onclick="salvarRegra()">Salvar Regra</button>
             </div>
         </div>
@@ -517,7 +533,7 @@
                     const dados = JSON.parse(regra.resposta_estruturada);
                     if (tr === 'lista_interativa') preencherLista(dados);
                     if (tr === 'botoes') preencherBotoes(dados);
-                } catch(e) { console.warn('resposta_estruturada inválida', e); }
+                } catch (e) { console.warn('resposta_estruturada inválida', e); }
             }
 
             toggleCampos();
