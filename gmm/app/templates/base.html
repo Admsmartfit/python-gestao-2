@@ -57,7 +57,7 @@
             {% set grp_suprimentos = 'compras' in request.endpoint or 'transferencias' in request.endpoint %}
             {% set grp_manutencao  = request.endpoint in ['os.nova_os'] or 'equipamentos' in request.endpoint or 'manutencao' in request.endpoint %}
             {% set grp_terceiros   = 'terceirizados' in request.endpoint or request.endpoint == 'admin_whatsapp.chat_central' %}
-            {% set grp_sistema     = request.endpoint in ['admin.dashboard', 'admin_whatsapp.dashboard'] %}
+            {% set grp_sistema     = request.endpoint == 'admin_whatsapp.dashboard' or (request.endpoint == 'admin.dashboard' and request.args.get('tab') not in ['catalogo', 'fornecedores']) %}
             {% endif %}
 
             <div class="sidebar-nav accordion" id="sidebarAccordion">
@@ -73,13 +73,13 @@
                     <i class="bi bi-speedometer2"></i> Dashboard
                 </a>
 
-                {% if current_user.tipo in ['admin', 'gerente', 'diretor', 'comprador'] %}
+                <!-- Analytics & BI: todos os perfis -->
                 <a href="{{ url_for('analytics.dashboard') }}"
                     class="nav-link-saas mb-1 {{ 'active' if 'analytics' in request.endpoint }}">
                     <i class="bi bi-graph-up-arrow"></i> Analytics & BI
                 </a>
-                {% endif %}
 
+                <!-- Aprovações: admin, gerente, diretor -->
                 {% if current_user.tipo in ['admin', 'diretor', 'gerente'] %}
                 <a href="{{ url_for('compras.aprovacoes') }}"
                     class="nav-link-saas mb-1 d-flex align-items-center gap-2 {{ 'active' if request.endpoint == 'compras.aprovacoes' }}">
@@ -96,8 +96,7 @@
                     <span class="text-white text-opacity-40 fw-bold text-uppercase" style="font-size: 0.6rem; letter-spacing: 0.08em;">Gestão Operacional</span>
                 </div>
 
-                <!-- Suprimentos -->
-                {% if current_user.tipo in ['admin', 'comprador', 'gerente', 'diretor'] %}
+                <!-- Suprimentos: todos os perfis (conteúdo varia) -->
                 <div class="accordion-item bg-transparent border-0">
                     <h2 class="accordion-header">
                         <button class="accordion-button nav-link-saas {{ '' if grp_suprimentos else 'collapsed' }}"
@@ -109,33 +108,39 @@
                     <div id="grpSuprimentos" class="accordion-collapse collapse {{ 'show' if grp_suprimentos }}"
                         data-bs-parent="#sidebarAccordion">
                         <div class="accordion-body py-1 ps-3">
+                            <!-- Todos os Pedidos: admin, gerente, comprador, diretor -->
+                            {% if current_user.tipo in ['admin', 'gerente', 'comprador', 'diretor'] %}
                             <a href="{{ url_for('compras.listar') }}"
                                 class="nav-link-saas nav-link-sub {{ 'active' if request.endpoint == 'compras.listar' }}">
                                 <i class="bi bi-list-ul"></i> Todos os Pedidos
                             </a>
-                            {% if current_user.tipo in ['admin', 'comprador'] %}
+                            {% endif %}
+                            <!-- Painel de Compras: admin, gerente, comprador, diretor -->
+                            {% if current_user.tipo in ['admin', 'gerente', 'comprador', 'diretor'] %}
                             <a href="{{ url_for('admin.compras_painel') }}"
                                 class="nav-link-saas nav-link-sub {{ 'active' if request.endpoint == 'admin.compras_painel' }}">
                                 <i class="bi bi-cart3"></i> Painel de Compras
                             </a>
                             {% endif %}
-                            {% if current_user.tipo in ['admin', 'gerente', 'tecnico'] %}
+                            <!-- Solicitar Compra: todos -->
                             <a href="{{ url_for('compras.painel_solicitante') }}"
                                 class="nav-link-saas nav-link-sub {{ 'active' if request.endpoint == 'compras.painel_solicitante' }}">
                                 <i class="bi bi-cart-plus"></i> Solicitar Compra
                             </a>
-                            {% endif %}
+                            <!-- Solicitar com Cotações: todos -->
                             <a href="{{ url_for('compras.cotacao_nova') }}"
                                 class="nav-link-saas nav-link-sub {{ 'active' if request.endpoint == 'compras.cotacao_nova' }}">
                                 <i class="bi bi-file-earmark-text"></i> Solicitar com Cotações
                             </a>
-                            {% if current_user.tipo in ['admin', 'gerente'] %}
+                            <!-- Listas Padrão: admin, gerente, comprador, diretor -->
+                            {% if current_user.tipo in ['admin', 'gerente', 'comprador', 'diretor'] %}
                             <a href="{{ url_for('compras.listas_compra') }}"
                                 class="nav-link-saas nav-link-sub {{ 'active' if request.endpoint == 'compras.listas_compra' }}">
                                 <i class="bi bi-list-stars"></i> Listas Padrão
                             </a>
                             {% endif %}
-                            {% if current_user.tipo in ['admin', 'comprador', 'gerente'] %}
+                            <!-- Transferências: admin, gerente, comprador, diretor -->
+                            {% if current_user.tipo in ['admin', 'gerente', 'comprador', 'diretor'] %}
                             <a href="{{ url_for('admin.transferencias_painel') }}"
                                 class="nav-link-saas nav-link-sub {{ 'active' if 'transferencias' in request.endpoint }}">
                                 <i class="bi bi-arrow-left-right"></i> Transferências
@@ -144,9 +149,9 @@
                         </div>
                     </div>
                 </div>
-                {% endif %}
 
-                <!-- Manutenção -->
+                <!-- Manutenção: admin, gerente, tecnico, diretor (NÃO comprador) -->
+                {% if current_user.tipo in ['admin', 'gerente', 'tecnico', 'diretor'] %}
                 <div class="accordion-item bg-transparent border-0">
                     <h2 class="accordion-header">
                         <button class="accordion-button nav-link-saas {{ '' if grp_manutencao else 'collapsed' }}"
@@ -158,18 +163,26 @@
                     <div id="grpManutencao" class="accordion-collapse collapse {{ 'show' if grp_manutencao }}"
                         data-bs-parent="#sidebarAccordion">
                         <div class="accordion-body py-1 ps-3">
+                            <!-- Nova OS: admin, gerente, tecnico (NÃO diretor) -->
+                            {% if current_user.tipo in ['admin', 'gerente', 'tecnico'] %}
                             <a href="{{ url_for('os.nova_os') }}"
                                 class="nav-link-saas nav-link-sub {{ 'active' if request.endpoint == 'os.nova_os' }}">
                                 <i class="bi bi-plus-circle"></i> Nova OS
                             </a>
+                            {% endif %}
+                            <!-- Minhas Tarefas: admin, gerente, tecnico, diretor -->
                             <a href="{{ url_for('ponto.index') }}#minhas-os" class="nav-link-saas nav-link-sub">
                                 <i class="bi bi-list-check"></i> Minhas Tarefas
                             </a>
+                            <!-- Equipamentos: admin, gerente, diretor (NÃO tecnico) -->
+                            {% if current_user.tipo in ['admin', 'gerente', 'diretor'] %}
                             <a href="{{ url_for('equipamentos.listar') }}"
                                 class="nav-link-saas nav-link-sub {{ 'active' if 'equipamentos' in request.endpoint }}">
                                 <i class="bi bi-hdd-network"></i> Equipamentos
                             </a>
-                            {% if current_user.tipo in ['admin', 'gerente', 'tecnico'] %}
+                            {% endif %}
+                            <!-- Preventiva: admin, gerente (NÃO tecnico, NÃO diretor) -->
+                            {% if current_user.tipo in ['admin', 'gerente'] %}
                             <a href="{{ url_for('manutencao.listar_planos') }}"
                                 class="nav-link-saas nav-link-sub {{ 'active' if 'manutencao' in request.endpoint }}">
                                 <i class="bi bi-calendar-check"></i> Preventiva
@@ -178,19 +191,45 @@
                         </div>
                     </div>
                 </div>
+                {% endif %}
 
-                <!-- Inventário (direto) -->
+                <!-- Inventário: admin, gerente, comprador, tecnico (NÃO diretor) -->
+                {% if current_user.tipo in ['admin', 'gerente', 'comprador', 'tecnico'] %}
                 <a href="{{ url_for('os.painel_estoque') }}"
                     class="nav-link-saas {{ 'active' if 'estoque' in request.endpoint }}">
                     <i class="bi bi-box-seam"></i> Inventário
                 </a>
+                {% endif %}
+
+                <!-- === CADASTROS (fora de Configuração) === -->
+                <!-- Catálogo, Fornecedores, Prestadores: admin, gerente, comprador -->
+                {% if current_user.tipo in ['admin', 'gerente', 'comprador'] %}
+                <div class="px-2 pt-3 pb-1">
+                    <span class="text-white text-opacity-40 fw-bold text-uppercase" style="font-size: 0.6rem; letter-spacing: 0.08em;">Cadastros</span>
+                </div>
+                <a href="{{ url_for('admin.dashboard', tab='catalogo') }}"
+                    class="nav-link-saas mb-1 {{ 'active' if request.endpoint == 'admin.dashboard' and request.args.get('tab') == 'catalogo' }}">
+                    <i class="bi bi-card-list"></i> Catálogo
+                </a>
+                <a href="{{ url_for('admin.dashboard', tab='fornecedores') }}"
+                    class="nav-link-saas mb-1 {{ 'active' if request.endpoint == 'admin.dashboard' and request.args.get('tab') == 'fornecedores' }}">
+                    <i class="bi bi-building"></i> Fornecedores
+                </a>
+                <a href="{{ url_for('terceirizados.listar_prestadores') }}"
+                    class="nav-link-saas mb-1 {{ 'active' if request.endpoint == 'terceirizados.listar_prestadores' }}">
+                    <i class="bi bi-person-badge"></i> Prestadores
+                </a>
+                {% endif %}
 
                 <!-- === PILAR 3: ADMINISTRAÇÃO === -->
+                {% if current_user.tipo in ['admin', 'gerente', 'comprador', 'diretor'] %}
                 <div class="px-2 pt-3 pb-1">
                     <span class="text-white text-opacity-40 fw-bold text-uppercase" style="font-size: 0.6rem; letter-spacing: 0.08em;">Administração</span>
                 </div>
+                {% endif %}
 
-                <!-- Terceiros -->
+                <!-- Terceiros: admin, gerente, comprador, diretor (NÃO tecnico) -->
+                {% if current_user.tipo in ['admin', 'gerente', 'comprador', 'diretor'] %}
                 <div class="accordion-item bg-transparent border-0">
                     <h2 class="accordion-header">
                         <button class="accordion-button nav-link-saas {{ '' if grp_terceiros else 'collapsed' }}"
@@ -202,28 +241,28 @@
                     <div id="grpTerceiros" class="accordion-collapse collapse {{ 'show' if grp_terceiros }}"
                         data-bs-parent="#sidebarAccordion">
                         <div class="accordion-body py-1 ps-3">
-                            {% if current_user.tipo in ['admin', 'gerente'] %}
+                            <!-- Central de Mensagens: admin, gerente, comprador, diretor -->
                             <a href="{{ url_for('admin_whatsapp.chat_central') }}"
                                 class="nav-link-saas nav-link-sub {{ 'active' if request.endpoint == 'admin_whatsapp.chat_central' }}">
                                 <i class="bi bi-chat-dots"></i> Central de Mensagens
                             </a>
-                            {% endif %}
+                            <!-- Lista de Chamados: todos com acesso a Terceiros -->
                             <a href="{{ url_for('terceirizados.listar_chamados') }}"
                                 class="nav-link-saas nav-link-sub {{ 'active' if request.endpoint in ['terceirizados.listar_chamados', 'terceirizados.detalhes_chamado'] }}">
                                 <i class="bi bi-list-task"></i> Lista de Chamados
                             </a>
-                            {% if current_user.tipo in ['admin', 'gerente'] %}
+                            <!-- Prestadores: todos com acesso a Terceiros -->
                             <a href="{{ url_for('terceirizados.listar_prestadores') }}"
                                 class="nav-link-saas nav-link-sub {{ 'active' if request.endpoint == 'terceirizados.listar_prestadores' }}">
                                 <i class="bi bi-people"></i> Prestadores
                             </a>
-                            {% endif %}
                         </div>
                     </div>
                 </div>
+                {% endif %}
 
-                <!-- Sistema (admin/gerente) -->
-                {% if current_user.tipo in ['admin', 'gerente'] %}
+                <!-- Sistema: admin somente -->
+                {% if current_user.tipo == 'admin' %}
                 <div class="accordion-item bg-transparent border-0">
                     <h2 class="accordion-header">
                         <button class="accordion-button nav-link-saas {{ '' if grp_sistema else 'collapsed' }}"
@@ -235,11 +274,6 @@
                     <div id="grpSistema" class="accordion-collapse collapse {{ 'show' if grp_sistema }}"
                         data-bs-parent="#sidebarAccordion">
                         <div class="accordion-body py-1 ps-3">
-                            <a href="{{ url_for('admin.dashboard', tab='fornecedores') }}"
-                                class="nav-link-saas nav-link-sub {{ 'active' if request.endpoint == 'admin.dashboard' and request.args.get('tab') == 'fornecedores' }}">
-                                <i class="bi bi-building"></i> Fornecedores
-                            </a>
-                            {% if current_user.tipo == 'admin' %}
                             <a href="{{ url_for('admin_whatsapp.dashboard') }}"
                                 class="nav-link-saas nav-link-sub {{ 'active' if request.endpoint == 'admin_whatsapp.dashboard' }}">
                                 <i class="bi bi-robot"></i> WhatsApp Bot
@@ -248,7 +282,6 @@
                                 class="nav-link-saas nav-link-sub {{ 'active' if request.endpoint == 'admin.dashboard' and not request.args.get('tab') }}">
                                 <i class="bi bi-sliders"></i> Configurações
                             </a>
-                            {% endif %}
                         </div>
                     </div>
                 </div>
