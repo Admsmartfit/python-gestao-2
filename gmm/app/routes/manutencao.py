@@ -41,15 +41,20 @@ def novo_plano():
 
     if request.method == 'POST':
         try:
+            from app.models.models import Unidade
             nome = request.form.get('nome')
             tipo_aplicacao = request.form.get('tipo_aplicacao')
             frequencia_dias = int(request.form.get('frequencia_dias'))
             descricao_procedimento = request.form.get('descricao_procedimento')
+            unidade_id = request.form.get('unidade_id') or None
+            if unidade_id:
+                unidade_id = int(unidade_id)
 
             plano = PlanoManutencao(
                 nome=nome,
                 frequencia_dias=frequencia_dias,
                 descricao_procedimento=descricao_procedimento,
+                unidade_id=unidade_id,
                 ativo=True
             )
 
@@ -72,10 +77,11 @@ def novo_plano():
             logger.error(f"Erro ao criar plano: {e}")
             flash(f"Erro ao criar plano: {str(e)}", "danger")
 
-    # GET: Buscar equipamentos e categorias para o formulário
+    # GET: Buscar equipamentos, categorias e unidades para o formulário
+    from app.models.models import Unidade
     equipamentos = Equipamento.query.filter_by(ativo=True).order_by(Equipamento.nome).all()
+    unidades = Unidade.query.filter_by(ativa=True).order_by(Unidade.nome).all()
 
-    # Buscar categorias únicas dos equipamentos
     categorias = db.session.query(Equipamento.categoria)\
         .filter(Equipamento.categoria.isnot(None), Equipamento.categoria != '')\
         .distinct()\
@@ -86,6 +92,7 @@ def novo_plano():
     return render_template('manutencao/preventiva_form.html',
                          equipamentos=equipamentos,
                          categorias=categorias,
+                         unidades=unidades,
                          plano=None)
 
 @bp.route('/preventiva/<int:id>/editar', methods=['GET', 'POST'])
@@ -100,9 +107,12 @@ def editar_plano(id):
 
     if request.method == 'POST':
         try:
+            from app.models.models import Unidade
             plano.nome = request.form.get('nome')
             plano.frequencia_dias = int(request.form.get('frequencia_dias'))
             plano.descricao_procedimento = request.form.get('descricao_procedimento')
+            unidade_id = request.form.get('unidade_id') or None
+            plano.unidade_id = int(unidade_id) if unidade_id else None
 
             tipo_aplicacao = request.form.get('tipo_aplicacao')
 
@@ -125,9 +135,10 @@ def editar_plano(id):
             logger.error(f"Erro ao editar plano: {e}")
             flash(f"Erro ao editar plano: {str(e)}", "danger")
 
+    from app.models.models import Unidade
     equipamentos = Equipamento.query.filter_by(ativo=True).order_by(Equipamento.nome).all()
+    unidades = Unidade.query.filter_by(ativa=True).order_by(Unidade.nome).all()
 
-    # Buscar categorias únicas dos equipamentos
     categorias = db.session.query(Equipamento.categoria)\
         .filter(Equipamento.categoria.isnot(None), Equipamento.categoria != '')\
         .distinct()\
@@ -138,6 +149,7 @@ def editar_plano(id):
     return render_template('manutencao/preventiva_form.html',
                          equipamentos=equipamentos,
                          categorias=categorias,
+                         unidades=unidades,
                          plano=plano)
 
 @bp.route('/preventiva/<int:id>/toggle', methods=['POST'])
@@ -199,10 +211,10 @@ def executar_plano(id):
         if plano.equipamento_id:
             equipamentos_afetados = [plano.equipamento]
         elif plano.categoria_equipamento:
-            equipamentos_afetados = Equipamento.query.filter_by(
-                categoria=plano.categoria_equipamento,
-                ativo=True
-            ).all()
+            q = Equipamento.query.filter_by(categoria=plano.categoria_equipamento, ativo=True)
+            if plano.unidade_id:
+                q = q.filter_by(unidade_id=plano.unidade_id)
+            equipamentos_afetados = q.all()
 
         if not equipamentos_afetados:
             return jsonify({

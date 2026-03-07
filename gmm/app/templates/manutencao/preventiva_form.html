@@ -67,7 +67,7 @@
                         </div>
 
                         <!-- Seletor de Categoria -->
-                        <div class="mb-4 d-none" id="campoCategoria">
+                        <div class="mb-3 d-none" id="campoCategoria">
                             <label class="form-label fw-bold">Categoria</label>
                             <select class="form-select" name="categoria_equipamento">
                                 <option value="">Selecione uma categoria</option>
@@ -78,7 +78,26 @@
                                 </option>
                                 {% endfor %}
                             </select>
-                            <div class="form-text">Selecione a categoria de equipamentos (ex: Esteira, Bomba, Transformador)</div>
+                            <div class="form-text">Selecione a categoria (ex: Esteira, Bomba, Ar-condicionado)</div>
+                        </div>
+
+                        <!-- Seletor de Unidade (para categoria: filtra quais equipamentos serão afetados) -->
+                        <div class="mb-4 d-none" id="campoUnidade">
+                            <label class="form-label fw-bold">
+                                <i class="bi bi-building me-1 text-primary"></i>Unidade
+                            </label>
+                            <select class="form-select" name="unidade_id" id="selectUnidade">
+                                <option value="">— Todas as Unidades —</option>
+                                {% for u in unidades %}
+                                <option value="{{ u.id }}"
+                                        {% if plano and plano.unidade_id == u.id %}selected{% endif %}>
+                                    {{ u.nome }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">
+                                Deixe em branco para gerar OS em <strong>todas as unidades</strong> que possuem esta categoria de equipamento.
+                            </div>
                         </div>
 
                         <!-- Frequência -->
@@ -144,7 +163,7 @@
                     <h6 class="fw-bold mb-3"><i class="bi bi-lightbulb me-2"></i>Dicas</h6>
                     <ul class="small mb-0">
                         <li><strong>Equipamento Específico:</strong> Use quando quiser manutenção em um equipamento único (ex: Compressor #1)</li>
-                        <li><strong>Categoria:</strong> Use quando quiser aplicar o mesmo plano a vários equipamentos similares (ex: todas as esteiras)</li>
+                        <li><strong>Categoria:</strong> Use para aplicar o mesmo plano a vários equipamentos similares. Selecione uma <strong>Unidade</strong> para restringir a unidade específica, ou deixe em branco para todas.</li>
                         <li><strong>Frequência:</strong> Defina baseado nas recomendações do fabricante ou histórico de falhas</li>
                         <li><strong>Execução Automática:</strong> O sistema pode criar OSs automaticamente quando o prazo vencer (configurar tarefa agendada)</li>
                     </ul>
@@ -159,13 +178,17 @@ function toggleAplicacao() {
     const tipoEquipamento = document.getElementById('tipoEquipamento').checked;
     const campoEquipamento = document.getElementById('campoEquipamento');
     const campoCategoria = document.getElementById('campoCategoria');
+    const campoUnidade = document.getElementById('campoUnidade');
 
     if (tipoEquipamento) {
         campoEquipamento.classList.remove('d-none');
         campoCategoria.classList.add('d-none');
+        campoUnidade.classList.add('d-none');
+        document.getElementById('selectUnidade').value = '';
     } else {
         campoEquipamento.classList.add('d-none');
         campoCategoria.classList.remove('d-none');
+        campoUnidade.classList.remove('d-none');
     }
 }
 

@@ -50,7 +50,19 @@ def check_db_schema(app, db):
                         except Exception as e:
                             app.logger.error(f"Erro ao adicionar coluna {col_name}: {e}")
                 
-                # 3. Verificar colunas em cotacoes_compra
+                # 3. Verificar colunas em planos_manutencao
+                result = conn.execute(text("PRAGMA table_info(planos_manutencao)"))
+                columns = [row[1] for row in result]
+
+                if 'unidade_id' not in columns:
+                    try:
+                        conn.execute(text("ALTER TABLE planos_manutencao ADD COLUMN unidade_id INTEGER REFERENCES unidades(id)"))
+                        conn.commit()
+                        app.logger.info("Self-Healing: Coluna 'unidade_id' adicionada a 'planos_manutencao'.")
+                    except Exception as e:
+                        app.logger.error(f"Erro ao adicionar coluna unidade_id em planos_manutencao: {e}")
+
+                # 3b. Verificar colunas em cotacoes_compra
                 result = conn.execute(text("PRAGMA table_info(cotacoes_compra)"))
                 columns = [row[1] for row in result]
 
